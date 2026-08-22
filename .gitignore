@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data/chroma/
+data/reports/
+data/audit/
+data/uploads/
+data/regression/
+.pytest_cache/
+.DS_Store

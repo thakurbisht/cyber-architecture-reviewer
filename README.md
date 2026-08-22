@@ -1,0 +1,287 @@
+# Cyber Architecture Reviewer
+
+An agentic AI system that reviews **network, application, cyber and cloud
+architecture designs** against your own architectural standards, and produces a
+board-ready assurance report where every finding cites the clause it rests on.
+
+Runs entirely on-premise. No cloud services, no API keys, no licensing fees, no
+data leaving the machine.
+
+```
+Design document ──▶ classify sections ──▶ retrieve YOUR standards ──▶ review ──▶ cited findings + RAG status
+```
+
+---
+
+## Why
+
+Manual design review does not scale, produces inconsistent findings, and
+happens without opening the standards documents it is supposed to enforce.
+
+This tool does not outsource the judgement. It encodes the standards that
+govern the judgement, so they are retrieved, applied and cited the same way
+every time — and leaves the judgement calls to the architect.
+
+It **reads and flags**. It does not approve, reject, or change anything.
+
+---
+
+## What it reviews
+
+| Domain | Lens |
+|---|---|
+| **Network** | Topology, redundancy and failure domains, routing protection, segmentation, management plane |
+| **Application** | Trust boundaries, authN/authZ enforcement, input handling, secrets, API abuse, supply chain |
+| **Cyber / Security** | Implicit trust, identity and privileged access, cryptography and keys, detection coverage, recoverability |
+| **Cloud & Data** | Tenancy separation, guardrails, workload permissions, classification and residency, data exposure |
+
+Plus a **cross-domain consistency pass** — the class of defect that only
+appears when the domains are read together. The application relies on network
+segmentation for isolation; the network design has one flat segment. Each
+document looks fine alone.
+
+**Inputs:** `.md` `.txt` `.docx` `.pdf` `.yaml` `.json` (OpenAPI specs and IaC
+definitions are flattened into reviewable prose), or pasted text.
+
+---
+
+## Quick start
+
+```bash
+# 1. Models (one time, ~2.5 GB)
+ollama serve &
+ollama pull llama3.2
+ollama pull nomic-embed-text
+
+# 2. Dependencies
+pip install -r requirements.txt
+
+# 3. Seed the knowledge base - ALWAYS check the chunk count it prints
+python scripts/seed_kb.py
+
+# 4. Review
+streamlit run app.py                                    # browser UI
+python scripts/review_cli.py samples/sample-campus-lan-lld.md   # CLI
+```
+
+Try the shipped samples first. Each contains deliberately planted violations
+and `samples/EXPECTED_FINDINGS.md` is the answer key.
+
+**No Ollama yet?** The deterministic layer runs standalone:
+
+```bash
+python scripts/review_cli.py samples/sample-payments-app-hld.md --rules-only
+```
+
+---
+
+## What a review produces
+
+```
+Status: 🔴 RED  |  Risk score: 99.9/100  |  Findings: 18  |  Sections: 13
+```
+
+- **Executive summary** in board language — no protocol names, no acronyms
+- **Overall RAG status** with the scoring arithmetic shown so anyone can recheck it
+- **Top 3 priority actions** that must close before implementation
+- **Findings table per domain** — severity · section · issue · standard reference · recommendation
+- **Evidence appendix** — the quoted design text behind each finding, its provenance, and its control mapping
+- **Review coverage** — sections analysed per domain, so you can see what was *not* reviewed
+- **Audit bundle (JSON)** — every retrieval, tool call and decision in the run
+
+A finding looks like this:
+
+> **[CRITICAL] Access Layer** — ACC-F4-01 has two uplinks but both terminate on
+> DIST-SW-A.
+> *Reference:* Three-Tier LAN Architecture Standard §3.2 — uplinks must
+> terminate on two different upstream devices. Two uplinks to the same device
+> satisfy quantity but not diversity.
+> *Recommendation:* Reroute one uplink from ACC-F4-01 to DIST-SW-B.
+
+Specific, citable, and reflecting *your* standard rather than public guidance —
+which is the whole point. No generic model produces that finding, because the
+standard it enforces is yours.
+
+---
+
+## The two-layer design
+
+**Layer 1 — deterministic rules.** ~40 pattern rules with severity, citation
+and control mapping. Same input, byte-identical output, every run. SNMPv2c with
+community string `public` is a CRITICAL finding every time — it must not depend
+on whether the model felt thorough on this pass.
+
+**Layer 2 — agent reasoning.** LangGraph state machine over the retrieved
+standards. Handles what a regex cannot: contradictions, implications, whether a
+stated availability target is achievable with the described topology. Layer 1
+findings are fed in as prior context so the model spends its budget on the
+subtle rather than re-reporting the obvious.
+
+Layer 1 guarantees the floor. Layer 2 provides the ceiling. Layer 1 still runs
+if the model is down.
+
+---
+
+## Making it yours
+
+The starter knowledge base ships with structured standards derived from public
+frameworks (NIST SP 800-207 / 800-53, CIS, OWASP ASVS, ISO 27001 Annex A,
+TOGAF/SABSA-aligned patterns). **They are a scaffold, not the product.**
+
+The value appears when you seed your own standards. Read
+[`knowledge_base/_templates/AUTHORING_GUIDE.md`](knowledge_base/_templates/AUTHORING_GUIDE.md)
+— it is the highest-leverage document here.
+
+The core idea is the **finding trigger sentence**:
+
+```
+❌  Ensure redundant uplinks are provided.
+
+✅  FINDING TRIGGER: If two uplinks from the same device terminate on the
+    same upstream device, flag as CRITICAL even though two uplinks exist.
+    State explicitly that quantity is satisfied but diversity is not.
+```
+
+The first is an aspiration. The second gives a pattern to match, a severity to
+apply, and the reasoning to reproduce.
+
+Priority order for seeding: your reference architectures first, then your
+standards rewritten with trigger sentences, then post-incident findings from
+past reviews, and public frameworks last and abridged — the model already knows
+those; their value here is citation, not knowledge.
+
+```bash
+cp knowledge_base/_templates/STANDARD_TEMPLATE.md knowledge_base/network/my-standard.md
+# edit, then:
+python scripts/seed_kb.py --domain network
+```
+
+---
+
+## CI/CD gating
+
+```bash
+python scripts/review_cli.py designs/platform.md --fail-on CRITICAL
+```
+
+Exit 1 on a breach. Attach it to a pull request that changes a design document
+and the build fails on a new CRITICAL finding, the same way it fails on a
+broken test.
+
+Compare against a previous run — the diff is by finding fingerprint, so wording
+drift between runs is ignored and only genuine change surfaces:
+
+```bash
+python scripts/review_cli.py designs/platform.md --compare last-review.json
+```
+
+---
+
+## Configuration
+
+Everything behavioural lives in `config.yaml`: models, chunk size, `top_k`,
+similarity floor, agent loop caps, severity weights, RAG thresholds, enabled
+domains.
+
+```yaml
+agent:
+  max_tool_iterations: 6          # the agent WILL loop without this
+  max_searches_per_section: 3
+scoring:
+  weights: {CRITICAL: 40, HIGH: 15, MEDIUM: 5, LOW: 1}
+  rag: {red_at_score: 40, amber_at_score: 12, critical_forces_red: true}
+```
+
+The RAG verdict is computed in Python, never asked of the model. A board-facing
+status has to be reproducible and recomputable by hand from the findings table.
+
+---
+
+## Project layout
+
+```
+config.yaml                 all tuning in one place
+app.py                      Streamlit UI
+src/
+  parser.py                 md/docx/pdf/OpenAPI ingestion, section splitting
+  domains.py                domain + topic taxonomy, retrieval query building
+  rules.py                  deterministic rules engine (Layer 1)
+  retriever.py              ChromaDB, clause-aware chunking, index integrity
+  llm.py                    model handles + tool schemas
+  prompts.py                domain-specialised prompts
+  agent.py                  LangGraph state machine (Layer 2)
+  report.py                 scoring, RAG, markdown + JSON export
+  audit.py                  immutable reasoning trail
+  models.py                 Finding, Section, ReviewResult
+knowledge_base/             your standards, per domain, + authoring templates
+samples/                    three designs with planted violations + answer key
+scripts/seed_kb.py          seed and verify the vector store
+scripts/review_cli.py       CLI / CI entry point
+docs/ARCHITECTURE_BLUEPRINT.md   full design, threat model, operating model
+tests/                      92 offline tests - no Ollama, no ChromaDB needed
+```
+
+---
+
+## Tests
+
+```bash
+pytest
+```
+
+92 tests, under a second, no model download and no vector store. A scripted
+stub LLM exercises the whole graph — routing, the tool loop, every loop cap,
+citation verification, model-failure recovery, and the tool-free report node.
+
+The structural failure modes are all covered:
+
+| Test | Catches |
+|---|---|
+| `test_report_node_uses_unbound_model` | The report node emitting JSON instead of prose |
+| `test_loop_cap_stops_a_runaway_agent` | An agent that never calls `section_complete` |
+| `test_duplicate_search_is_suppressed` | Circular re-searching of the same topic |
+| `test_hallucinated_citation_is_marked_unverified` | Fabricated standard references |
+| `test_model_failure_does_not_abort_the_review` | A mid-review Ollama outage |
+| `test_empty_knowledge_base_produces_warning` | A silently failed seed |
+| `test_rules_are_deterministic` | Layer 1 drifting between runs |
+| `test_recovers_tool_call_emitted_as_json_text` | Small models emitting tool calls as text |
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Findings are generic and cite nothing | Empty knowledge base | `python scripts/seed_kb.py --status`; if a domain shows 0 the seed failed |
+| "seeded with embedding model X but config uses Y" | Embedding model changed | `python scripts/seed_kb.py --reset` |
+| Seeding times out on large documents | CPU embedding | Seed smaller files first; the seeder already batches and retries |
+| Report is raw JSON | Report node given a tool-bound model | Use `writer`, not `reviewer` (see `llm.py`) |
+| Review takes very long | Loop caps too high for CPU inference | Lower `max_tool_iterations` and `max_searches_per_section` |
+| "Ollama unreachable" | Server not running | `ollama serve` |
+
+---
+
+## Stack
+
+LangGraph · ChromaDB · Ollama (llama3.2, nomic-embed-text) · Streamlit · Python
+3.11 · pytest
+
+Everything local. Everything auditable.
+
+---
+
+## Read next
+
+- [`docs/ARCHITECTURE_BLUEPRINT.md`](docs/ARCHITECTURE_BLUEPRINT.md) — full
+  design, agent graph, scoring model, threat model of the reviewer itself,
+  operating model and roadmap
+- [`knowledge_base/_templates/AUTHORING_GUIDE.md`](knowledge_base/_templates/AUTHORING_GUIDE.md)
+  — how to write standards that actually produce findings
+- [`samples/EXPECTED_FINDINGS.md`](samples/EXPECTED_FINDINGS.md) — the
+  regression answer key
+
+---
+
+> This is not AI replacing the architect. It is AI enforcing the architect's
+> standards, so the architect can spend their time on the judgement calls that
+> actually require twenty years of experience.
