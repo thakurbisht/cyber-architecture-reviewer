@@ -124,6 +124,27 @@ class ReviewAgent:
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
+    def get_layer1_findings(self, sections: List[Section],
+                            enabled_domains: Optional[Sequence[str]] = None) -> Tuple[List[Finding], Dict[str, int]]:
+        """Run deterministic rules (Layer 1) without the agent.
+
+        Returns (findings, kb_status_dict) for the checkpoint UI.
+        """
+        from .parser import filter_sections
+        from .rules import run_rules
+
+        domains = list(enabled_domains or self.config.enabled_domains)
+        sections_filtered = filter_sections(sections, domains, include_general=False)
+
+        rule_findings: List[Finding] = []
+        if self.config.agent.get("enable_rules_engine", True):
+            rule_findings = run_rules(sections, domains)
+
+        kb_status = self.kb.status()
+        kb_counts = kb_status.get("counts", {})
+
+        return rule_findings, kb_counts
+
     def review(self, sections: List[Section], document_name: str,
                enabled_domains: Optional[Sequence[str]] = None) -> ReviewResult:
         from .report import build_report
