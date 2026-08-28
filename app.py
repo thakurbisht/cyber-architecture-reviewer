@@ -417,7 +417,7 @@ def render_hero() -> None:
         "\n".join(line.strip() for line in textwrap.dedent("""
         <div class="hero">
             <div class="hero-badge">
-                CYBERSECURITY Â· ARCHITECTURE ASSURANCE
+                CYBERSECURITY · ARCHITECTURE ASSURANCE
             </div>
 
             <div class="hero-title">
@@ -604,7 +604,7 @@ def render_sidebar() -> list[str]:
         else:
 
             st.sidebar.success(
-                f"Ollama ready Â· {ollama['llm']}"
+                f"Ollama ready · {ollama['llm']}"
             )
 
     else:
@@ -630,7 +630,7 @@ def render_sidebar() -> list[str]:
     if total:
 
         st.sidebar.success(
-            f"Knowledge base Â· {total} clauses"
+            f"Knowledge base · {total} clauses"
         )
 
     else:
@@ -655,7 +655,7 @@ def render_sidebar() -> list[str]:
         ).items():
 
             st.write(
-                f"**{DOMAIN_LABELS.get(domain, domain)}** â€” {count}"
+                f"**{DOMAIN_LABELS.get(domain, domain)}** — {count}"
             )
 
         st.caption(
@@ -674,7 +674,7 @@ def render_sidebar() -> list[str]:
         for domain, count in rules_summary().items():
 
             st.write(
-                f"**{DOMAIN_LABELS.get(domain, domain)}** â€” {count} rules"
+                f"**{DOMAIN_LABELS.get(domain, domain)}** — {count} rules"
             )
 
         st.caption(
@@ -825,7 +825,7 @@ def render_checkpoint(
                         background:rgba(255,255,255,0.025);
                     ">
                         <b>{finding.severity}</b>
-                        Â· {finding.section[:60]}
+                        · {finding.section[:60]}
                         <br>
                         <span style="color:#a0aec0;">
                             {finding.issue[:150]}
@@ -1083,7 +1083,7 @@ def render_architecture_flow(
     if flow.connections:
 
         with st.expander(
-            f"ðŸ”— Data Flows Â· {len(flow.connections)}",
+            f"ðŸ”— Data Flows · {len(flow.connections)}",
             expanded=False,
         ):
 
@@ -1712,8 +1712,8 @@ def render_result(
             for finding in shown:
 
                 label = (
-                    f"{finding.severity} Â· "
-                    f"{finding.section[:60]} Â· "
+                    f"{finding.severity} · "
+                    f"{finding.section[:60]} · "
                     f"{finding.issue[:90]}"
                 )
 
@@ -1738,7 +1738,7 @@ def render_result(
                         if finding.kb_source:
 
                             standard += (
-                                f" â€” `{finding.kb_source}`"
+                                f" — `{finding.kb_source}`"
                             )
 
                         st.markdown(
@@ -1748,7 +1748,7 @@ def render_result(
                     else:
 
                         st.caption(
-                            "No knowledge base clause cited â€” "
+                            "No knowledge base clause cited — "
                             "this reflects general practice, "
                             "not your organisation's standard."
                         )
@@ -1780,8 +1780,8 @@ def render_result(
                             if finding.rule_id
                             else ""
                         )
-                        + f" Â· confidence {finding.confidence}"
-                        + f" Â· id {finding.fingerprint}"
+                        + f" · confidence {finding.confidence}"
+                        + f" · id {finding.fingerprint}"
                     )
 
     # ==================================================================
@@ -2025,8 +2025,8 @@ def main() -> None:
         )
 
         st.info(
-            f"Parsed **{len(sections)} sections** â€” "
-            + " Â· ".join(
+            f"Parsed **{len(sections)} sections** — "
+            + " · ".join(
                 f"{DOMAIN_LABELS.get(domain, domain)}: {count}"
                 for domain, count in sorted(
                     summary.items()
@@ -2131,7 +2131,7 @@ def main() -> None:
                         st.rerun()
 
                 st.success(
-                    "Trust boundary passed â€” Layer 2 AI review is ready."
+                    "Trust boundary passed — Layer 2 AI review is ready."
                 )
 
     # ==================================================================
@@ -2248,7 +2248,7 @@ def main() -> None:
             progress.progress(
                 pct,
                 text=(
-                    f"{stage} Â· "
+                    f"{stage} · "
                     f"{int(time.time() - started)}s"
                 ),
             )
