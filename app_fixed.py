@@ -131,7 +131,7 @@ def load_custom_css() -> None:
             pass
 
     st.markdown(
-        "\n".join(line.strip() for line in textwrap.dedent("""
+        textwrap.dedent("""
         <style>
 
         /* ============================================================
@@ -403,26 +403,9 @@ def load_custom_css() -> None:
         }
 
         </style>
-        """).splitlines()),
+        """),
         unsafe_allow_html=True,
     )
-
-    # --- refine.css (added by patch; delete this block to revert) ---
-    refine_file = PROJECT_ROOT / "assets" / "refine.css"
-
-    if refine_file.exists():
-        try:
-            refine_css = refine_file.read_text(
-                encoding="utf-8",
-                errors="ignore",
-            )
-            st.markdown(
-                f"<style>{refine_css}</style>",
-                unsafe_allow_html=True,
-            )
-        except Exception:
-            pass
-    # --- end refine.css ---
 
 
 # ============================================================================
@@ -431,7 +414,7 @@ def load_custom_css() -> None:
 
 def render_hero() -> None:
     st.markdown(
-        "\n".join(line.strip() for line in textwrap.dedent("""
+        textwrap.dedent("""
         <div class="hero">
             <div class="hero-badge">
                 CYBERSECURITY · ARCHITECTURE ASSURANCE
@@ -446,7 +429,7 @@ def render_hero() -> None:
                 network, application, security, cloud and data.
             </div>
         </div>
-        """).splitlines()),
+        """),
         unsafe_allow_html=True,
     )
 
@@ -833,7 +816,7 @@ def render_checkpoint(
                 )
 
                 st.markdown(
-                    "\n".join(line.strip() for line in textwrap.dedent(f"""
+                    textwrap.dedent(f"""
                     <div style="
                         padding:12px 15px;
                         border-left:4px solid {sev_color};
@@ -848,7 +831,7 @@ def render_checkpoint(
                             {finding.issue[:150]}
                         </span>
                     </div>
-                    """).splitlines()),
+                    """),
                     unsafe_allow_html=True,
                 )
 
@@ -942,7 +925,7 @@ def render_architecture_flow(
 ) -> None:
 
     st.markdown(
-        "\n".join(line.strip() for line in textwrap.dedent("""
+        textwrap.dedent("""
         <div class="editor-header">
             <div class="editor-title">
                 📐 Architecture Flow
@@ -953,7 +936,7 @@ def render_architecture_flow(
                 Modify the model using the interactive editor.
             </div>
         </div>
-        """).splitlines()),
+        """),
         unsafe_allow_html=True,
     )
 
@@ -982,53 +965,53 @@ def render_architecture_flow(
 
     with c1:
         st.markdown(
-            "\n".join(line.strip() for line in textwrap.dedent(f"""
+            textwrap.dedent(f"""
             <div class="metric-card">
                 <div class="metric-label">Components</div>
                 <div class="metric-value">
                     {len(flow.components)}
                 </div>
             </div>
-            """).splitlines()),
+            """),
             unsafe_allow_html=True,
         )
 
     with c2:
         st.markdown(
-            "\n".join(line.strip() for line in textwrap.dedent(f"""
+            textwrap.dedent(f"""
             <div class="metric-card">
                 <div class="metric-label">Connections</div>
                 <div class="metric-value">
                     {len(flow.connections)}
                 </div>
             </div>
-            """).splitlines()),
+            """),
             unsafe_allow_html=True,
         )
 
     with c3:
         st.markdown(
-            "\n".join(line.strip() for line in textwrap.dedent(f"""
+            textwrap.dedent(f"""
             <div class="metric-card">
                 <div class="metric-label">Critical</div>
                 <div class="metric-value">
                     {critical}
                 </div>
             </div>
-            """).splitlines()),
+            """),
             unsafe_allow_html=True,
         )
 
     with c4:
         st.markdown(
-            "\n".join(line.strip() for line in textwrap.dedent(f"""
+            textwrap.dedent(f"""
             <div class="metric-card">
                 <div class="metric-label">High Risk</div>
                 <div class="metric-value">
                     {high}
                 </div>
             </div>
-            """).splitlines()),
+            """),
             unsafe_allow_html=True,
         )
 
@@ -1067,7 +1050,7 @@ def render_architecture_flow(
             with cols[index % 3]:
 
                 st.markdown(
-                    "\n".join(line.strip() for line in textwrap.dedent(f"""
+                    textwrap.dedent(f"""
                     <div class="component-card">
                         <div class="component-name">
                             {icon}
@@ -1083,7 +1066,7 @@ def render_architecture_flow(
                             {description[:180]}
                         </div>
                     </div>
-                    """).splitlines()),
+                    """),
                     unsafe_allow_html=True,
                 )
 
@@ -1117,7 +1100,7 @@ def render_architecture_flow(
                 if source and target:
 
                     st.markdown(
-                        "\n".join(line.strip() for line in textwrap.dedent(f"""
+                        textwrap.dedent(f"""
                         <span class="flow-pill">
                             {source.name}
                         </span>
@@ -1125,7 +1108,7 @@ def render_architecture_flow(
                         <span class="flow-pill">
                             {target.name}
                         </span>
-                        """).splitlines()),
+                        """),
                         unsafe_allow_html=True,
                     )
 
@@ -1161,7 +1144,7 @@ def render_architecture_flow(
     st.divider()
 
     st.markdown(
-        "\n".join(line.strip() for line in textwrap.dedent("""
+        textwrap.dedent("""
         <div class="editor-header">
             <div class="editor-title">
                 🧩 Architecture Editor
@@ -1172,7 +1155,7 @@ def render_architecture_flow(
                 the architecture model used by the assurance process.
             </div>
         </div>
-        """).splitlines()),
+        """),
         unsafe_allow_html=True,
     )
 
@@ -1302,7 +1285,7 @@ def render_architecture_flow(
             with col1:
 
                 st.markdown(
-                    "\n".join(line.strip() for line in textwrap.dedent(f"""
+                    textwrap.dedent(f"""
                     **{icon} {component.name}**
 
                     <span style="
@@ -1311,7 +1294,7 @@ def render_architecture_flow(
                     ">
                         {component.component_type.value}
                     </span>
-                    """).splitlines()),
+                    """),
                     unsafe_allow_html=True,
                 )
 
@@ -1361,7 +1344,7 @@ def render_architecture_flow(
                 with col1:
 
                     st.markdown(
-                        "\n".join(line.strip() for line in textwrap.dedent(f"""
+                        textwrap.dedent(f"""
                         <div class="component-card"
                              style="min-height:0;">
                             <b>
@@ -1385,7 +1368,7 @@ def render_architecture_flow(
                                 {connection.label or "data flow"}
                             </div>
                         </div>
-                        """).splitlines()),
+                        """),
                         unsafe_allow_html=True,
                     )
 
@@ -1549,7 +1532,7 @@ def render_result(
         )
 
         st.markdown(
-            "\n".join(line.strip() for line in textwrap.dedent(f"""
+            textwrap.dedent(f"""
             <div class="status-card"
                  style="background:{colour};">
 
@@ -1566,7 +1549,7 @@ def render_result(
                 </div>
 
             </div>
-            """).splitlines()),
+            """),
             unsafe_allow_html=True,
         )
 
@@ -1620,6 +1603,7 @@ def render_result(
                 <b style="font-size:18px;">
                     {counts.get(severity, 0)}
                 </b>
+
                 <span style="
                     font-size:11px;
                     color:#8291a7;

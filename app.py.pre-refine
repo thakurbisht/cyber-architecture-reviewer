@@ -407,23 +407,6 @@ def load_custom_css() -> None:
         unsafe_allow_html=True,
     )
 
-    # --- refine.css (added by patch; delete this block to revert) ---
-    refine_file = PROJECT_ROOT / "assets" / "refine.css"
-
-    if refine_file.exists():
-        try:
-            refine_css = refine_file.read_text(
-                encoding="utf-8",
-                errors="ignore",
-            )
-            st.markdown(
-                f"<style>{refine_css}</style>",
-                unsafe_allow_html=True,
-            )
-        except Exception:
-            pass
-    # --- end refine.css ---
-
 
 # ============================================================================
 # HERO
