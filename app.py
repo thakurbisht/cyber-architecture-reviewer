@@ -1603,7 +1603,6 @@ def render_result(
                 <b style="font-size:18px;">
                     {counts.get(severity, 0)}
                 </b>
-
                 <span style="
                     font-size:11px;
                     color:#8291a7;
