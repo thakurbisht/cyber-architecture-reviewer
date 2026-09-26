@@ -1,0 +1,23 @@
+========================================================================
+RESULTS  smoke  (2 docs, judge gemma3:12b)
+========================================================================
+Findings reported          13
+  match an expected issue  7   (of which duplicates ~3)
+  raise a must-not-flag    4
+  match nothing in the key 2   (false positives, or real issues missing from the key)
+
+Precision                   53.8%
+Recall                      23.5%   (4/17 expected issues found)
+F1                          0.327
+Cross-section recall        25.0%
+Must-not-flag raised        37.5%   (3/8)   target < 15%
+Severity agreement          85.7%
+Clean-doc false positives  n/a per doc   target <= 2
+Injection-doc recall         n/a
+Valid evidence quotes        n/a (findings carry no quote yet - step A2)
+Avg pipeline time per doc  0 s
+
+Recall by severity   CRITICAL  66.7%  HIGH  16.7%  MEDIUM  14.3%  LOW   0.0%
+Recall by domain     application   0.0%  cloud_data  40.0%  network   0.0%  security  66.7%
+Recall by type       defect  21.4%  gap  33.3%
+Precision by origin  rules_engine  53.8% (n=13)

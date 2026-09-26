@@ -1,0 +1,489 @@
+﻿/* =========================================================
+   CYBER ARCHITECTURE REVIEWER
+   Enterprise Cyber Assurance Theme
+   ========================================================= */
+
+:root {
+    --ca-bg: #080b12;
+    --ca-bg-soft: #0d111a;
+    --ca-panel: #111722;
+    --ca-panel-2: #151c28;
+    --ca-border: rgba(148, 163, 184, 0.14);
+    --ca-border-bright: rgba(56, 189, 248, 0.28);
+
+    --ca-text: #e8eef7;
+    --ca-muted: #8b98aa;
+
+    --ca-cyan: #38bdf8;
+    --ca-blue: #60a5fa;
+    --ca-green: #34d399;
+    --ca-amber: #f59e0b;
+    --ca-red: #f87171;
+
+    --ca-radius: 14px;
+}
+
+/* ---------------------------------------------------------
+   GLOBAL
+   --------------------------------------------------------- */
+
+.stApp {
+    background:
+        radial-gradient(
+            circle at 15% 0%,
+            rgba(14, 165, 233, 0.08),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 90% 10%,
+            rgba(59, 130, 246, 0.06),
+            transparent 30%
+        ),
+        var(--ca-bg);
+    color: var(--ca-text);
+}
+
+/* Subtle architecture-grid background */
+
+.stApp::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.20;
+    z-index: 0;
+
+    background-image:
+        linear-gradient(
+            rgba(148, 163, 184, 0.035) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(148, 163, 184, 0.035) 1px,
+            transparent 1px
+        );
+
+    background-size: 40px 40px;
+    mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        transparent 80%
+    );
+}
+
+/* Main content */
+
+.block-container {
+    max-width: 1500px;
+    padding-top: 2.2rem;
+    padding-bottom: 4rem;
+}
+
+/* ---------------------------------------------------------
+   TYPOGRAPHY
+   --------------------------------------------------------- */
+
+h1, h2, h3 {
+    color: var(--ca-text) !important;
+    letter-spacing: -0.025em;
+}
+
+h1 {
+    font-weight: 750 !important;
+}
+
+h2 {
+    font-weight: 700 !important;
+}
+
+h3 {
+    font-weight: 650 !important;
+}
+
+p, span, label {
+    color: inherit;
+}
+
+/* ---------------------------------------------------------
+   SIDEBAR
+   --------------------------------------------------------- */
+
+section[data-testid="stSidebar"] {
+    background:
+        linear-gradient(
+            180deg,
+            #0c1018 0%,
+            #090c13 100%
+        ) !important;
+
+    border-right: 1px solid var(--ca-border);
+}
+
+section[data-testid="stSidebar"] > div {
+    padding-top: 1.5rem;
+}
+
+/* Sidebar cards */
+
+section[data-testid="stSidebar"] .stAlert {
+    border-radius: 10px;
+    border: 1px solid var(--ca-border);
+    background: rgba(17, 24, 39, 0.72);
+}
+
+/* ---------------------------------------------------------
+   FILE UPLOADER
+   --------------------------------------------------------- */
+
+[data-testid="stFileUploader"] {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17, 24, 39, 0.92),
+            rgba(12, 17, 26, 0.92)
+        );
+
+    border: 1px solid var(--ca-border);
+    border-radius: var(--ca-radius);
+    padding: 0.8rem;
+
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--ca-border-bright);
+
+    box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.05),
+        0 12px 40px rgba(0, 0, 0, 0.22);
+
+    transform: translateY(-1px);
+}
+
+/* ---------------------------------------------------------
+   BUTTONS
+   --------------------------------------------------------- */
+
+.stButton > button {
+    border-radius: 9px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+
+    background:
+        linear-gradient(
+            180deg,
+            #1a2331,
+            #111722
+        );
+
+    color: #edf4fc;
+
+    font-weight: 600;
+
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease,
+        border-color 160ms ease,
+        background 160ms ease;
+}
+
+.stButton > button:hover {
+    border-color: rgba(56, 189, 248, 0.45);
+
+    background:
+        linear-gradient(
+            180deg,
+            #202c3c,
+            #151d29
+        );
+
+    box-shadow:
+        0 6px 22px rgba(0, 0, 0, 0.28),
+        0 0 18px rgba(56, 189, 248, 0.08);
+
+    transform: translateY(-1px);
+}
+
+.stButton > button:active {
+    transform: translateY(0);
+}
+
+/* Primary button */
+
+.stButton > button[kind="primary"] {
+    background:
+        linear-gradient(
+            135deg,
+            #0284c7,
+            #2563eb
+        );
+
+    border-color: rgba(125, 211, 252, 0.35);
+
+    box-shadow:
+        0 8px 28px rgba(37, 99, 235, 0.20);
+}
+
+.stButton > button[kind="primary"]:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #0ea5e9,
+            #3b82f6
+        );
+
+    box-shadow:
+        0 10px 34px rgba(37, 99, 235, 0.32),
+        0 0 24px rgba(56, 189, 248, 0.12);
+}
+
+/* ---------------------------------------------------------
+   METRICS
+   --------------------------------------------------------- */
+
+[data-testid="stMetric"] {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17, 24, 39, 0.94),
+            rgba(12, 17, 26, 0.94)
+        );
+
+    border: 1px solid var(--ca-border);
+    border-radius: var(--ca-radius);
+
+    padding: 1rem 1.1rem;
+
+    transition:
+        transform 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+[data-testid="stMetric"]:hover {
+    transform: translateY(-2px);
+
+    border-color: rgba(56, 189, 248, 0.22);
+
+    box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.22);
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--ca-muted) !important;
+    font-size: 0.76rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+[data-testid="stMetricValue"] {
+    color: var(--ca-text) !important;
+    font-weight: 750;
+}
+
+/* ---------------------------------------------------------
+   TABS
+   --------------------------------------------------------- */
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+
+    background:
+        rgba(10, 14, 22, 0.72);
+
+    border: 1px solid var(--ca-border);
+    border-radius: 12px;
+
+    padding: 5px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px;
+    padding: 0.55rem 1rem;
+
+    color: var(--ca-muted);
+
+    transition:
+        color 160ms ease,
+        background 160ms ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--ca-text);
+    background: rgba(148, 163, 184, 0.06);
+}
+
+.stTabs [aria-selected="true"] {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14, 165, 233, 0.18),
+            rgba(37, 99, 235, 0.14)
+        );
+
+    box-shadow:
+        inset 0 0 0 1px rgba(56, 189, 248, 0.12);
+}
+
+/* ---------------------------------------------------------
+   EXPANDERS
+   --------------------------------------------------------- */
+
+[data-testid="stExpander"] {
+    border: 1px solid var(--ca-border) !important;
+    border-radius: 12px !important;
+
+    background:
+        rgba(13, 17, 26, 0.78) !important;
+
+    overflow: hidden;
+
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+[data-testid="stExpander"]:hover {
+    border-color: rgba(56, 189, 248, 0.18) !important;
+}
+
+/* ---------------------------------------------------------
+   ALERTS / INFO BOXES
+   --------------------------------------------------------- */
+
+[data-testid="stAlert"] {
+    border-radius: 11px !important;
+}
+
+/* ---------------------------------------------------------
+   PROGRESS BAR
+   --------------------------------------------------------- */
+
+[data-testid="stProgressBar"] {
+    padding-top: 0.3rem;
+}
+
+[data-testid="stProgressBar"] > div {
+    background: rgba(148, 163, 184, 0.10);
+    border-radius: 99px;
+}
+
+[data-testid="stProgressBar"] > div > div {
+    background:
+        linear-gradient(
+            90deg,
+            #0284c7,
+            #38bdf8,
+            #60a5fa
+        );
+
+    box-shadow:
+        0 0 14px rgba(56, 189, 248, 0.35);
+
+    border-radius: 99px;
+
+    animation: progressGlow 2s ease-in-out infinite;
+}
+
+@keyframes progressGlow {
+    0%, 100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.18);
+    }
+}
+
+/* ---------------------------------------------------------
+   TEXT INPUT / SELECTBOX
+   --------------------------------------------------------- */
+
+div[data-baseweb="input"],
+div[data-baseweb="select"] > div,
+textarea {
+    background: #0d131d !important;
+    border-color: var(--ca-border) !important;
+    border-radius: 9px !important;
+}
+
+div[data-baseweb="input"]:focus-within {
+    border-color: rgba(56, 189, 248, 0.45) !important;
+
+    box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.10),
+        0 0 20px rgba(56, 189, 248, 0.05);
+}
+
+/* ---------------------------------------------------------
+   DATAFRAME
+   --------------------------------------------------------- */
+
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--ca-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ---------------------------------------------------------
+   DIVIDERS
+   --------------------------------------------------------- */
+
+hr {
+    border-color: rgba(148, 163, 184, 0.10) !important;
+}
+
+/* ---------------------------------------------------------
+   SPINNER
+   --------------------------------------------------------- */
+
+[data-testid="stSpinner"] {
+    color: var(--ca-cyan);
+}
+
+/* ---------------------------------------------------------
+   SCROLLBAR
+   --------------------------------------------------------- */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #080b12;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #263244;
+    border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #34445a;
+}
+
+/* ---------------------------------------------------------
+   SUBTLE ENTRY ANIMATION
+   --------------------------------------------------------- */
+
+.main .block-container {
+    animation: pageEnter 350ms ease-out;
+}
+
+@keyframes pageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

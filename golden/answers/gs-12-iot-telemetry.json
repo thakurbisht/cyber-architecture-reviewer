@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-12-iot-telemetry",
+  "title": "Kestrel Fleet Telemetry Platform — High-Level Design",
+  "doc_kind": "flawed",
+  "domains": [
+    "application",
+    "security",
+    "cloud_data"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "application",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Any device certificate can publish commands to every scooter via wildcard MQTT ACL",
+      "description": "The broker lets any client with a valid device certificate publish and subscribe on scooters/#, and the firmware executes any well-formed message on its command topic with no message-level authentication, so one scooter's credentials (or one compromised scooter) can unlock, lock or immobilise mid-ride any scooter in the fleet and read all other scooters' telemetry. Enforce per-device ACLs bound to the certificate identity (a device may only publish its own telemetry/events and subscribe to its own cmd topic, with only the Command Service allowed to publish commands) and sign commands so the firmware can verify their origin.",
+      "sections": [
+        "4. MQTT Broker",
+        "5. Command and Control"
+      ],
+      "evidence": [
+        "The broker authorisation rule grants every client presenting a valid device certificate publish and subscribe rights on scooters/#.",
+        "Commands are JSON messages containing the command, a request ID and a timestamp; the firmware executes any well-formed command received on its command topic and replies on cmd/ack.",
+        "Supported commands are UNLOCK, LOCK, ALARM, SET_SPEED_LIMIT, OTA_NOTIFY and IMMOBILISE, which cuts motor power immediately."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Elevation of Privilege",
+        "Spoofing"
+      ],
+      "keywords": [
+        "mqtt",
+        "acl",
+        "wildcard",
+        "scooters/#",
+        "topic authorization",
+        "command",
+        "immobilise",
+        "unsigned commands"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "application",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "IDOR on ride trail endpoint exposes every rider's GPS history",
+      "description": "Ride IDs are sequential and the trail endpoint returns the GPS trail for whatever ride ID is supplied, while the gateway only checks that the JWT is valid and backend services perform no further authorisation; any logged-in customer can enumerate ride IDs and download other riders' precise journeys (home, work and routines). Enforce object-level authorisation in the trail service (ride.rider_id must equal the token subject) and use non-guessable identifiers as defence in depth.",
+      "sections": [
+        "8.2 Customer App API",
+        "9. Security Controls"
+      ],
+      "evidence": [
+        "Ride IDs are sequential integers assigned by the rides table, and GET /v1/rides/{rideId}/trail returns the full GPS trail of the given ride for the ride summary screen and receipt.",
+        "The API Gateway validates the Cognito JWT signature, expiry and audience on every authenticated request; backend services trust requests forwarded by the gateway and do not repeat authorisation checks."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Information Disclosure",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "idor",
+        "bola",
+        "object-level authorization",
+        "sequential id",
+        "ride trail",
+        "location data",
+        "enumeration"
+      ]
+    },
+    {
+      "id": "F3",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Fleet firmware signing key exposed to all CI jobs including merge-request pipelines",
+      "description": "The key that every scooter trusts for firmware is a masked CI variable available to any pipeline job, including merge-request pipelines that any of the 45 engineers or two contractors can modify, so a single developer account can exfiltrate the key or sign arbitrary firmware that the OTA process will accept fleet-wide. Keep the signing key in an HSM or cloud KMS, restrict signing to a protected release job on a protected branch with multi-person approval, and never expose key material to CI variables.",
+      "sections": [
+        "7. Firmware OTA Updates",
+        "10. Build and Release"
+      ],
+      "evidence": [
+        "Release images are signed with the Kestrel firmware signing key (ECDSA P-256) in the GitLab release job, and the OTA Service rolls them out to the whole fleet in waves over 48 hours.",
+        "The firmware signing private key is stored as a masked CI/CD variable in the kos-firmware GitLab project and is available to all pipeline jobs, including jobs run for merge requests from feature branches.",
+        "About 45 Kestrel engineers and two external firmware contractors have the Developer role on the project."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Tampering",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "code signing",
+        "signing key",
+        "ci/cd variable",
+        "gitlab",
+        "merge request",
+        "hsm",
+        "firmware",
+        "supply chain"
+      ]
+    },
+    {
+      "id": "F4",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Rider-linkable GPS telemetry misclassified as non-personal and kept indefinitely",
+      "description": "Five-second GPS positions during rides can be joined to the rides table (rider account ID, scooter serial, times), so telemetry is personal location data, yet it is classified as non-personal, retained indefinitely and excluded from access reviews, and 500 contractors can replay any scooter's trail for any date range. Reclassify ride telemetry as personal (sensitive) data, apply a retention limit or aggregation/anonymisation for modelling, and restrict trail replay to recent, operationally justified windows with access reviews.",
+      "sections": [
+        "6. Stream Processing and Storage",
+        "8.1 Operator Dashboard",
+        "11. Data Classification and Retention"
+      ],
+      "evidence": [
+        "Telemetry, including GPS positions, is classified as Internal (non-personal device data) and is therefore outside the controls applied to personal data, such as access reviews and the retention schedule.",
+        "The Trip Service stores a ride record containing the rider account ID, scooter serial, start and end times and fare in the rides table in Aurora PostgreSQL.",
+        "Flink writes all telemetry to TimescaleDB hypertables, which are retained indefinitely for demand modelling and city reporting.",
+        "All dashboard users, including city contractors, can view the live fleet map and replay the GPS trail of any scooter for any date range."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "data classification",
+        "location data",
+        "personal data",
+        "gdpr",
+        "retention",
+        "gps",
+        "contractors",
+        "privacy"
+      ]
+    },
+    {
+      "id": "F5",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Device issuing CA private key stored as a file at the contract manufacturer",
+      "description": "The CA key that the broker trusts for every device certificate sits as a password-protected file on a workstation at a third-party factory, so anyone who compromises that workstation or copies the file can mint unlimited valid device identities. Keep the issuing CA key in an HSM (on-site HSM or cloud CA with per-device, rate-limited, audited issuance), or pre-provision secure elements, and never store CA keys as files on factory PCs.",
+      "sections": [
+        "3. Device Platform and Provisioning"
+      ],
+      "evidence": [
+        "The Device Issuing CA private key is stored as a password-protected PKCS#12 file on the provisioning workstation so that the line can keep running when the factory's internet link is down."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing"
+      ],
+      "keywords": [
+        "ca private key",
+        "pki",
+        "hsm",
+        "provisioning",
+        "contract manufacturer",
+        "pkcs#12",
+        "device identity"
+      ]
+    },
+    {
+      "id": "F6",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Root debug console enabled on production scooters with keys in plain flash",
+      "description": "Scooters are left unattended in public, and production units keep a UART root shell enabled while the device private key sits in the modem's ordinary flash file system, so anyone with brief physical access can extract a valid device identity or modify the firmware. Disable or authenticate the debug console in production builds (e.g. challenge-response unlock for technicians), enable secure boot, and store device keys in a secure element or protected key storage.",
+      "sections": [
+        "3. Device Platform and Provisioning"
+      ],
+      "evidence": [
+        "Production scooters keep the UART debug console on the controller board enabled; it provides a root shell that field technicians use for diagnostics in the depots.",
+        "During end-of-line testing, the provisioning workstation generates an ECDSA P-256 key pair for the scooter, issues its device certificate from the Kestrel Device Issuing CA, and writes the key and certificate to the modem's flash file system."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Tampering",
+        "Spoofing"
+      ],
+      "keywords": [
+        "uart",
+        "debug console",
+        "root shell",
+        "physical access",
+        "secure element",
+        "key extraction",
+        "device hardening"
+      ]
+    },
+    {
+      "id": "F7",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "No certificate revocation for stolen or retired scooters",
+      "description": "Retiring a stolen or scrapped scooter only updates the fleet registry, while the broker accepts any certificate chaining to the device CA and the certificates last 20 years; about 1,200 lost devices a year therefore keep working broker credentials. Revoke certificates on retirement and enforce it at the broker (CRL/OCSP or a denylist keyed to certificate serial or scooter serial), and consider shorter-lived certificates with renewal.",
+      "sections": [
+        "3. Device Platform and Provisioning",
+        "4. MQTT Broker"
+      ],
+      "evidence": [
+        "Scooters that are stolen or written off (about 1,200 a year) are marked Retired in the fleet registry, which removes them from the operator map, the customer app and billing.",
+        "The broker requires mutual TLS 1.2 and accepts any client certificate that chains to the Kestrel Device Issuing CA.",
+        "Device certificates are valid for 20 years, matching the maximum service life of the module, and carry the scooter serial number as the common name."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Spoofing"
+      ],
+      "keywords": [
+        "certificate revocation",
+        "crl",
+        "ocsp",
+        "stolen devices",
+        "retired",
+        "20 years",
+        "certificate lifetime"
+      ]
+    },
+    {
+      "id": "F8",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "No audit trail for operator commands and location trail lookups",
+      "description": "Dashboard users, including 500 contractors, can immobilise or unlock any scooter and replay location trails, but only general application logs retained for 14 days are described, with no durable audit record of who issued which command or viewed which trail. Record user-attributed audit events for commands and trail replays in tamper-resistant storage with at least 12 months' retention and alert on unusual volumes.",
+      "sections": [
+        "8.1 Operator Dashboard",
+        "12. Logging and Monitoring"
+      ],
+      "evidence": [
+        "Dashboard users can lock, unlock, sound the alarm on or immobilise any scooter from the fleet map.",
+        "Application and broker logs from all services are shipped to Amazon OpenSearch and retained for 14 days."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "audit log",
+        "operator actions",
+        "accountability",
+        "retention",
+        "14 days",
+        "command audit"
+      ]
+    },
+    {
+      "id": "F9",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Any dashboard user can immobilise any scooter in any city, even mid-ride",
+      "description": "Every dashboard user, including about 500 city contractors, can send IMMOBILISE to any scooter in any of the 18 cities, and the command cuts motor power immediately with no role or city scoping and no check for a ride in progress, creating a rider-safety and misuse risk from a single operator account. Restrict high-impact commands to specific roles scoped to the user's city, block or defer IMMOBILISE while a ride is active (or apply a controlled slowdown), and require confirmation for bulk actions.",
+      "sections": [
+        "5. Command and Control",
+        "8.1 Operator Dashboard"
+      ],
+      "evidence": [
+        "Dashboard users can lock, unlock, sound the alarm on or immobilise any scooter from the fleet map.",
+        "Supported commands are UNLOCK, LOCK, ALARM, SET_SPEED_LIMIT, OTA_NOTIFY and IMMOBILISE, which cuts motor power immediately.",
+        "The dashboard is used by about 300 Kestrel operations staff and about 500 city contractors who collect, charge and redistribute scooters."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Elevation of Privilege",
+        "Denial of Service"
+      ],
+      "keywords": [
+        "immobilise",
+        "authorization",
+        "rbac",
+        "least privilege",
+        "city scoping",
+        "ride in progress",
+        "safety",
+        "contractors"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Unauthenticated nearby-scooters endpoint leaks rider locations",
+      "why_not": "Section 9 limits the endpoint to parked, available scooters (never in an active ride), rounds positions to 10 m and rate-limits it per IP, so it exposes no rider location.",
+      "evidence": [
+        "The nearby endpoint is callable without logging in, so that prospective customers can see scooter locations before they register.",
+        "GET /v1/scooters/nearby returns only parked scooters that are available for hire, never scooters in an active ride, with positions rounded to 10 metres, and is rate-limited to 60 requests per minute per IP address."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Firmware downloaded over plain HTTP can be tampered with in transit",
+      "why_not": "Section 9: the bootloader verifies each image's ECDSA signature and enforces anti-rollback, so a modified or downgraded image is rejected; custody of the signing key is a separate finding (F3).",
+      "evidence": [
+        "The OTA Service sends OTA_NOTIFY with a manifest URL, and the scooter downloads the manifest and image over plain HTTP from a CloudFront distribution, because TLS session setup over LTE-M adds significant time and energy for a 3 MB image.",
+        "Before flashing, the bootloader verifies the image's ECDSA signature against the public key embedded in the bootloader and rejects any image whose version is lower than the installed version."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Offline Bluetooth unlock can be spoofed or replayed",
+      "why_not": "Section 9 requires a Trip Service-signed token bound to rider and scooter, verified by firmware, valid 60 seconds and single-use.",
+      "evidence": [
+        "When a scooter has no cellular coverage, the customer app unlocks it directly over Bluetooth Low Energy.",
+        "Bluetooth unlock requires an unlock token issued by the Trip Service for a specific rider and scooter serial, signed with a Kestrel key that the firmware verifies, valid for 60 seconds and usable only once."
+      ]
+    }
+  ],
+  "injection": null
+}

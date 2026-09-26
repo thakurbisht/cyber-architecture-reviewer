@@ -1,0 +1,142 @@
+{
+  "doc_id": "gs-12-iot-telemetry",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "4. MQTT Broker",
+      "domain": "application",
+      "severity": "HIGH",
+      "issue": "Authorisation appears to be enforced in the client or gateway only, with the service trusting inbound identity claims.",
+      "recommendation": "Enforce object-level authorisation in the service that owns the data, on every request. Gateway and UI checks are usability features, not security controls.",
+      "standard_reference": "Application Security Architecture Standard §3.6",
+      "kb_source": "application/application-security-standard.md",
+      "evidence_excerpt": "...rial}/cmd | Command Service | Scooter | | scooters/{serial}/cmd/ack | Scooter | Command Service | The broker authorisation rule grants every client presenting a valid device certificate publish and subscribe rights on scooters/#.",
+      "control_mappings": [
+        "OWASP API Top 10 API1",
+        "OWASP ASVS V4",
+        "NIST SP 800-53 AC-3"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-AUTHZ-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "issue": "No dependency, container or supply-chain scanning is described in the pipeline.",
+      "recommendation": "Add SCA and container image scanning as blocking pipeline gates, publish an SBOM per release, and fail the build on new critical CVEs in direct dependencies.",
+      "standard_reference": "Secure SDLC Standard §4.2",
+      "kb_source": "application/secure-sdlc-standard.md",
+      "evidence_excerpt": "...se Firmware and cloud services are built in GitLab CI. The firmware signing private key is stored as a masked CI/CD variable in the kos-firmware GitLab project and is available to all pipeline jobs, including jobs run for mer...",
+      "control_mappings": [
+        "NIST SSDF PW.4",
+        "ISO 27001 A.8.28",
+        "MITRE ATT&CK T1195.002"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-SDLC-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "3. Device Platform and Provisioning",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Encryption keys have no defined custody, rotation or escrow model.",
+      "recommendation": "Store keys in an HSM or managed KMS with dual control, define a rotation period per key class, separate key custodians from data administrators, and document the recovery procedure.",
+      "standard_reference": "Cryptography Standard §5.2",
+      "kb_source": "security/cryptography-key-management-standard.md",
+      "evidence_excerpt": "...manufacturer in Shenzhen. During end-of-line testing, the provisioning workstation generates an ECDSA P-256 key pair for the scooter, issues its device certificate from the Kestrel Device Issuing CA, and writes the key an...",
+      "control_mappings": [
+        "NIST SP 800-57",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-CRYPTO-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "6. Stream Processing and Storage",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Encryption keys have no defined custody, rotation or escrow model.",
+      "recommendation": "Store keys in an HSM or managed KMS with dual control, define a rotation period per key class, separate key custodians from data administrators, and document the recovery procedure.",
+      "standard_reference": "Cryptography Standard §5.2",
+      "kb_source": "security/cryptography-key-management-standard.md",
+      "evidence_excerpt": "...in the rides table in Aurora PostgreSQL. TimescaleDB volumes, Aurora and MSK are encrypted at rest with AWS KMS keys, and all connections between services, Kafka and the databases use TLS.",
+      "control_mappings": [
+        "NIST SP 800-57",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-CRYPTO-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "7. Firmware OTA Updates",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Encryption keys have no defined custody, rotation or escrow model.",
+      "recommendation": "Store keys in an HSM or managed KMS with dual control, define a rotation period per key class, separate key custodians from data administrators, and document the recovery procedure.",
+      "standard_reference": "Cryptography Standard §5.2",
+      "kb_source": "security/cryptography-key-management-standard.md",
+      "evidence_excerpt": "7. Firmware OTA Updates Release images are signed with the Kestrel firmware signing key (ECDSA P-256) in the GitLab release job, and the OTA Service rolls them out to the whole fleet in waves over...",
+      "control_mappings": [
+        "NIST SP 800-57",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-CRYPTO-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Kestrel Fleet Telemetry Platform — High-Level Design Kestrel Micromobility, Platform Engineering. Version 1.1, for architecture review. 1. Pu...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-01-checkout-api",
+  "title": "Checkout Platform - High-Level Design",
+  "doc_kind": "flawed",
+  "domains": [
+    "application",
+    "cloud_data",
+    "network",
+    "security"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "application",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Unverified guest email binds the guest session to an existing customer account",
+      "description": "Guest checkout needs no email verification, yet Kong maps a guest token to the existing customer record for the entered email address, and order endpoints trust X-Customer-Id. Anyone who knows a customer's email can start a guest checkout and read that customer's full order history, including addresses and phone numbers, with no password. Guest sessions must be scoped to the orders created in that session, and linking to an account must happen only after the email address is verified or the customer signs in.",
+      "sections": [
+        "3. Customer Checkout Flow",
+        "4. API Layer",
+        "7.1 Customers"
+      ],
+      "evidence": [
+        "No account or email verification is required for guest checkout, to keep conversion high.",
+        "For guest tokens, Kong sets X-Customer-Id to the customer record that matches the guest email address, creating one if none exists, so that guest orders appear in the order history if the guest later registers.",
+        "GET /v1/orders returns the orders whose customer_id matches the X-Customer-Id header set by Kong."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Spoofing",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "guest checkout",
+        "email verification",
+        "account takeover",
+        "x-customer-id",
+        "order history"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "cloud_data",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Reporting read replica with customer PII is publicly accessible on port 5432 from any address",
+      "description": "The checkout-reporting replica holds the full customer and order data but is publicly accessible, and its security group allows PostgreSQL from 0.0.0.0/0. The database is therefore exposed to internet-wide scanning, password guessing and PostgreSQL exploits, and a leaked BI credential gives direct access to PII for 2.3 million customers. The replica should be private and reached by the BI provider through PrivateLink, a fixed-IP allowlist or a data export, not an internet-facing database.",
+      "sections": [
+        "5. Data Stores",
+        "6. Network Design"
+      ],
+      "evidence": [
+        "A read replica, checkout-reporting, serves the BI team's SaaS dashboard tool and is configured as publicly accessible so that the SaaS platform can connect to it directly.",
+        "The checkout-reporting security group allows TCP 5432 from 0.0.0.0/0, because the BI provider does not publish a fixed list of source addresses."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "publicly accessible",
+        "rds",
+        "read replica",
+        "0.0.0.0/0",
+        "port 5432"
+      ]
+    },
+    {
+      "id": "F3",
+      "domain": "application",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Order-admin UI grants every employee full admin rights including refunds and customer export",
+      "description": "The order-admin OIDC app is assigned to all staff and the backend has a single permission level, so any employee can issue refunds, change delivery addresses and bulk-export customer data. This allows insider fraud and mass PII exfiltration with no least privilege or segregation of duties. Access should be limited to a customer-service group, with role-based permissions, refund limits or approval, and a restricted export function.",
+      "sections": [
+        "7.3 Staff"
+      ],
+      "evidence": [
+        "The OIDC application is assigned to the All Staff group so that new agents do not need an access request.",
+        "The order-admin backend has a single permission level: every signed-in user can search orders, change delivery addresses, issue refunds and export customer lists to CSV."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "rbac",
+        "least privilege",
+        "order-admin",
+        "refunds",
+        "all staff"
+      ]
+    },
+    {
+      "id": "F4",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Unauthenticated Kong Admin API reachable from the whole corporate network",
+      "description": "The Kong Admin API has no authentication and relies only on network placement, but it is published on the internal load balancer that every device on the corporate network and VPN can reach. Any employee or compromised corporate laptop can reconfigure the production gateway: remove authentication or rate limits, reroute payment or order traffic, or add logging plugins that capture customer tokens. The Admin API should be bound to localhost or a dedicated management network reachable only by the deploy pipeline, with RBAC or mTLS enabled, and maintenance mode should be exposed through the order-admin application.",
+      "sections": [
+        "4. API Layer",
+        "6. Network Design"
+      ],
+      "evidence": [
+        "The Kong Admin API on port 8001 is exposed through the internal order-admin load balancer under the /kong-admin path, so that customer service team leads can switch the shop into maintenance mode.",
+        "The Admin API has no authentication plugin configured; access is limited by its network placement.",
+        "The order-admin UI is served by an internal Application Load Balancer that is reachable only from the corporate network and the corporate VPN."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Tampering",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "kong admin api",
+        "unauthenticated",
+        "management plane",
+        "port 8001",
+        "gateway"
+      ]
+    },
+    {
+      "id": "F5",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "All pods share an over-privileged node IAM role (S3 and SES full access)",
+      "description": "Pods inherit credentials from the worker node instance profile, which has AmazonS3FullAccess and AmazonSESFullAccess. Compromise of any pod, including internet-facing ones, therefore gives full control of every S3 bucket in the account and the ability to send email as Larkfield. Each service should use IAM Roles for Service Accounts (or EKS Pod Identity) scoped to the specific bucket and SES identity, and pods should be blocked from reaching the node's instance metadata credentials.",
+      "sections": [
+        "7.4 Workload identity"
+      ],
+      "evidence": [
+        "Pods obtain AWS credentials from the EKS worker node instance profile.",
+        "Besides the standard EKS worker policies, the node role has AmazonS3FullAccess and AmazonSESFullAccess attached, because order-svc writes invoices to S3 and sends email through SES."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "node role",
+        "irsa",
+        "s3fullaccess",
+        "least privilege",
+        "instance profile"
+      ]
+    },
+    {
+      "id": "F6",
+      "domain": "network",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "EKS API server endpoint open to the internet",
+      "description": "The Kubernetes control-plane endpoint accepts connections from any address, so it is exposed to internet-wide scanning, credential attacks and any future API server vulnerability. The only protection is IAM authentication. The endpoint should be private, or restricted to known CIDRs, with deployments run from self-hosted runners inside the VPC or through a private access path.",
+      "sections": [
+        "6. Network Design"
+      ],
+      "evidence": [
+        "The EKS API server endpoint is public and accepts connections from 0.0.0.0/0, because the GitHub-hosted runners that deploy with Helm use changing IP ranges."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "eks",
+        "api server endpoint",
+        "public endpoint",
+        "control plane",
+        "0.0.0.0/0"
+      ]
+    },
+    {
+      "id": "F7",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "No rate limiting or brute-force protection on login and registration endpoints",
+      "description": "Rate limiting is applied only to the cart and checkout routes. The login and registration endpoints have no rate limit, lockout or bot protection, and the WAF rule groups listed do not include rate-based rules. Customer accounts are therefore open to credential stuffing and account enumeration. Rate limiting, bot or credential-stuffing protection and progressive lockout should be applied to the /v1/auth routes.",
+      "sections": [
+        "4. API Layer"
+      ],
+      "evidence": [
+        "Kong applies a rate limit of 60 requests per minute per client IP to the /v1/cart and /v1/checkout routes.",
+        "Email and password sign-in, returns an access token"
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Denial of Service"
+      ],
+      "keywords": [
+        "rate limiting",
+        "credential stuffing",
+        "brute force",
+        "login"
+      ]
+    },
+    {
+      "id": "F8",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "LOW"
+      ],
+      "type": "defect",
+      "title": "Access tokens are not revoked on sign-out or password change",
+      "description": "Signing out only removes the token from the client, and tokens stay valid for up to 12 hours even after a password change. A stolen token cannot be invalidated by the customer or by support after an account compromise. identity-svc should revoke tokens server-side on sign-out and invalidate all of a customer's sessions on password change. Because Kong introspects every request, revocation would take effect immediately.",
+      "sections": [
+        "7.1 Customers"
+      ],
+      "evidence": [
+        "Signing out deletes the token from the app; the token itself remains valid until it expires, including after a password change."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing"
+      ],
+      "keywords": [
+        "session revocation",
+        "logout",
+        "token invalidation",
+        "password change"
+      ]
+    },
+    {
+      "id": "F9",
+      "domain": "application",
+      "severity": "LOW",
+      "acceptable_severities": [
+        "LOW",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Weak customer password policy (six-character minimum)",
+      "description": "A six-character minimum, with no check against breached or common passwords, lets customers choose passwords that are easy to guess or already exposed in other breaches. Current guidance (NIST SP 800-63B) calls for longer minimums and blocklist screening. The minimum length should be raised and new passwords checked against a breached-password list.",
+      "sections": [
+        "7.1 Customers"
+      ],
+      "evidence": [
+        "Customers register with an email address and a password of at least six characters; passwords are hashed with Argon2id."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing"
+      ],
+      "keywords": [
+        "password policy",
+        "minimum length",
+        "breached passwords",
+        "nist 800-63b"
+      ]
+    },
+    {
+      "id": "F10",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "LOW"
+      ],
+      "type": "gap",
+      "title": "No audit trail or alerting for privileged staff actions",
+      "description": "Refunds, address changes and customer CSV exports in order-admin, and configuration changes through the Kong Admin API, are not recorded in any audit trail, and monitoring alerts only on 5xx errors, payment failures and GuardDuty findings. Fraudulent refunds, mass data export or gateway tampering would go unnoticed and could not be attributed to anyone. These actions should be written to a tamper-resistant audit log with the user identity, and alerts should fire on anomalies such as bulk exports, high refund volumes and Admin API changes.",
+      "sections": [
+        "7.3 Staff",
+        "10. Logging and Monitoring"
+      ],
+      "evidence": [
+        "The order-admin backend has a single permission level: every signed-in user can search orders, change delivery addresses, issue refunds and export customer lists to CSV.",
+        "Alerts on 5xx error rate, payment failure rate and high-severity GuardDuty findings page the on-call engineer."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "audit trail",
+        "privileged actions",
+        "alerting",
+        "refunds",
+        "admin api"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Card data (PAN/CVC) handled or stored by the checkout platform",
+      "why_not": "Section 8 states that card fields are PayCrest hosted-field iframes, so card data goes directly to PayCrest and never reaches Larkfield systems.",
+      "evidence": [
+        "The payment step collects the customer's card number, expiry date and CVC on the checkout page.",
+        "Card fields are rendered in iframes served by PayCrest hosted fields, so card data goes directly from the browser to PayCrest and is never received or stored by Larkfield systems."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Unauthenticated payment webhook allows forged payment confirmations",
+      "why_not": "Section 7.2 requires HMAC-SHA256 signature verification with a five-minute timestamp window on every webhook, and payment-svc checks the payment intent with the PayCrest API before marking an order paid.",
+      "evidence": [
+        "The /v1/payments/webhook route is configured in Kong with authentication disabled, because PayCrest cannot present a customer token.",
+        "payment-svc verifies the PayCrest-Signature header on every webhook, an HMAC-SHA256 over the timestamp and raw body using the endpoint signing secret, and discards events with an invalid signature or a timestamp older than five minutes.",
+        "Before moving an order to PAID, payment-svc retrieves the payment intent from the PayCrest API to confirm that the payment has succeeded."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Customer PII database lacks encryption at rest or in transit",
+      "why_not": "Section 8 specifies RDS storage encryption with a customer-managed KMS key, and rds.force_ssl=1 requires TLS on all client connections.",
+      "evidence": [
+        "Its customers and orders tables hold names, email addresses, phone numbers and delivery addresses for about 2.3 million customers.",
+        "The RDS instance uses storage encryption with a customer-managed KMS key, and its parameter group sets rds.force_ssl to 1 so that every client connection must use TLS."
+      ]
+    },
+    {
+      "id": "N4",
+      "title": "Sequential order IDs allow enumeration of other customers' orders (IDOR)",
+      "why_not": "Section 4 states that order-svc returns an order or invoice only when its customer_id matches the caller's X-Customer-Id, and returns 404 otherwise. Guessable IDs alone do not expose other customers' orders. The guest-email binding flaw (F1) is a separate issue.",
+      "evidence": [
+        "Order IDs are sequential BIGSERIAL values and are printed on invoices, confirmation emails and parcel labels.",
+        "order-svc returns an order or invoice only when its customer_id matches the X-Customer-Id header, and otherwise responds with 404."
+      ]
+    }
+  ],
+  "injection": null
+}

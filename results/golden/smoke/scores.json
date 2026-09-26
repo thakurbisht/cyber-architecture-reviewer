@@ -1,0 +1,95 @@
+{
+  "run_name": "smoke",
+  "label": "smoke",
+  "config_models": [
+    [
+      "enable_threat_modeling",
+      "true"
+    ]
+  ],
+  "rules_only": true,
+  "judge_model": "gemma3:12b",
+  "embed_model": "nomic-embed-text",
+  "judge_version": "judge-v1",
+  "docs_scored": 2,
+  "docs_failed": [],
+  "totals": {
+    "predicted": 13,
+    "correct": 7,
+    "trap_hits": 4,
+    "unmatched": 2,
+    "expected": 17,
+    "found": 4,
+    "traps": 8,
+    "traps_raised": 3,
+    "duplicates": 3
+  },
+  "precision": 0.5384615384615384,
+  "recall": 0.23529411764705882,
+  "f1": 0.3274853801169591,
+  "trap_violation_rate": 0.375,
+  "cross_section_recall": 0.25,
+  "severity_agreement": 0.8571428571428571,
+  "clean_doc_false_positives_avg": null,
+  "injection_recall": null,
+  "evidence_valid_rate": null,
+  "evidence_field_present": false,
+  "avg_seconds_per_doc": 0.05,
+  "recall_by_severity": {
+    "CRITICAL": 0.6666666666666666,
+    "HIGH": 0.16666666666666666,
+    "MEDIUM": 0.14285714285714285,
+    "LOW": 0.0
+  },
+  "recall_by_domain": {
+    "application": 0.0,
+    "cloud_data": 0.4,
+    "network": 0.0,
+    "security": 0.6666666666666666
+  },
+  "recall_by_type": {
+    "defect": 0.21428571428571427,
+    "gap": 0.3333333333333333
+  },
+  "precision_by_origin": {
+    "rules_engine": {
+      "n": 13,
+      "precision": 0.5384615384615384
+    }
+  },
+  "judge_calls": {
+    "called": 13
+  },
+  "per_doc": [
+    {
+      "doc_id": "gs-01-checkout-api",
+      "kind": "flawed",
+      "predicted": 6,
+      "correct": 3,
+      "trap_hits": 3,
+      "unmatched": 0,
+      "expected": 10,
+      "found": 2,
+      "traps": 4,
+      "traps_raised": 2,
+      "precision": 0.5,
+      "recall": 0.2,
+      "seconds": 0.1
+    },
+    {
+      "doc_id": "gs-02-aws-landing-zone",
+      "kind": "flawed",
+      "predicted": 7,
+      "correct": 4,
+      "trap_hits": 1,
+      "unmatched": 2,
+      "expected": 7,
+      "found": 2,
+      "traps": 4,
+      "traps_raised": 1,
+      "precision": 0.5714285714285714,
+      "recall": 0.2857142857142857,
+      "seconds": 0.0
+    }
+  ]
+}

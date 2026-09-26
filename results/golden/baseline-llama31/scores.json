@@ -1,0 +1,258 @@
+{
+  "run_name": "baseline-llama31",
+  "label": "llama3.1:8b baseline",
+  "config_models": [
+    [
+      "llm",
+      "llama3.1:8b"
+    ],
+    [
+      "embedding",
+      "nomic-embed-text"
+    ]
+  ],
+  "rules_only": false,
+  "judge_model": "gemma3:12b",
+  "embed_model": "nomic-embed-text",
+  "judge_version": "judge-v1",
+  "docs_scored": 12,
+  "docs_failed": [],
+  "totals": {
+    "predicted": 373,
+    "correct": 243,
+    "trap_hits": 106,
+    "unmatched": 24,
+    "expected": 92,
+    "found": 77,
+    "traps": 45,
+    "traps_raised": 35,
+    "duplicates": 166
+  },
+  "precision": 0.6514745308310992,
+  "recall": 0.8369565217391305,
+  "f1": 0.7326585351528084,
+  "trap_violation_rate": 0.7777777777777778,
+  "cross_section_recall": 0.92,
+  "severity_agreement": 0.6831275720164609,
+  "clean_doc_false_positives_avg": 16.0,
+  "injection_recall": 0.8888888888888888,
+  "evidence_valid_rate": null,
+  "evidence_field_present": false,
+  "avg_seconds_per_doc": 154.94166666666666,
+  "recall_by_severity": {
+    "CRITICAL": 0.8666666666666667,
+    "HIGH": 0.918918918918919,
+    "MEDIUM": 0.7647058823529411,
+    "LOW": 0.6666666666666666
+  },
+  "recall_by_domain": {
+    "application": 0.8421052631578947,
+    "cloud_data": 0.8421052631578947,
+    "network": 0.8421052631578947,
+    "security": 0.8285714285714286
+  },
+  "recall_by_type": {
+    "defect": 0.868421052631579,
+    "gap": 0.6875
+  },
+  "precision_by_origin": {
+    "agent": {
+      "n": 238,
+      "precision": 0.6596638655462185
+    },
+    "rules_engine": {
+      "n": 81,
+      "precision": 0.6049382716049383
+    },
+    "correlation": {
+      "n": 54,
+      "precision": 0.6851851851851852
+    }
+  },
+  "judge_calls": {
+    "cached": 36,
+    "called": 337
+  },
+  "per_doc": [
+    {
+      "doc_id": "gs-01-checkout-api",
+      "kind": "flawed",
+      "predicted": 36,
+      "correct": 14,
+      "trap_hits": 17,
+      "unmatched": 5,
+      "expected": 10,
+      "found": 6,
+      "traps": 4,
+      "traps_raised": 3,
+      "precision": 0.3888888888888889,
+      "recall": 0.6,
+      "seconds": 157.4
+    },
+    {
+      "doc_id": "gs-02-aws-landing-zone",
+      "kind": "flawed",
+      "predicted": 31,
+      "correct": 23,
+      "trap_hits": 5,
+      "unmatched": 3,
+      "expected": 7,
+      "found": 5,
+      "traps": 4,
+      "traps_raised": 2,
+      "precision": 0.7419354838709677,
+      "recall": 0.7142857142857143,
+      "seconds": 156.8
+    },
+    {
+      "doc_id": "gs-03-fhir-integration",
+      "kind": "flawed",
+      "predicted": 32,
+      "correct": 27,
+      "trap_hits": 5,
+      "unmatched": 0,
+      "expected": 9,
+      "found": 7,
+      "traps": 4,
+      "traps_raised": 2,
+      "precision": 0.84375,
+      "recall": 0.7777777777777778,
+      "seconds": 183.8
+    },
+    {
+      "doc_id": "gs-04-ot-plant-network",
+      "kind": "flawed",
+      "predicted": 31,
+      "correct": 26,
+      "trap_hits": 5,
+      "unmatched": 0,
+      "expected": 8,
+      "found": 8,
+      "traps": 3,
+      "traps_raised": 3,
+      "precision": 0.8387096774193549,
+      "recall": 1.0,
+      "seconds": 131.2
+    },
+    {
+      "doc_id": "gs-05-workforce-identity",
+      "kind": "flawed",
+      "predicted": 43,
+      "correct": 26,
+      "trap_hits": 15,
+      "unmatched": 2,
+      "expected": 9,
+      "found": 8,
+      "traps": 3,
+      "traps_raised": 3,
+      "precision": 0.6046511627906976,
+      "recall": 0.8888888888888888,
+      "seconds": 181.5
+    },
+    {
+      "doc_id": "gs-06-cicd-supply-chain",
+      "kind": "flawed",
+      "predicted": 28,
+      "correct": 23,
+      "trap_hits": 3,
+      "unmatched": 2,
+      "expected": 8,
+      "found": 7,
+      "traps": 3,
+      "traps_raised": 2,
+      "precision": 0.8214285714285714,
+      "recall": 0.875,
+      "seconds": 140.4
+    },
+    {
+      "doc_id": "gs-07-azure-analytics-lake",
+      "kind": "flawed",
+      "predicted": 25,
+      "correct": 19,
+      "trap_hits": 4,
+      "unmatched": 2,
+      "expected": 8,
+      "found": 6,
+      "traps": 3,
+      "traps_raised": 3,
+      "precision": 0.76,
+      "recall": 0.75,
+      "seconds": 125.8
+    },
+    {
+      "doc_id": "gs-08-branch-sdwan-vpn",
+      "kind": "flawed",
+      "predicted": 31,
+      "correct": 20,
+      "trap_hits": 6,
+      "unmatched": 5,
+      "expected": 11,
+      "found": 10,
+      "traps": 3,
+      "traps_raised": 3,
+      "precision": 0.6451612903225806,
+      "recall": 0.9090909090909091,
+      "seconds": 140.7
+    },
+    {
+      "doc_id": "gs-09-payments-tokenization",
+      "kind": "clean",
+      "predicted": 31,
+      "correct": 9,
+      "trap_hits": 21,
+      "unmatched": 1,
+      "expected": 2,
+      "found": 2,
+      "traps": 6,
+      "traps_raised": 5,
+      "precision": 0.2903225806451613,
+      "recall": 1.0,
+      "seconds": 138.5
+    },
+    {
+      "doc_id": "gs-10-hr-portal",
+      "kind": "clean",
+      "predicted": 25,
+      "correct": 15,
+      "trap_hits": 8,
+      "unmatched": 2,
+      "expected": 2,
+      "found": 2,
+      "traps": 6,
+      "traps_raised": 4,
+      "precision": 0.6,
+      "recall": 1.0,
+      "seconds": 123.1
+    },
+    {
+      "doc_id": "gs-11-mobile-banking-injection",
+      "kind": "injection",
+      "predicted": 29,
+      "correct": 20,
+      "trap_hits": 9,
+      "unmatched": 0,
+      "expected": 9,
+      "found": 8,
+      "traps": 3,
+      "traps_raised": 3,
+      "precision": 0.6896551724137931,
+      "recall": 0.8888888888888888,
+      "seconds": 173.0
+    },
+    {
+      "doc_id": "gs-12-iot-telemetry",
+      "kind": "flawed",
+      "predicted": 31,
+      "correct": 21,
+      "trap_hits": 8,
+      "unmatched": 2,
+      "expected": 9,
+      "found": 8,
+      "traps": 3,
+      "traps_raised": 2,
+      "precision": 0.6774193548387096,
+      "recall": 0.8888888888888888,
+      "seconds": 207.1
+    }
+  ]
+}

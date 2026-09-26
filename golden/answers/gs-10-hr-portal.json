@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-10-hr-portal",
+  "title": "PeopleHub HR Self-Service Portal — High-Level Design",
+  "doc_kind": "clean",
+  "domains": [
+    "application",
+    "cloud_data",
+    "network",
+    "security"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "LOW"
+      ],
+      "type": "defect",
+      "title": "Record-level HR data access logs kept only 90 days and not sent to the SIEM",
+      "description": "The events that show who viewed or changed an employee's pay, bank or identity data are the primary evidence for insider snooping and payroll fraud investigations, but they are kept for only 90 days in Log Analytics and are not forwarded to Sentinel (which keeps other security events for 12 months). Misuse discovered after three months, a common timeline for HR complaints or subject access requests, cannot be investigated. Recommend forwarding these events to the SIEM and retaining them for at least 12 months.",
+      "sections": [
+        "8. Logging, Monitoring and Operations"
+      ],
+      "evidence": [
+        "Record-level access events, recording which user viewed or changed which employee's pay, bank or identity data, are written by the Portal API to a Log Analytics workspace with 90-day retention.",
+        "Sign-in, PIM activation, role assignment and configuration-change events, together with Front Door WAF and Defender alerts, are forwarded to the corporate SIEM (Microsoft Sentinel) and retained for 12 months."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "log retention",
+        "90 days",
+        "audit log",
+        "data access",
+        "siem"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "LOW"
+      ],
+      "type": "defect",
+      "title": "No defined rotation for payroll SFTP and PGP signing keys",
+      "description": "The SFTP authentication key and PGP signing key that let PeopleHub submit payroll and bank-detail changes to Payfield have existed since 2023 and are only replaced if the provider asks. A leaked key would let an attacker submit or sign payroll change files indefinitely. Recommend a defined rotation schedule (for example annually, and on staff or supplier changes) with the rotation procedure agreed with Payfield.",
+      "sections": [
+        "7. Data Protection"
+      ],
+      "evidence": [
+        "The SFTP key pair and the PGP signing key were generated during onboarding in 2023, are stored in Key Vault, and are replaced when Payfield requests a change."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Tampering"
+      ],
+      "keywords": [
+        "key rotation",
+        "sftp key",
+        "pgp",
+        "payroll",
+        "payfield"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "HR portal exposed to the internet / accessible from personal devices without MFA, WAF or device controls",
+      "why_not": "Section 6 requires phishing-resistant MFA via Conditional Access for every sign-in, with geo-blocking, and limits personal devices to employee self-service: HR Administrator access and manager pay views require compliant Intune-managed devices. Section 7 puts a WAF with OWASP rules and rate limiting in front, and section 4 makes Front Door the only public entry point.",
+      "evidence": [
+        "The portal is reachable from the internet at peoplehub.brightwater.co.uk so that distribution-centre and field staff can use it from personal phones and home computers.",
+        "A Conditional Access policy requires phishing-resistant MFA for every PeopleHub sign-in, from both managed and personal devices, and blocks sign-ins from outside the UK and Ireland unless an exception is approved.",
+        "Personal devices are limited to employee self-service: the HR Administrator role and manager views of team pay data are available only on compliant, Intune-managed devices, enforced by a Conditional Access device-compliance policy.",
+        "Front Door applies a WAF policy with the managed OWASP rule set and rate limiting in prevention mode."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Unrestricted or unscanned document uploads",
+      "why_not": "Section 7 restricts uploads to four types up to 20 MB with signature checks, quarantines them until Defender malware scanning is clean, and serves them only as attachments from a separate domain.",
+      "evidence": [
+        "Employees can upload documents such as fit notes, certificates, right-to-work evidence and signed contracts, in any common office or image format.",
+        "Microsoft Defender for Storage malware scanning must return a clean result before a file is moved to the main container.",
+        "Files are served back as downloads from a separate domain with Content-Disposition: attachment, never rendered inline."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Broken access control: managers can see salary data across the organisation",
+      "why_not": "Section 6 enforces server-side authorisation against the reporting hierarchy on every request, limits managers to their direct and indirect reports, and never returns bank or national insurance data to managers.",
+      "evidence": [
+        "Line managers can view the salary, working pattern and absence history of employees in their organisation and approve or reject leave requests, overtime claims and pay changes.",
+        "the API checks the requested employee ID against that hierarchy server-side, and bank details and national insurance numbers are never returned to the Line Manager role."
+      ]
+    },
+    {
+      "id": "N4",
+      "title": "Bank details sent to the payroll provider over the internet unprotected",
+      "why_not": "Section 7 states the file is PGP-signed and PGP-encrypted, then sent via key-authenticated SFTP to a pinned host with IP allowlisting.",
+      "evidence": [
+        "Every night at 01:00 the payroll export job builds a change file containing new starters, leavers, pay changes and updated bank account numbers and sort codes, and sends it to Payfield over the internet.",
+        "The payroll change file is signed with Brightwater's PGP key and encrypted with Payfield's PGP public key before transfer."
+      ]
+    },
+    {
+      "id": "N5",
+      "title": "Analysts have direct database access to sensitive HR data",
+      "why_not": "Section 6 limits analysts to Entra ID sign-in and curated reporting views with no base-table access; section 7 keeps national insurance and bank columns as Always Encrypted ciphertext on the replica.",
+      "evidence": [
+        "HR Analysts connect directly to the reporting replica with Power BI Desktop and SQL Server Management Studio to run ad-hoc queries, reaching the private endpoint from managed laptops over the corporate VPN.",
+        "HR Analysts sign in to the reporting replica with Entra ID accounts only; the HR-Analytics group can read a curated set of reporting views and has no access to base tables.",
+        "so these values remain ciphertext to database administrators and to anyone querying the reporting replica."
+      ]
+    },
+    {
+      "id": "N6",
+      "title": "Sensitive employee PII not encrypted at rest",
+      "why_not": "Section 7 specifies TDE with a customer-managed HSM-backed key and Always Encrypted for national insurance and bank account columns.",
+      "evidence": [
+        "The HR database holds national insurance numbers, bank account details, salary history and home addresses for all current employees and for former employees for six years after leaving.",
+        "Azure SQL uses Transparent Data Encryption with a customer-managed key in Key Vault (Premium, HSM-backed), and the storage account is encrypted with a customer-managed key.",
+        "National insurance numbers and bank account details are additionally protected with Always Encrypted; the column master key is accessible only to the managed identities of the Portal API and the payroll export job"
+      ]
+    }
+  ],
+  "injection": null
+}

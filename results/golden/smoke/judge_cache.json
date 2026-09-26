@@ -1,0 +1,76 @@
+{
+  "69d9b9905c3d18f1465396b453b7e0188b831765032422c05681fc365a4d0d9b": {
+    "reason": "The reported finding specifically addresses the exposure of an API endpoint without authentication, and candidate C5 also describes an unauthenticated webhook, which represents a similar lack of authentication on a critical component.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "a3714506500f14bd0fdf4c7486fa8044e7864f937296fe074794c01ae6fd02fa": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data being written to application logs, and the recommendation is to mask or omit PII, card data, tokens, and request bodies. Candidate C7 directly mentions card data being handled or stored by the platform, which aligns with the finding's concern about sensitive data exposure.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "e28f480ebaa54c93c3cc1ba72c3a3cd17769f725e40fd680eee331843856a362": {
+    "reason": "The reported finding specifically mentions database ports being reachable from the internet and recommends restricting access through a bastion or private endpoints. Candidate C2 also describes a publicly accessible PostgreSQL database replica with customer PII, directly addressing the same underlying weakness of exposed database ports.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "b08f253158910332070e3b4c46cf3ea599ac74c279a548c2e82014fb4f14e8bc": {
+    "reason": "The reported finding specifically addresses the lack of a defined key management model (custody, rotation, escrow) for encryption keys. Candidate C5, regarding card data (PAN/CVC) handling, also involves encryption keys and their management, making it a relevant match.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "d9088e531d94c26ec6a8fb02f3930177bedf2a2e9322dfa4a849b8be759593ab": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, which directly relates to the security of configuration data and the ability to recover from incidents. Candidate C7, concerning the lack of audit trails for privileged staff actions, including Kong Admin API configuration changes, aligns with this concern about unmonitored and potentially malicious alterations to the system's configuration.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "df9fd9d5fd5fc08e27f25fbe913fc8a162358de68e6a69f3af2165b9ac7cc989": {
+    "reason": "The reported finding specifically mentions the lack of a threat model and documented attack-surface analysis, which directly relates to the absence of comprehensive logging and monitoring for critical actions like refunds, address changes, and API configuration changes, as highlighted in candidate C1. C1 describes a lack of visibility into privileged actions, which is a key aspect of identifying and mitigating potential threats.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "637e9f67b0328ce94fd14005f8f46a031f90a853be84c25dc5ac53d20713e21b": {
+    "reason": "The reported finding focuses on the lack of security scanning within the software development pipeline, specifically mentioning SCA, container image scanning, SBOM generation, and CVE handling. None of the candidate issues directly address this aspect of the architecture; they cover network segmentation, IAM permissions, SCP guardrails, alerting, data access controls, MFA enforcement, and internet routing, which are distinct security concerns.",
+    "matches": []
+  },
+  "6a865cb1d932c1f9d945fa4168c56c4c06f0e31505e033e6b8b1e90948b128df": {
+    "reason": "The reported finding specifically addresses the issue of overly permissive IAM permissions granted to workloads. Candidate C3 directly describes break-glass admin IAM users with broad AdministratorAccess, which is a clear example of overly permissive IAM permissions.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "78fc80621fddc0ec5c51bfe60e330aa94aea736dbfbc95f1c4131b1e94f019c6": {
+    "reason": "The reported finding specifically addresses the issue of overly permissive IAM permissions (wildcard grants or broad managed admin roles) granted to workloads. Candidate C2 directly describes a scenario where a role (datalake-etl) has excessive permissions and trust relationships, aligning with the finding's concern about overly broad access.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "ac243ff85fe21ab2bf797ae055376e9344f97e028f1ea937d56e3d447b5af125": {
+    "reason": "The reported finding specifically addresses the issue of overly permissive IAM permissions, particularly wildcards or broad admin roles granted to workloads. Candidate C1 directly describes a scenario where a role (datalake-etl) has excessive permissions (read/write access to all data lake zones) and trusts all principals in the organization, aligning with the finding's concern about broad access.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "f59aace8fcbc5ba8b1ecc6b084e7b2130b03b1c8b9831055ee1b9388888e59fa": {
+    "reason": "The reported finding specifically addresses the lack of defined key management practices (custody, rotation, escrow) for encryption keys. Candidate C1 discusses MFA enforcement, which is a separate security control and doesn't relate to key management.",
+    "matches": []
+  },
+  "9c34abc41ca376d751e2dbbdb9137b8b61c536e94a735ad7eec53c8c329c629e": {
+    "reason": "The reported finding specifically addresses the lack of multi-factor authentication (MFA) for privileged access, particularly in a 'break-glass' scenario. Candidate C4 directly mirrors this concern by highlighting break-glass admin IAM users lacking MFA and sharing passwords, which aligns with the finding's focus on privileged access without MFA.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "922056fbe9128b12f1bf2a6c3f560ee3e52a8ebeba0369c800f7e711992ec48b": {
+    "reason": "The reported finding highlights the lack of a threat model and attack surface analysis, which directly relates to the absence of proactive security considerations and risk mitigation. Candidate C1, regarding the lack of MFA for workforce access, represents a failure to implement a basic security control that would be identified and addressed through a proper threat modeling exercise.",
+    "matches": [
+      "C1"
+    ]
+  }
+}

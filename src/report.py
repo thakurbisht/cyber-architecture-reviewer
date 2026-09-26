@@ -233,6 +233,38 @@ def render_markdown(result: ReviewResult, config: Optional[Config] = None,
         lines.append(assurance_opinion.strip())
         lines.append("")
 
+    # -- threat model summary ---------------------------------------------
+    tm = getattr(result, "threat_model", None)
+    if tm:
+        lines.append("## Threat Model Summary")
+        lines.append("")
+        lines.append(
+            f"{len(tm.get('threats', []))} threats identified across "
+            f"{len(tm.get('trust_zones', []))} inferred trust zones, with "
+            f"{len(tm.get('trust_boundary_crossings', []))} trust-boundary "
+            f"crossings in the document flow."
+        )
+        lines.append("")
+        lines.append("**STRIDE coverage** (threats per category):")
+        lines.append("")
+        lines.append("| Category | Threats |")
+        lines.append("|---|---:|")
+        for cat, count in (tm.get("stride_totals") or {}).items():
+            lines.append(f"| {cat} | {count} |")
+        lines.append("")
+        blind_spots = tm.get("blind_spots") or []
+        if blind_spots:
+            lines.append(
+                f"**{len(blind_spots)} coverage gaps** - domain/category "
+                f"pairs with zero threats surfaced (see full threat model "
+                f"for detail; a gap means the review found nothing there, "
+                f"not that the design is confirmed safe there)."
+            )
+            lines.append("")
+        for note in tm.get("caveats") or []:
+            lines.append(f"> {note}")
+        lines.append("")
+
     # -- priority actions -------------------------------------------------
     top = priority_actions(findings, 3)
     if top:

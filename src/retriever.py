@@ -360,6 +360,18 @@ class KnowledgeBase:
         floor = float(self.config.retrieval.get("min_similarity", 0.0))
         domains = [domain] + [d for d in (extra_domains or []) if d != domain]
 
+        # CRITICAL: Verify embedding model matches before querying.
+        # Mismatched models produce vectors in incompatible spaces where
+        # similarity is meaningless and fails silently.
+        for d in domains:
+            error = self.verify_embedding_space(d)
+            if error:
+                raise RuntimeError(
+                    f"EMBEDDING MODEL MISMATCH in domain '{d}': {error}\n"
+                    f"This would produce meaningless retrieval results. "
+                    f"Aborting search to prevent silent corruption."
+                )
+
         try:
             qvec = self.embedder.embed([query])[0]
         except Exception as exc:

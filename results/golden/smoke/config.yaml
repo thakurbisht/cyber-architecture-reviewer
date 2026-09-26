@@ -1,0 +1,80 @@
+# ===========================================================================
+# Cyber Architecture Reviewer - runtime configuration
+# ---------------------------------------------------------------------------
+# Everything here is local-first. Change models only if you have pulled them
+# with `ollama pull <model>` first.
+# ===========================================================================
+
+models:
+  # Reasoning LLM used by the review + report nodes.
+  llm: "llama3.1:8b"
+  # Embedding model. CRITICAL: the SAME model must be used for seeding and
+  # querying. Different models produce vectors in incompatible geometric
+  # spaces and retrieval silently returns nonsense.
+  embedding: "nomic-embed-text"
+  ollama_host: "http://localhost:11434"
+  temperature: 0.1            # low, but never zero - see blueprint §7.1
+  request_timeout_s: 300
+
+retrieval:
+  chunk_words: 220            # ~200-250 words keeps one clause per chunk
+  chunk_overlap_words: 40     # preserves clause context across boundaries
+  top_k: 4                    # chunks returned per section query
+  min_similarity: 0.25        # cosine floor; below this the chunk is dropped
+  persist_dir: "./data/chroma"
+  collection_prefix: "car"    # one collection per domain: car_network, ...
+
+agent:
+  max_tool_iterations: 6      # hard stop; the agent WILL loop otherwise
+  max_searches_per_section: 3 # prevents circular re-searching
+  max_sections: 40            # guardrail against pathological documents
+  enable_cross_domain_pass: true
+  enable_rules_engine: true   # deterministic pre-checks before LLM reasoning
+  # Completeness runs before the rules engine and reports topics the design
+  # never addresses. Without it, a design that never mentions encryption
+  # produces no encryption findings, and silence reads as a pass.
+  enable_completeness_checks: true
+  # TIER 1 Skill Integration
+  enable_skills: true
+  skills_dir: "./skills"
+  cache_dir: "./cache"
+  # Threat modeling: reframes the final finding set as STRIDE-classified
+  # threats + a trust-zone/coverage view (src/threat_model.py). Pure
+  # Python, no extra LLM call, so this is safe to leave on by default.
+  enable_threat_modeling: true
+
+domains:
+  # Toggle whole review domains on/off without touching code.
+  network: true
+  application: true
+  security: true
+  cloud_data: true
+
+scoring:
+  # Weighted risk score. Score = sum(weight x count), normalised in report.py
+  weights:
+    CRITICAL: 40
+    HIGH: 15
+    MEDIUM: 5
+    LOW: 1
+  # RAG thresholds applied to the normalised 0-100 risk score.
+  rag:
+    red_at_score: 40          # >= 40  -> RED
+    amber_at_score: 12        # >= 12  -> AMBER, else GREEN
+    # Any single CRITICAL forces RED regardless of score.
+    critical_forces_red: true
+
+output:
+  reports_dir: "./data/reports"
+  audit_dir: "./data/audit"
+  include_evidence_excerpts: true
+  max_excerpt_chars: 400
+
+knowledge_base:
+  root: "./knowledge_base"
+  # Folder name -> domain key. Files under _templates are never seeded.
+  folder_map:
+    network: network
+    application: application
+    security: security
+    cloud_data: cloud_data

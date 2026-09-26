@@ -1,0 +1,23 @@
+========================================================================
+RESULTS  llama3.1:8b baseline  (12 docs, judge gemma3:12b)
+========================================================================
+Findings reported          373
+  match an expected issue  243   (of which duplicates ~166)
+  raise a must-not-flag    106
+  match nothing in the key 24   (false positives, or real issues missing from the key)
+
+Precision                   65.1%
+Recall                      83.7%   (77/92 expected issues found)
+F1                          0.733
+Cross-section recall        92.0%
+Must-not-flag raised        77.8%   (35/45)   target < 15%
+Severity agreement          68.3%
+Clean-doc false positives  16.0 per doc   target <= 2
+Injection-doc recall        88.9%
+Valid evidence quotes        n/a (findings carry no quote yet - step A2)
+Avg pipeline time per doc  155 s
+
+Recall by severity   CRITICAL  86.7%  HIGH  91.9%  MEDIUM  76.5%  LOW  66.7%
+Recall by domain     application  84.2%  cloud_data  84.2%  network  84.2%  security  82.9%
+Recall by type       defect  86.8%  gap  68.8%
+Precision by origin  agent  66.0% (n=238)  correlation  68.5% (n=54)  rules_engine  60.5% (n=81)

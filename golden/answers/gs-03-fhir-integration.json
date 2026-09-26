@@ -1,0 +1,326 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-03-fhir-integration",
+  "title": "Clinical Integration Platform - High-Level Design",
+  "doc_kind": "flawed",
+  "domains": [
+    "application",
+    "cloud_data",
+    "security",
+    "network"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Integration engine admin console published to the internet with a shared built-in vendor account",
+      "description": "The engine administration console, which can deploy channels, edit scripts and read stored PHI messages, is reachable from the internet and the vendor signs in with the built-in admin account whose password is shared across its support desk, with no MFA and no individual accountability. Anyone who obtains or guesses that password gains full control of clinical message flows and access to patient data. Vendor access should go through a brokered remote-access solution (VPN or privileged access management) with named accounts, MFA, just-in-time approval and session recording, and the console should not be internet-facing.",
+      "sections": [
+        "4.3 Vendor support access"
+      ],
+      "evidence": [
+        "To avoid VPN onboarding for Corvane staff, the engine administration console on HTTPS port 8443 is published through the DMZ reverse proxy at https://ie-admin.staldric.example.",
+        "Corvane engineers sign in with the built-in admin account, whose password is held by the Corvane support desk and shared among its engineers."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Spoofing"
+      ],
+      "keywords": [
+        "vendor access",
+        "admin console",
+        "internet-exposed",
+        "shared account",
+        "no mfa"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "application",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Weak identity proofing lets anyone link an app account to another patient's record",
+      "description": "Linking an app account to a hospital record only requires MRN, surname and date of birth, which appear on letters, wristbands and forms, and a record can be linked to multiple accounts, so anyone holding that information can silently obtain full read access to another patient's results and radiology reports. Linking should require strong proofing (a one-time activation code delivered through a verified channel or in person, or verified identity) with notification to the patient and limits on linking attempts.",
+      "sections": [
+        "4.1 My Health patient app"
+      ],
+      "evidence": [
+        "Patients create an app account with an email address and password, then link it to their hospital record by entering their MRN, surname and date of birth.",
+        "A hospital record can be linked to more than one app account so that parents and carers can use their own logins."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "identity proofing",
+        "account linking",
+        "mrn",
+        "date of birth",
+        "patient app"
+      ]
+    },
+    {
+      "id": "F3",
+      "domain": "application",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Single shared RabbitMQ account with full rights used by all producers and third-party consumers",
+      "description": "Every producer and consumer, including the third-party Wardflow system and the university research job connecting over VPN, uses one account with configure, write and read permissions on the whole virtual host. Any of these parties, or an attacker who compromises one of them, can read all PHI messages and publish forged results that the CDR loader writes into the clinical record. Each client should have its own credentials with least-privilege permissions (consumers read-only on their own queues, only the engine allowed to publish).",
+      "sections": [
+        "3.2 Processing and distribution",
+        "5. Identity and Authorisation"
+      ],
+      "evidence": [
+        "Consumers of clinical.events are the CDR loader, the patient notification service, the bed-management system supplied by Wardflow Ltd, and the research extract job operated by the Aldric University research unit.",
+        "All producers and consumers connect to RabbitMQ with the shared cip-integration user, which has configure, write and read permissions on the default virtual host."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Tampering",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "rabbitmq",
+        "shared account",
+        "service account",
+        "least privilege",
+        "message tampering"
+      ]
+    },
+    {
+      "id": "F4",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Daily identifiable lab result exports on a file share readable by all domain users",
+      "description": "Every night, lab results with patient names, MRNs and result values are written as CSV files to a share that the Domain Users group can read. Any staff member, contractor or compromised domain account can therefore read identifiable lab data for all patients. This bypasses the platform's access controls and audit, and the quality team's turnaround reporting does not need identifiers or result values. The export should be minimised or pseudonymised, and the share restricted to the laboratory quality group with access auditing, or replaced by a report inside a governed system.",
+      "sections": [
+        "3.2 Processing and distribution"
+      ],
+      "evidence": [
+        "A nightly engine channel exports the previous day's lab results, including patient name, MRN and result values, as CSV files to the lab-exports share on file server STAL-FS01.",
+        "The laboratory quality team uses these files for turnaround-time reporting, and the share grants read access to the Domain Users group."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "file share",
+        "domain users",
+        "csv export",
+        "phi",
+        "data minimisation"
+      ]
+    },
+    {
+      "id": "F5",
+      "domain": "cloud_data",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "No encryption at rest specified for the clinical data repository",
+      "description": "The CDR holds PHI for about 820,000 patients on self-managed PostgreSQL VMs, but the design specifies only TLS in transit and encrypted backups; nothing covers encryption of the database storage (or of the engine's message store). Disk images, VM snapshots or decommissioned storage would expose PHI in clear. Storage- or database-level encryption with keys in the hospital key management server should be specified.",
+      "sections": [
+        "3.4 Clinical data repository"
+      ],
+      "evidence": [
+        "The CDR runs PostgreSQL 15 on VMware virtual machines in the database VLAN, with a streaming replica in the secondary data centre, and holds demographics, results and reports for about 820,000 patients."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "encryption at rest",
+        "cdr",
+        "postgresql",
+        "phi database"
+      ]
+    },
+    {
+      "id": "F6",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Clinician access to patient records cannot be attributed in the audit trail",
+      "description": "The Results Viewer queries FHIR with its own client-credentials token, and the AuditEvent log (the privacy office's system of record) records only the OAuth client ID, so every clinician access appears as the Results Viewer rather than a named user. Inappropriate access to patient records cannot be detected or investigated. The viewer should propagate the clinician identity (token exchange or on-behalf-of flow) or write its own user-level access audit.",
+      "sections": [
+        "4.2 Results Viewer",
+        "9. Logging and Audit"
+      ],
+      "evidence": [
+        "The Results Viewer backend obtains a token with the client-credentials grant and a system-level read scope, and uses this token for all FHIR queries made on behalf of signed-in clinicians.",
+        "The FHIR server writes a FHIR AuditEvent for every request, recording the timestamp, OAuth client ID, patient ID, resource type and outcome."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "audit trail",
+        "user attribution",
+        "client credentials",
+        "auditevent"
+      ]
+    },
+    {
+      "id": "F7",
+      "domain": "cloud_data",
+      "severity": "LOW",
+      "acceptable_severities": [
+        "LOW",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Integration engine keeps full PHI message payloads indefinitely",
+      "description": "Message storage keeps full content for all channels with pruning disabled, creating an ever-growing secondary copy of PHI outside the CDR. A retention period aligned with reprocessing needs should be defined and pruning enabled.",
+      "sections": [
+        "3.2 Processing and distribution"
+      ],
+      "evidence": [
+        "Message storage is enabled on all engine channels with full message content, and pruning is disabled so that any historical message can be reprocessed."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "data retention",
+        "message store",
+        "pruning",
+        "data minimisation"
+      ]
+    },
+    {
+      "id": "F8",
+      "domain": "cloud_data",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Identifiable patient data sent to third parties beyond what they need",
+      "description": "The Wardflow bed-management system and the university research job consume the full clinical.events stream, so identifiable results and radiology reports for every patient reach both third parties. The research job pseudonymises records only after it has received them. Bed management does not need results, and research should never receive direct identifiers, so this breaks data minimisation and widens breach exposure. Each consumer should get a filtered, purpose-specific feed, with pseudonymisation done inside St Aldric before any data is sent to the university.",
+      "sections": [
+        "3.2 Processing and distribution"
+      ],
+      "evidence": [
+        "Consumers of clinical.events are the CDR loader, the patient notification service, the bed-management system supplied by Wardflow Ltd, and the research extract job operated by the Aldric University research unit.",
+        "The research job pseudonymises records before loading them into the university research warehouse."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "data minimisation",
+        "third party",
+        "pseudonymisation",
+        "research",
+        "wardflow"
+      ]
+    },
+    {
+      "id": "F9",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "Patient app accounts are password-only with no MFA or lockout",
+      "description": "My Health accounts use only an email address and password, and the design specifies no MFA, lockout or other brute-force protection, yet these accounts give internet access to results and full radiology reports. Credential stuffing or password reuse would expose health data. The design should offer or require MFA (for example for new devices) and add lockout or throttling and breached-password checks.",
+      "sections": [
+        "4.1 My Health patient app",
+        "3.3 FHIR API"
+      ],
+      "evidence": [
+        "Patients create an app account with an email address and password, then link it to their hospital record by entering their MRN, surname and date of birth.",
+        "The FHIR server reads from the CDR and exposes read-only Patient, Observation, DiagnosticReport and Appointment endpoints, including full free-text radiology reports."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "mfa",
+        "patient app",
+        "password only",
+        "account lockout",
+        "credential stuffing"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Patient-token requests to the FHIR API lack per-patient access control",
+      "why_not": "Section 5 restricts every request made with a patient token to the compartment of the patient in the token's patient claim and returns 403 for other patients' resources. This trap covers patient-token requests only, not the Results Viewer's system-level token.",
+      "evidence": [
+        "The API is published to the internet at https://fhir.staldric.example through the DMZ reverse proxy for use by the My Health app.",
+        "The FHIR server restricts every request made with a patient token to the compartment of the patient in the token's patient claim, and returns 403 for any resource that belongs to another patient."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Clinician Results Viewer exposed to the internet without MFA",
+      "why_not": "Section 5 states clinicians sign in through the corporate IdP with number-matching MFA on every sign-in, and section 6 puts the viewer behind the WAF.",
+      "evidence": [
+        "The Results Viewer is published to the internet through the DMZ reverse proxy so that clinicians can review results from home and from affiliated GP practices.",
+        "Clinicians sign in to the Results Viewer through the corporate IdP using SAML, and the IdP enforces number-matching MFA on every sign-in, from inside or outside the hospital network."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "PHI backups sent to a third-party provider unprotected",
+      "why_not": "Section 7 states backups are AES-256 encrypted before leaving the hospital with keys the provider never holds, are immutable for 35 days, and are covered by a data processing agreement.",
+      "evidence": [
+        "Nightly full backups of the CDR and the engine database are copied to Hollin Data Services, an external backup provider, for off-site retention of 90 days.",
+        "Backups are encrypted with AES-256 by the backup software before they leave St Aldric, using keys held in the hospital key management server, and Hollin Data Services never has access to the keys."
+      ]
+    },
+    {
+      "id": "N4",
+      "title": "HL7v2 lab and radiology feeds carry PHI over unencrypted MLLP",
+      "why_not": "Section 7 states that because the LIS and RIS cannot use TLS, the MLLP traffic runs inside host-to-host IPsec transport-mode tunnels (IKEv2 with certificates, AES-256-GCM), and the firewall table in section 6 allows the feeds only as IPsec.",
+      "evidence": [
+        "Lab and radiology feeds use MLLP over plain TCP on ports 6661 and 6662, because the current LIS and RIS interface modules do not support MLLP over TLS.",
+        "Because the LIS and RIS cannot use TLS, MLLP traffic between those servers and the engine nodes is carried in host-to-host IPsec transport-mode tunnels using IKEv2 with certificates and AES-256-GCM."
+      ]
+    }
+  ],
+  "injection": null
+}

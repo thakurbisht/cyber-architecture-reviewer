@@ -1,0 +1,98 @@
+{
+  "doc_id": "gs-03-fhir-integration",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "3.2 Processing and distribution",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "issue": "Sensitive or regulated data is handled without a stated classification, residency constraint or retention period.",
+      "recommendation": "Record the classification of every data set the system holds, the jurisdictions it may reside in, the lawful retention period, and the disposal method. Route regulated data only through services approved for that classification.",
+      "standard_reference": "Data Classification Standard §2.1",
+      "kb_source": "cloud_data/cloud-data-protection-standard.md",
+      "evidence_excerpt": "...rical message can be reprocessed. A nightly engine channel exports the previous day's lab results, including patient name, MRN and result values, as CSV files to the lab-exports share on file server STAL-FS01. The laboratory qualit...",
+      "control_mappings": [
+        "ISO 27001 A.5.12",
+        "NIST SP 800-53 RA-2",
+        "GDPR Art.5"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "CLD-DATA-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "7. Data Protection",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Encryption keys have no defined custody, rotation or escrow model.",
+      "recommendation": "Store keys in an HSM or managed KMS with dual control, define a rotation period per key class, separate key custodians from data administrators, and document the recovery procedure.",
+      "standard_reference": "Cryptography Standard §5.2",
+      "kb_source": "security/cryptography-key-management-standard.md",
+      "evidence_excerpt": "...re encrypted with AES-256 by the backup software before they leave St Aldric, using keys held in the hospital key management server, and Hollin Data Services never has access to the keys. Backup copies at Hollin are immutab...",
+      "control_mappings": [
+        "NIST SP 800-57",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-CRYPTO-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "10. Availability and Recovery",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...urs, met by failing over to the CDR replica and the standby engine in the secondary data centre. Nightly full backups of the CDR and the engine database are copied to Hollin Data Services, an external backup provider, for off-s...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Clinical Integration Platform - High-Level Design Owner: Integration Services, St Aldric Regional Health. Version 1.1. 1. Purpose and Scop...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

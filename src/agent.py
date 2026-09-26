@@ -1,4 +1,4 @@
-"""The agentic core: a LangGraph state machine over the review.
+﻿"""The agentic core: a LangGraph state machine over the review.
 
 Graph shape
 -----------
@@ -54,6 +54,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from typing_extensions import TypedDict
 
 from .audit import AuditTrail
+from .completeness import check_document_completeness, completeness_summary
 from .config import Config, load_config
 from .domains import DOMAIN_LABELS, build_retrieval_query
 from .llm import build_models
@@ -76,6 +77,16 @@ from .prompts import (
     build_section_user,
 )
 from .retriever import KnowledgeBase
+from .threat_model import build_threat_model
+
+# TIER 1 Hardening: Skills integration
+try:
+    from .skill_index import SkillIndex, SkillRanking
+    from .skill_executor_v2 import SkillExecutor, SkillFinding
+    from .skill_cache import SkillMetadataCache
+    SKILLS_ENABLED = True
+except ImportError:
+    SKILLS_ENABLED = False
 
 
 # ==========================================================================
@@ -97,6 +108,11 @@ class ReviewState(TypedDict, total=False):
     findings: List[Finding]
     warnings: List[str]
     kb_chunk_count: int
+
+    # TIER 1 Hardening: Skill execution state
+    selected_skills: List[Any] = []      # SkillMetadata objects
+    skill_rankings: List[SkillRanking] = []
+    skill_findings: List[Any] = []       # SkillFinding objects
 
     executive_summary: str
     assurance_opinion: str
@@ -121,9 +137,39 @@ class ReviewAgent:
         self.audit = AuditTrail()
         self._graph = None
 
+        # TIER 1 Hardening: Initialize skills if enabled
+        self.skill_index = None
+        self.skill_cache = None
+        if SKILLS_ENABLED and self.config.agent.get("enable_skills", True):
+            try:
+                skills_dir = self.config.agent.get("skills_dir", "/tmp/work/skills")
+                cache_dir = self.config.agent.get("cache_dir", "/tmp/work/cache")
+                self.skill_cache = SkillMetadataCache(cache_dir)
+                self.skill_index = SkillIndex(skills_dir)
+                print(f"[Skills] Loaded {len(self.skill_index.skills)} skills")
+            except Exception as e:
+                print(f"[Skills] Error initializing: {e}")
+                self.skill_index = None
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
+    def get_layer1_findings(self, sections: List[Section],
+                            enabled_domains: Optional[Sequence[str]] = None) -> Tuple[List[Finding], Dict[str, int]]:
+        """Run deterministic rules (Layer 1) without the agent.
+
+        Returns (findings, kb_counts) for the pre-flight checkpoint UI.
+        """
+        from .rules import run_rules
+
+        domains = list(enabled_domains or self.config.enabled_domains)
+        rule_findings: List[Finding] = []
+        if self.config.agent.get("enable_rules_engine", True):
+            rule_findings = run_rules(sections, domains)
+
+        kb_counts = self.kb.status().get("counts", {})
+        return rule_findings, kb_counts
+
     def review(self, sections: List[Section], document_name: str,
                enabled_domains: Optional[Sequence[str]] = None) -> ReviewResult:
         from .report import build_report
@@ -146,6 +192,9 @@ class ReviewAgent:
             "findings": [],
             "warnings": [],
             "kb_chunk_count": 0,
+            "selected_skills": [],
+            "skill_rankings": [],
+            "skill_findings": [],
         }
 
         graph = self._compiled_graph()
@@ -155,15 +204,43 @@ class ReviewAgent:
         limit = max(50, len(sections) * (max_iters * 2 + 4) + 20)
         final: ReviewState = graph.invoke(state, {"recursion_limit": limit})
 
+        # Merge findings from all sources (rules, skills, agent)
+        all_findings = final.get("findings", [])
+        skill_findings = final.get("skill_findings", [])
+        if skill_findings:
+            all_findings.extend(skill_findings)
+
         result = ReviewResult(
             document_name=document_name,
-            findings=sort_findings(dedupe_findings(final.get("findings", []))),
+            findings=sort_findings(dedupe_findings(all_findings)),
             sections=final.get("sections", sections),
             audit=self.audit.events,
             domains_reviewed=domains,
             kb_chunk_count=final.get("kb_chunk_count", 0),
             warnings=final.get("warnings", []),
         )
+
+        # Threat modeling runs on the FINAL, merged, deduplicated finding
+        # set - deliberately after the skill/rules/agent/correlation merge
+        # above, not as a graph node, so it sees every finding regardless
+        # of which stage produced it (skill_execution_node's raw
+        # SkillFinding objects aren't converted to base Finding until the
+        # merge just above runs). It needs no LLM call - see
+        # src/threat_model.py's module docstring for why that's deliberate.
+        if self.config.agent.get("enable_threat_modeling", True):
+            try:
+                result.threat_model = build_threat_model(
+                    document_name=document_name,
+                    sections=result.sections,
+                    findings=result.findings,
+                    domains=domains,
+                ).to_dict()
+            except Exception as exc:  # noqa: BLE001
+                self.audit.record("threat_model_error", error=str(exc))
+                result.warnings = result.warnings + [
+                    f"Threat modeling failed: {exc}"
+                ]
+
         build_report(
             result,
             self.config,
@@ -189,6 +266,12 @@ class ReviewAgent:
 
         g = StateGraph(ReviewState)
         g.add_node("triage", self.triage_node)
+
+        # TIER 1 Hardening: Add skill nodes if enabled
+        if self.skill_index is not None:
+            g.add_node("skill_discovery", self.skill_discovery_node)
+            g.add_node("skill_execution", self.skill_execution_node)
+
         g.add_node("retrieve", self.retrieve_node)
         g.add_node("review", self.review_node)
         g.add_node("act", self.act_node)
@@ -197,8 +280,16 @@ class ReviewAgent:
         g.add_node("report", self.report_node)
 
         g.add_edge(START, "triage")
-        g.add_conditional_edges("triage", self._route_after_triage,
-                                {"retrieve": "retrieve", "correlate": "correlate"})
+
+        # TIER 1 Hardening: Route through skill nodes if enabled
+        if self.skill_index is not None:
+            g.add_edge("triage", "skill_discovery")
+            g.add_edge("skill_discovery", "skill_execution")
+            g.add_edge("skill_execution", "retrieve")
+        else:
+            g.add_conditional_edges("triage", self._route_after_triage,
+                                    {"retrieve": "retrieve", "correlate": "correlate"})
+
         g.add_edge("retrieve", "review")
         g.add_conditional_edges("review", self._route_after_review,
                                 {"act": "act", "advance": "advance"})
@@ -234,6 +325,19 @@ class ReviewAgent:
         kb_status = self.kb.status()
         warnings.extend([str(w) for w in kb_status.get("warnings", [])])
 
+        # Completeness runs before the rules engine on purpose. On a design
+        # that never mentions encryption, the rules engine finds no encryption
+        # defects - and "no findings" would be read as a pass. This layer says
+        # what the document never addressed, so silence is not mistaken for
+        # assurance. See completeness.py.
+        completeness_findings: List[Finding] = []
+        completeness = None
+        if self.config.agent.get("enable_completeness_checks", True):
+            completeness = check_document_completeness(state["sections"], domains)
+            completeness_findings = completeness.findings
+            if not completeness.reviewable:
+                warnings.append(completeness_summary(completeness))
+
         rule_findings: List[Finding] = []
         if self.config.agent.get("enable_rules_engine", True):
             rule_findings = run_rules(state["sections"], domains)
@@ -245,9 +349,18 @@ class ReviewAgent:
             sections_total=len(state["sections"]),
             sections_in_scope=len(sections),
             rule_findings=len(rule_findings),
+            completeness_findings=len(completeness_findings),
+            completeness_coverage=(round(completeness.coverage, 3)
+                                   if completeness else None),
+            completeness_missing=(sorted(completeness.missing)
+                                  if completeness else []),
+            reviewable=(completeness.reviewable if completeness else True),
             kb_chunks=kb_status.get("total", 0),
             kb_counts=kb_status.get("counts", {}),
         )
+        for f in completeness_findings:
+            self.audit.record("completeness_finding", rule=f.rule_id,
+                              severity=f.severity, section=f.section)
         for f in rule_findings:
             self.audit.record("rule_finding", rule=f.rule_id,
                               severity=f.severity, section=f.section)
@@ -256,11 +369,129 @@ class ReviewAgent:
 
         return {
             "sections": sections[:cap],
-            "findings": rule_findings,
+            "findings": completeness_findings + rule_findings,
             "warnings": warnings,
             "kb_chunk_count": int(kb_status.get("total", 0)),
             "cursor": 0,
         }
+
+    def skill_discovery_node(self, state: ReviewState) -> Dict[str, Any]:
+        """
+        Discover and rank relevant skills based on document context.
+
+        LAYER 2: Triage context â†’ SkillIndex ranking â†’ Top 15 skills
+        """
+        if self.skill_index is None:
+            return {"selected_skills": [], "skill_rankings": []}
+
+        try:
+            # Build context from triage output
+            context = {
+                'primary_domain': state.get("enabled_domains", ["general"])[0],
+                'document_name': state.get("document_name", "unknown"),
+                'sections': state.get("sections", []),
+            }
+
+            # Find and rank relevant skills
+            relevant_skills = self.skill_index.find_relevant(context)
+
+            # Store top skills in state (limit to 15)
+            selected = [r.skill for r in relevant_skills[:15]]
+
+            self.audit.record(
+                "skill_discovery",
+                skills_found=len(selected),
+                top_skills=[s.name for s in selected[:3]],
+            )
+
+            return {
+                "selected_skills": selected,
+                "skill_rankings": relevant_skills[:15],
+            }
+        except Exception as e:
+            self.audit.record("skill_discovery_error", error=str(e))
+            return {"selected_skills": [], "skill_rankings": []}
+
+    def skill_execution_node(self, state: ReviewState) -> Dict[str, Any]:
+        """
+        Execute selected skills against document sections.
+
+        LAYER 2.5: For each skill â†’ run executor on sections â†’ generate findings
+        Output bounded at MAX_TOTAL_FINDINGS=500 per TIER 1 hardening.
+        """
+        if self.skill_index is None:
+            return {"skill_findings": []}
+
+        all_findings: List[Any] = []
+        max_total_findings = 500
+
+        try:
+            # Process each selected skill
+            for skill in state.get("selected_skills", []):
+                if len(all_findings) >= max_total_findings:
+                    break
+
+                try:
+                    executor = SkillExecutor(skill)
+                    skill_findings = []
+
+                    # Execute against sections (limit scope to cursor-forward)
+                    for section in state.get("sections", [state.get("sections", [None])[0]])[:10]:
+                        if section is None:
+                            continue
+                        if len(all_findings) >= max_total_findings:
+                            break
+
+                        try:
+                            # Run skill on this section's body
+                            section_text = section.body if hasattr(section, 'body') else str(section)
+                            section_name = section.heading if hasattr(section, 'heading') else "unknown"
+
+                            findings = executor.execute(section_text, section_name)
+                            skill_findings.extend(findings)
+
+                            # Stop if we hit the limit
+                            if len(all_findings) + len(findings) >= max_total_findings:
+                                skill_findings = skill_findings[:max_total_findings - len(all_findings)]
+                                break
+                        except Exception as e:
+                            self.audit.record(
+                                "skill_execution_section_error",
+                                skill=skill.name,
+                                section=section_name if hasattr(section, 'heading') else "unknown",
+                                error=str(e)
+                            )
+
+                    # Deduplicate findings from this skill
+                    if skill_findings:
+                        unique_findings = list({f.id: f for f in skill_findings}.values())
+                        all_findings.extend(unique_findings)
+
+                    self.audit.record(
+                        "skill_executed",
+                        skill=skill.name,
+                        findings=len(skill_findings),
+                        total_so_far=len(all_findings),
+                    )
+                except Exception as e:
+                    self.audit.record(
+                        "skill_execution_error",
+                        skill=skill.name,
+                        error=str(e)
+                    )
+
+            # Cap at max_total_findings
+            all_findings = all_findings[:max_total_findings]
+
+            self.audit.record(
+                "skill_execution_complete",
+                total_findings=len(all_findings),
+            )
+
+            return {"skill_findings": all_findings}
+        except Exception as e:
+            self.audit.record("skill_execution_complete_error", error=str(e))
+            return {"skill_findings": []}
 
     def retrieve_node(self, state: ReviewState) -> Dict[str, Any]:
         """Targeted retrieval for the section at the cursor."""
@@ -767,7 +998,7 @@ def _match_citation(reference: str, chunks: List[RetrievedChunk]
         return None
     ref = reference.lower()
     clause = ""
-    m = re.search(r"§\s*(\d+(?:\.\d+)*)", reference)
+    m = re.search(r"Â§\s*(\d+(?:\.\d+)*)", reference)
     if m:
         clause = m.group(1)
 
@@ -775,7 +1006,7 @@ def _match_citation(reference: str, chunks: List[RetrievedChunk]
     best_score = 0.0
     for c in chunks:
         score = 0.0
-        if clause and c.clause and clause == c.clause.lstrip("§"):
+        if clause and c.clause and clause == c.clause.lstrip("Â§"):
             score += 3.0
         stem = c.source.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").lower()
         stem_words = [w for w in stem.split() if len(w) > 3]
@@ -799,3 +1030,4 @@ def _split_narrative(text: str) -> Tuple[str, str]:
     summary = re.sub(r"^\s*#{1,4}\s*Executive Summary\s*$", "", summary_block,
                      flags=re.IGNORECASE | re.MULTILINE).strip()
     return summary, opinion
+

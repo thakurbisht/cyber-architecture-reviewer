@@ -1,0 +1,155 @@
+/* CSS styling for Streamlit components */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400&display=swap');
+
+:root {
+  --car-surface:#111827; --car-surface-2:#182133; --car-surface-3:#212C42;
+  --car-line:#28344B; --car-line-soft:#1E2939;
+  --car-ink:#EDF2FA; --car-ink-2:#AFBED4; --car-ink-3:#7F8FAA; --car-ink-4:#5D6C86;
+  --car-accent:#6D9AF5; --car-accent-2:#8FB2F8; --car-accent-soft:#152140; --car-accent-ink:#A9C5FB;
+  --car-critical:#F55E7C; --car-high:#F0913F; --car-medium:#D4AE4E; --car-low:#6FAEBE;
+  --car-critical-bg:#2B1119; --car-high-bg:#2A1A0D; --car-medium-bg:#251E0B; --car-low-bg:#102026;
+  --car-green:#4BAF83;
+  --car-grid:rgba(109,154,245,.09);
+  --car-shadow-sm:0 1px 2px rgba(0,0,0,.5);
+  --car-shadow:0 2px 4px rgba(0,0,0,.4), 0 14px 32px -16px rgba(0,0,0,.8);
+  --car-shadow-lg:0 4px 10px rgba(0,0,0,.5), 0 28px 64px -22px rgba(0,0,0,.9);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --car-surface:#FFFFFF; --car-surface-2:#EAEFF7; --car-surface-3:#DFE6F1;
+    --car-line:#D5DEEC; --car-line-soft:#E6ECF5;
+    --car-ink:#0D1220; --car-ink-2:#3D4C68; --car-ink-3:#6C7B95; --car-ink-4:#93A1B8;
+    --car-accent:#1F49AE; --car-accent-2:#3E6FD9; --car-accent-soft:#E3EAFA; --car-accent-ink:#173A8C;
+    --car-critical:#BE2942; --car-high:#CE6A12; --car-medium:#A6811F; --car-low:#3F7482;
+    --car-critical-bg:#FAE7EB; --car-high-bg:#FBEDDF; --car-medium-bg:#F8F2DD; --car-low-bg:#E6EFF1;
+    --car-green:#2E7D5B;
+    --car-grid:rgba(31,73,174,.09);
+    --car-shadow-sm:0 1px 2px rgba(13,20,40,.06);
+    --car-shadow:0 2px 4px rgba(13,20,40,.05), 0 12px 28px -14px rgba(13,20,40,.22);
+    --car-shadow-lg:0 4px 8px rgba(13,20,40,.06), 0 24px 56px -20px rgba(13,20,40,.3);
+  }
+}
+
+.stApp, .stApp p, .stApp li, .stApp label, .stApp span, .stApp div {
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.stApp h1, .stApp h2, .stApp h3, .stApp h4 {
+  font-family: "IBM Plex Sans", sans-serif;
+  letter-spacing: -0.022em;
+  color: var(--car-ink);
+}
+
+.stApp h1 { font-weight: 600; font-size: 1.95rem; line-height: 1.15; }
+.stApp h2 { font-weight: 600; font-size: 1.4rem; margin-top: 2.1rem; }
+.stApp h3 { font-weight: 600; font-size: 1.1rem; }
+.stApp p, .stApp li { color: var(--car-ink-2); line-height: 1.6; }
+
+.stApp .block-container { padding-top: 2.1rem; padding-bottom: 5rem; max-width: 1500px; }
+
+.stApp .stTabs [data-baseweb="tab-list"] { gap: 2px; border-bottom: 1px solid var(--car-line); background: transparent; }
+.stApp .stTabs [data-baseweb="tab"] { height: 42px; padding: 0 16px; background: transparent; color: var(--car-ink-3); font-size: 0.88rem; font-weight: 500; border-radius: 8px 8px 0 0; transition: color 0.18s, background 0.18s; }
+.stApp .stTabs [data-baseweb="tab"]:hover { color: var(--car-ink-2); background: var(--car-surface-2); }
+.stApp .stTabs [aria-selected="true"] { color: var(--car-ink); background: var(--car-surface); }
+.stApp .stTabs [data-baseweb="tab-highlight"] { background: var(--car-accent); height: 2px; }
+
+.stApp .stButton > button { font-weight: 550; border-radius: 9px; border: 1px solid var(--car-line); background: var(--car-surface); color: var(--car-ink); padding: 0.5rem 1.1rem; box-shadow: var(--car-shadow-sm); transition: transform 0.16s cubic-bezier(0.34, 1.4, 0.5, 1), box-shadow 0.22s, border-color 0.18s, background 0.18s; }
+.stApp .stButton > button:hover { transform: translateY(-1px); box-shadow: var(--car-shadow); border-color: var(--car-ink-4); background: var(--car-surface-2); }
+.stApp .stButton > button:active { transform: translateY(0) scale(0.99); }
+.stApp .stButton > button[kind="primary"] { background: var(--car-accent); border-color: transparent; color: #fff; }
+.stApp .stButton > button[kind="primary"]:hover { background: var(--car-accent-2); }
+.stApp .stButton > button:focus-visible { outline: 2px solid var(--car-accent); outline-offset: 2px; }
+
+.stApp div[data-testid="stExpander"] { border: 1px solid var(--car-line); border-radius: 11px; background: var(--car-surface); margin-bottom: 9px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.25s; }
+.stApp div[data-testid="stExpander"]:hover { border-color: var(--car-ink-4); box-shadow: var(--car-shadow); }
+.stApp div[data-testid="stExpander"] summary { font-size: 0.9rem; border-radius: 11px; transition: background 0.18s; }
+.stApp div[data-testid="stExpander"] summary:hover { background: var(--car-surface-2); }
+
+.stApp div[data-testid="stFileUploader"] section { border: 1.5px dashed var(--car-line); border-radius: 12px; background: var(--car-surface); transition: border-color 0.2s, background 0.2s; }
+.stApp div[data-testid="stFileUploader"] section:hover { border-color: var(--car-accent); background: var(--car-accent-soft); }
+
+
+.stApp section[data-testid="stSidebar"] { border-right: 1px solid var(--car-line); }
+.stApp section[data-testid="stSidebar"] .stMarkdown p { font-size: 0.86rem; }
+
+.stApp div[data-testid="stAlert"] { border-radius: 10px; border-width: 1px; font-size: 0.88rem; }
+
+.car-stage { position: relative; border: 1px solid var(--car-line); border-radius: 18px; background: var(--car-surface); box-shadow: var(--car-shadow-lg); padding: 28px 32px; overflow: hidden; margin-bottom: 10px; }
+.car-stage::before { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(var(--car-grid) 1px, transparent 1px), linear-gradient(90deg, var(--car-grid) 1px, transparent 1px); background-size: 38px 38px; -webkit-mask-image: radial-gradient(ellipse 80% 70% at 78% 20%, #000, transparent 78%); mask-image: radial-gradient(ellipse 80% 70% at 78% 20%, #000, transparent 78%); }
+.car-stage > * { position: relative; }
+
+.car-card { background: var(--car-surface); border: 1px solid var(--car-line); border-radius: 14px; padding: 22px 24px; box-shadow: var(--car-shadow); }
+
+.car-eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 0.69rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--car-ink-3); margin: 0 0 11px; }
+.car-meta { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 11px; font-family: "IBM Plex Mono", monospace; font-size: 0.79rem; color: var(--car-ink-3); }
+.car-meta b { color: var(--car-ink-2); font-weight: 500; }
+
+.car-rag { display: inline-flex; align-items: center; gap: 9px; padding: 6px 14px 6px 11px; border-radius: 999px; font-weight: 600; font-size: 0.79rem; }
+.car-rag .bead { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.car-counters { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 20px; }
+.car-counter { display: flex; flex-direction: column; gap: 2px; }
+.car-counter b { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--car-ink); }
+.car-counter span { font-family: "IBM Plex Mono", monospace; font-size: 0.69rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--car-ink-3); }
+
+.car-sevbar { display: flex; height: 44px; border-radius: 10px; overflow: hidden; border: 1px solid var(--car-line); background: var(--car-surface-2); }
+.car-sevbar i { display: flex; align-items: center; justify-content: center; font-style: normal; color: #fff; font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.82rem; font-variant-numeric: tabular-nums; animation: car-grow 0.85s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+@keyframes car-grow { from { flex-basis: 0; opacity: 0.35; } }
+
+.car-key { display: flex; flex-wrap: wrap; gap: 9px 24px; margin-top: 14px; font-size: 0.79rem; }
+.car-key div { display: flex; align-items: center; gap: 8px; color: var(--car-ink-2); }
+.car-key b { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; color: var(--car-ink); font-weight: 600; }
+.car-chip { width: 8px; height: 8px; border-radius: 2.5px; display: inline-block; flex: none; }
+
+.car-dom { display: grid; grid-template-columns: 142px 1fr 46px; gap: 14px; align-items: center; padding: 4px 6px; border-radius: 7px; transition: background 0.2s; }
+.car-dom:hover { background: var(--car-surface-2); }
+.car-dom-t { height: 10px; border-radius: 5px; background: var(--car-surface-3); overflow: hidden; display: flex; }
+.car-dom-t i { display: block; height: 100%; animation: car-grow 0.85s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+.car-dom-c { text-align: right; font-family: "IBM Plex Mono", monospace; font-size: 0.79rem; font-variant-numeric: tabular-nums; color: var(--car-ink-3); }
+
+.car-clause { display: inline-flex; align-items: center; gap: 8px; font-family: "IBM Plex Mono", monospace; font-size: 0.79rem; color: var(--car-accent-ink); background: var(--car-accent-soft); padding: 5px 11px; border-radius: 7px; }
+.car-ev { font-family: "IBM Plex Mono", monospace; font-size: 0.79rem; color: var(--car-ink-2); background: var(--car-surface-2); border: 1px solid var(--car-line); border-left: 2px solid var(--car-ink-4); padding: 11px 14px; border-radius: 0 7px 7px 0; overflow-x: auto; white-space: pre-wrap; margin: 0; }
+.car-ctrl { font-family: "IBM Plex Mono", monospace; font-size: 0.69rem; color: var(--car-ink-3); border: 1px solid var(--car-line); padding: 3px 9px; border-radius: 6px; display: inline-block; margin: 0 5px 5px 0; }
+
+.car-exec { background: var(--car-surface); border: 1px solid var(--car-line); border-left: 3px solid var(--car-accent); border-radius: 4px 14px 14px 4px; padding: 24px 28px; box-shadow: var(--car-shadow); }
+.car-exec p { font-family: "Source Serif 4", Georgia, serif; font-size: 1.06rem; line-height: 1.65; color: var(--car-ink-2); margin: 0; max-width: 66ch; }
+.car-exec p + p { margin-top: 14px; }
+
+.car-pill { font-family: "IBM Plex Mono", monospace; font-size: 0.69rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: 6px; white-space: nowrap; }
+.car-pill.critical { background: var(--car-critical-bg); color: var(--car-critical); }
+.car-pill.high { background: var(--car-high-bg); color: var(--car-high); }
+.car-pill.medium { background: var(--car-medium-bg); color: var(--car-medium); }
+.car-pill.low { background: var(--car-low-bg); color: var(--car-low); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stApp *, .car-sevbar i, .car-dom-t i {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================
+   ICON FONT RESTORE
+   Streamlit icons are ligature fonts: the span contains the text
+   "arrow_right" and Material Symbols renders it as a glyph. The
+   blanket .stApp span font-family above kills the ligature and the
+   raw name prints over the label. Never let icons inherit it.
+============================================================ */
+.stApp [data-testid="stIconMaterial"],
+.stApp [data-testid*="Icon"],
+.stApp span[class*="material-symbols"],
+.stApp span[class*="material-icons"],
+.stApp i[class*="material"],
+.stApp .material-icons,
+.stApp .material-icons-outlined {
+    font-family: "Material Symbols Rounded",
+                 "Material Symbols Outlined",
+                 "Material Icons" !important;
+    font-feature-settings: "liga" !important;
+}
+/* Progress: recolour the fill only. Do NOT set height here - forcing a
+   height collapses the track and the bar paints over adjacent text. */
+.stApp .stProgress > div > div > div {
+    background: linear-gradient(90deg, var(--car-accent), var(--car-accent-2));
+}

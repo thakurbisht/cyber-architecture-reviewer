@@ -1,0 +1,14 @@
+{
+  "run_name": "smoke",
+  "label": "smoke",
+  "rules_only": true,
+  "config_models": [
+    [
+      "enable_threat_modeling",
+      "true"
+    ]
+  ],
+  "started": "2026-09-26 03:10:44",
+  "python": "3.14.6",
+  "finished": "2026-09-26 03:10:45"
+}

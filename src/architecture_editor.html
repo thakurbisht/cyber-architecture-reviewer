@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Flow Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "Segoe UI", sans-serif;
+            background: #0a0e27;
+            color: #e7ecf6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            background: #111a2c;
+            border-bottom: 1px solid #223049;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        #toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        button {
+            background: #16213a;
+            border: 1px solid #223049;
+            color: #e7ecf6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #1f2f42;
+            border-color: #3a5a90;
+        }
+
+        button.primary {
+            background: #5b8cff;
+            border-color: #5b8cff;
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #4a7de8;
+        }
+
+        button.danger {
+            background: #ff7a7a;
+            border-color: #ff7a7a;
+            color: white;
+        }
+
+        button.danger:hover {
+            background: #e86464;
+        }
+
+        #container {
+            display: flex;
+            flex: 1;
+            gap: 1px;
+            background: #223049;
+        }
+
+        #sidebar {
+            width: 280px;
+            background: #111a2c;
+            border-right: 1px solid #223049;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #8a96b3;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #223049;
+        }
+
+        .component-type {
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #16213a;
+            border: 1px solid #223049;
+            border-radius: 6px;
+            cursor: grab;
+            font-size: 13px;
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .component-type:hover {
+            background: #1f2f42;
+            border-color: #3a5a90;
+        }
+
+        .component-type::before {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            margin-right: 6px;
+        }
+
+        .component-type.service::before { background: #5b8cff; }
+        .component-type.database::before { background: #4ade80; }
+        .component-type.cache::before { background: #ffb454; }
+        .component-type.queue::before { background: #c084fc; }
+        .component-type.api::before { background: #06b6d4; }
+        .component-type.external::before { background: #f87171; }
+        .component-type.storage::before { background: #60a5fa; }
+        .component-type.user::before { background: #fbbf24; }
+
+        .info-panel {
+            background: #16213a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #8a96b3;
+            line-height: 1.5;
+        }
+
+        #canvas {
+            flex: 1;
+            background: #0a0e27;
+        }
+
+        #inspector {
+            width: 280px;
+            background: #111a2c;
+            border-left: 1px solid #223049;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .inspector-section {
+            margin-bottom: 16px;
+        }
+
+        .inspector-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #8a96b3;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #8a96b3;
+            margin-bottom: 4px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 6px 8px;
+            background: #16213a;
+            border: 1px solid #223049;
+            color: #e7ecf6;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #5b8cff;
+            background: #1f2f42;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .risk-low { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+        .risk-medium { background: rgba(255, 180, 84, 0.2); color: #ffb454; }
+        .risk-high { background: rgba(255, 122, 122, 0.2); color: #ff7a7a; }
+        .risk-critical { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+        .stats {
+            font-size: 12px;
+            color: #8a96b3;
+            padding: 8px;
+            background: #16213a;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .mode-indicator {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(91, 140, 255, 0.2);
+            color: #5b8cff;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1 style="font-size: 16px; font-weight: 600;">Architecture Flow Editor</h1>
+    <div id="toolbar">
+        <span class="mode-indicator" id="modeIndicator">VIEW MODE</span>
+        <button id="editBtn" class="primary">Enter Edit Mode</button>
+        <button id="saveBtn" class="primary" style="display: none;">Save Changes</button>
+        <button id="undoBtn" style="display: none;">Undo</button>
+        <button id="redoBtn" style="display: none;">Redo</button>
+        <button id="resetBtn" class="danger" style="display: none;">Reset</button>
+    </div>
+</div>
+
+<div id="container">
+    <div id="sidebar" style="display: none;">
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Add Component</div>
+            <div class="component-type service" data-type="service">🔷 Service</div>
+            <div class="component-type database" data-type="database">🔷 Database</div>
+            <div class="component-type cache" data-type="cache">🔷 Cache</div>
+            <div class="component-type queue" data-type="queue">🔷 Message Queue</div>
+            <div class="component-type api" data-type="api">🔷 API Gateway</div>
+            <div class="component-type external" data-type="external">🔷 External API</div>
+            <div class="component-type storage" data-type="storage">🔷 Storage</div>
+            <div class="component-type user" data-type="user">🔷 User/Client</div>
+
+            <div class="info-panel">
+                <strong>Drag components onto the canvas to add them.</strong><br><br>
+                Click and drag between components to create connections.
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Quick Actions</div>
+            <button onclick="zoomToFit()" style="width: 100%; margin-bottom: 6px;">Fit to View</button>
+            <button onclick="clearCanvas()" class="danger" style="width: 100%;">Clear All</button>
+        </div>
+    </div>
+
+    <div id="canvas"></div>
+
+    <div id="inspector" style="display: none;">
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Component Properties</div>
+            <div id="selectedComponent" style="display: none;">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="compName" placeholder="Component name">
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="compType">
+                        <option value="service">Service</option>
+                        <option value="database">Database</option>
+                        <option value="cache">Cache</option>
+                        <option value="queue">Message Queue</option>
+                        <option value="api">API Gateway</option>
+                        <option value="external">External API</option>
+                        <option value="storage">Storage</option>
+                        <option value="user">User/Client</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="compDesc" placeholder="Component description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Risk Level</label>
+                    <select id="compRisk">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+                <button onclick="deleteSelected()" class="danger" style="width: 100%; margin-top: 12px;">Delete Component</button>
+            </div>
+            <div id="noSelection" style="color: #8a96b3; font-size: 12px;">
+                Click a component to edit its properties.
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Diagram Stats</div>
+            <div class="stats">
+                <div class="stats-item">
+                    <span>Components:</span>
+                    <strong id="compCount">0</strong>
+                </div>
+                <div class="stats-item">
+                    <span>Connections:</span>
+                    <strong id="connCount">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let cy, editMode = false, selectedNode = null;
+    let history = [], historyIndex = -1;
+    let draggedElement = null;
+
+    // Initialize Cytoscape
+    function initCytoscape() {
+        cy = cytoscape({
+            container: document.getElementById('canvas'),
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'content': 'data(label)',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'background-color': function(ele) {
+                            const typeColors = {
+                                service: '#5b8cff',
+                                database: '#4ade80',
+                                cache: '#ffb454',
+                                queue: '#c084fc',
+                                api: '#06b6d4',
+                                external: '#f87171',
+                                storage: '#60a5fa',
+                                user: '#fbbf24',
+                            };
+                            return typeColors[ele.data('type')] || '#5b8cff';
+                        },
+                        'width': '120px',
+                        'height': '60px',
+                        'border-width': function(ele) {
+                            return ele.selected() ? 3 : 2;
+                        },
+                        'border-color': '#ffffff',
+                        'font-size': '12px',
+                        'color': '#ffffff',
+                        'text-wrap': 'wrap',
+                        'text-max-width': '100px',
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'line-color': '#8a96b3',
+                        'target-arrow-color': '#8a96b3',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                        'width': 2,
+                    }
+                }
+            ],
+            layout: {
+                name: 'cose',
+                animate: true,
+                animationDuration: 500,
+            }
+        });
+
+        // Event listeners
+        cy.on('tap', 'node', onNodeTap);
+        cy.on('tap', onCanvasTap);
+        cy.on('boxselect', 'node', onNodeBoxSelect);
+    }
+
+    function loadData(data) {
+        cy.elements().remove();
+
+        // Add nodes
+        for (const [id, comp] of Object.entries(data.components)) {
+            cy.add({
+                data: {
+                    id: id,
+                    label: comp.name,
+                    type: comp.type,
+                    ...comp
+                },
+                position: { x: Math.random() * 400, y: Math.random() * 400 }
+            });
+        }
+
+        // Add edges
+        for (const conn of data.connections) {
+            cy.add({
+                data: {
+                    source: conn.source,
+                    target: conn.target,
+                    label: conn.label,
+                    ...conn
+                }
+            });
+        }
+
+        if (cy.elements().length > 0) {
+            cy.layout({ name: 'cose' }).run();
+        }
+    }
+
+    function saveToHistory() {
+        const state = cy.export();
+        history = history.slice(0, historyIndex + 1);
+        history.push(state);
+        historyIndex++;
+    }
+
+    function onNodeTap(evt) {
+        selectedNode = evt.target;
+        updateInspector();
+    }
+
+    function onCanvasTap(evt) {
+        if (evt.target === cy) {
+            selectedNode = null;
+            updateInspector();
+        }
+    }
+
+    function updateInspector() {
+        const selected = document.getElementById('selectedComponent');
+        const noSel = document.getElementById('noSelection');
+
+        if (selectedNode && selectedNode.isNode()) {
+            selected.style.display = 'block';
+            noSel.style.display = 'none';
+
+            document.getElementById('compName').value = selectedNode.data('label');
+            document.getElementById('compType').value = selectedNode.data('type');
+            document.getElementById('compDesc').value = selectedNode.data('description') || '';
+            document.getElementById('compRisk').value = selectedNode.data('risk_level') || 'low';
+        } else {
+            selected.style.display = 'none';
+            noSel.style.display = 'block';
+        }
+
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('compCount').textContent = cy.nodes().length;
+        document.getElementById('connCount').textContent = cy.edges().length;
+    }
+
+    function zoomToFit() {
+        cy.fit(cy.elements(), 50);
+    }
+
+    function clearCanvas() {
+        if (confirm('Clear all components? This cannot be undone.')) {
+            cy.elements().remove();
+            updateStats();
+        }
+    }
+
+    function deleteSelected() {
+        if (selectedNode) {
+            selectedNode.remove();
+            selectedNode = null;
+            updateInspector();
+            saveToHistory();
+        }
+    }
+
+    function toggleEditMode() {
+        editMode = !editMode;
+        const btn = document.getElementById('editBtn');
+        const sidebar = document.getElementById('sidebar');
+        const inspector = document.getElementById('inspector');
+        const indicator = document.getElementById('modeIndicator');
+
+        if (editMode) {
+            btn.textContent = 'Exit Edit Mode';
+            btn.classList.remove('primary');
+            sidebar.style.display = 'block';
+            inspector.style.display = 'block';
+            document.getElementById('saveBtn').style.display = 'inline-block';
+            document.getElementById('undoBtn').style.display = 'inline-block';
+            document.getElementById('redoBtn').style.display = 'inline-block';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+            indicator.textContent = 'EDIT MODE';
+            cy.elements().grabbable = true;
+        } else {
+            btn.textContent = 'Enter Edit Mode';
+            btn.classList.add('primary');
+            sidebar.style.display = 'none';
+            inspector.style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+            document.getElementById('undoBtn').style.display = 'none';
+            document.getElementById('redoBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'none';
+            indicator.textContent = 'VIEW MODE';
+            cy.elements().grabbable = false;
+        }
+    }
+
+    // Initialization
+    initCytoscape();
+    document.getElementById('editBtn').addEventListener('click', toggleEditMode);
+
+    // Listen for data from parent
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'LOAD_DIAGRAM') {
+            loadData(event.data.payload);
+        } else if (event.data.type === 'GET_DIAGRAM') {
+            const nodes = cy.nodes().map(n => ({
+                id: n.id(),
+                label: n.data('label'),
+                type: n.data('type'),
+                description: n.data('description'),
+                risk_level: n.data('risk_level'),
+                position: n.position()
+            }));
+            const edges = cy.edges().map(e => ({
+                source: e.source().id(),
+                target: e.target().id(),
+                label: e.data('label')
+            }));
+            window.parent.postMessage({
+                type: 'DIAGRAM_DATA',
+                payload: { nodes, edges }
+            }, '*');
+        }
+    });
+
+    // Auto-load initial data if provided
+    if (window.initialData) {
+        loadData(window.initialData);
+    }
+</script>
+
+</body>
+</html>

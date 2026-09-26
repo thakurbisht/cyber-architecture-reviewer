@@ -1,0 +1,30 @@
+{
+  "doc_id": "gs-10-hr-portal",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "PeopleHub HR Self-Service Portal — High-Level Design Brightwater Logistics, HR Technology and Enterprise Architecture. Version 1.3. 1. Purpose and Scope Brightwa...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

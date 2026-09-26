@@ -7,7 +7,7 @@
 
 models:
   # Reasoning LLM used by the review + report nodes.
-  llm: "llama3.1:8b"
+  llm: "qwen2.5:14b"
   # Embedding model. CRITICAL: the SAME model must be used for seeding and
   # querying. Different models produce vectors in incompatible geometric
   # spaces and retrieval silently returns nonsense.
@@ -30,6 +30,21 @@ agent:
   max_sections: 40            # guardrail against pathological documents
   enable_cross_domain_pass: true
   enable_rules_engine: true   # deterministic pre-checks before LLM reasoning
+  # Completeness runs before the rules engine and reports topics the design
+  # never addresses. Without it, a design that never mentions encryption
+  # produces no encryption findings, and silence reads as a pass.
+  enable_completeness_checks: true
+  # TIER 1 Skill Integration
+  # Off for the Option A baseline: SkillFinding lacks .fingerprint, so any
+  # skill hit crashes dedupe_findings and the whole doc is lost. Re-enable
+  # once skills emit real Finding objects with KB citations.
+  enable_skills: false
+  skills_dir: "./skills"
+  cache_dir: "./cache"
+  # Threat modeling: reframes the final finding set as STRIDE-classified
+  # threats + a trust-zone/coverage view (src/threat_model.py). Pure
+  # Python, no extra LLM call, so this is safe to leave on by default.
+  enable_threat_modeling: true
 
 domains:
   # Toggle whole review domains on/off without touching code.

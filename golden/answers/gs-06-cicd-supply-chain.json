@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-06-cicd-supply-chain",
+  "title": "Parcelwise Build and Release Platform - High-Level Design",
+  "doc_kind": "flawed",
+  "domains": ["security", "application", "cloud_data"],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "security",
+      "severity": "CRITICAL",
+      "acceptable_severities": ["CRITICAL", "HIGH"],
+      "type": "defect",
+      "title": "Public fork pull requests run on shared, persistent self-hosted runners that hold registry-push and CI-secret access",
+      "description": "Section 2 runs CI automatically on fork pull requests to three public repositories; section 4 runs every job, public and private, on the same long-lived self-hosted runners, whose instance profile can push to every ECR repository and read all ci/ secrets. Anyone on the internet can open a pull request that executes code on a runner, steals the pipeline secrets, overwrites production images, or plants persistence that tampers with later private and release builds. Run public-repo and fork jobs on ephemeral, isolated (ideally hosted) runners with no cloud credentials, require maintainer approval before fork CI runs, and make private runners ephemeral with per-repository least-privilege roles.",
+      "sections": ["2. Source Control", "4. Build Runners"],
+      "evidence": [
+        "Three client SDK repositories (parcelwise-js, parcelwise-python and parcelwise-go) are public so that customers can contribute fixes, and CI runs automatically on pull requests from forks to give contributors quick feedback.",
+        "All CI jobs, for both private and public repositories, run on a shared pool of 16 self-hosted runners on EC2 instances in the build VPC.",
+        "The runner instance profile allows pushing images to every ECR repository and reading secrets under the ci/ path in AWS Secrets Manager, which holds the tokens that pipelines use for SaaS integrations."
+      ],
+      "cross_section": true,
+      "stride": ["Elevation of Privilege", "Tampering"],
+      "keywords": ["self-hosted runner", "public repository", "fork pull request", "persistent runner", "shared runner", "instance profile", "ci secrets", "untrusted code"]
+    },
+    {
+      "id": "F2",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Unprotected release branches deploy straight to production, bypassing code review",
+      "description": "Branch protection (two approvals, code owner, status checks) covers only the default branch, but any push to a release/ branch is built and deployed to production, and hotfixes are pushed there directly. Any of the 210 engineers with write access, or a stolen engineer token, can push unreviewed code to production, and the ci-deploy OIDC trust restricted to release branches gives no extra protection. Extend the ruleset to release branches (restrict creation and push, require reviews and checks) and add a protected deployment environment with approval.",
+      "sections": ["3. Branch Protection and Code Review", "8. Deployment to Production"],
+      "evidence": [
+        "Branch protection is applied through the organisation ruleset protect-default, which targets the default branch (main) of every repository.",
+        "The deploy workflow runs on every push to a branch whose name starts with release/ and builds and tests the commit, pushes the image to ECR, runs staging smoke tests and upgrades both production clusters with Helm.",
+        "Hotfixes are pushed to the current release branch and merged back into main afterwards."
+      ],
+      "cross_section": true,
+      "stride": ["Tampering", "Elevation of Privilege"],
+      "keywords": ["branch protection", "release branch", "code review bypass", "unreviewed code", "ruleset", "hotfix", "deployment trigger"]
+    },
+    {
+      "id": "F3",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Python dependency confusion via --extra-index-url with unscoped internal package names",
+      "description": "pip searches public PyPI and the internal index together and installs the highest matching version. With internal libraries published under plain names and requirements that only set minimum versions, an attacker who publishes pw-geo or pw-auth-client with a higher version on PyPI gets code executed in builds and shipped to production. Use a single internal proxy index (--index-url) that blocks public packages shadowing internal names, reserve the names on PyPI, and pin versions with hashes.",
+      "sections": ["5. Third-Party Dependencies"],
+      "evidence": [
+        "Python services install dependencies with pip using --extra-index-url pointing at the internal package repository, so that packages resolve from both public PyPI and the internal repository.",
+        "Internal Python libraries are published there under plain names such as pw-geo and pw-auth-client, and requirements files specify minimum versions."
+      ],
+      "cross_section": false,
+      "stride": ["Tampering", "Elevation of Privilege"],
+      "keywords": ["dependency confusion", "extra-index-url", "pypi", "pip", "internal packages", "namespace", "version pinning", "supply chain"]
+    },
+    {
+      "id": "F4",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "MEDIUM"],
+      "type": "defect",
+      "title": "Terraform state containing production database master passwords is readable by every engineer",
+      "description": "Terraform stores random_password results in plaintext in state, and the Engineering role that all 210 engineers can assume can read the state bucket and decrypt its KMS key. Every engineer can therefore get the master credentials for the production databases that hold recipient PII, bypassing Secrets Manager access control. Restrict state access to the pipeline role and a small admin group, split state per environment, and have RDS manage master passwords in Secrets Manager (or use ephemeral values) so they never land in state.",
+      "sections": ["9. Infrastructure as Code"],
+      "evidence": [
+        "Database master passwords are generated by Terraform with the random_password resource and then copied into AWS Secrets Manager.",
+        "The Engineering SSO role, which every engineer can assume, has read access to the state bucket and decrypt permission on its KMS key so that engineers can run terraform plan locally."
+      ],
+      "cross_section": false,
+      "stride": ["Information Disclosure", "Elevation of Privilege"],
+      "keywords": ["terraform state", "tfstate", "random_password", "master password", "s3 bucket", "engineering role", "plaintext secrets"]
+    },
+    {
+      "id": "F5",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "HIGH"],
+      "type": "defect",
+      "title": "Mutable image tags referenced by production and no signature or provenance verification",
+      "description": "Production references images by mutable version tags, and no image signing or admission-time verification is described. Anyone or anything with ECR push rights (for example the shared runners) can silently replace a released image, and the change takes effect on the next pod reschedule without passing through review or deployment. Enable tag immutability, deploy by digest, sign images in the release pipeline, and verify signatures and provenance at admission.",
+      "sections": ["6. Artifact Registry and Container Images"],
+      "evidence": [
+        "ECR repositories use mutable tags so that a version tag can be pushed again if a release build fails part-way.",
+        "The production Helm values reference each service's image by its version tag, for example tracking-api:2026.09.2."
+      ],
+      "cross_section": false,
+      "stride": ["Tampering"],
+      "keywords": ["mutable tags", "tag immutability", "image signing", "digest", "admission control", "provenance", "cosign", "ecr"]
+    },
+    {
+      "id": "F6",
+      "domain": "cloud_data",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "HIGH"],
+      "type": "defect",
+      "title": "Staging and production share one AWS account, VPC and KMS keys",
+      "description": "Staging, where every engineer is namespace-admin and can run arbitrary pods, shares the production account, VPC and KMS keys. A staging compromise or insider has network reach to production databases and a shorter IAM/KMS path to production data, with no account-level blast-radius boundary. Put production in a dedicated AWS account with its own VPC and keys, and keep lower environments in separate accounts.",
+      "sections": ["8. Deployment to Production"],
+      "evidence": [
+        "The staging and production EKS clusters run in the same AWS account, pw-workloads, and share its VPC and KMS keys; engineers have namespace-admin rights on the staging cluster for debugging."
+      ],
+      "cross_section": false,
+      "stride": ["Elevation of Privilege", "Information Disclosure"],
+      "keywords": ["account separation", "same aws account", "staging", "production", "shared vpc", "shared kms", "blast radius", "environment isolation"]
+    },
+    {
+      "id": "F7",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "HIGH"],
+      "type": "defect",
+      "title": "ChatOps deploy command has no authorisation check and is open to contractors",
+      "description": "The release bot runs production rollbacks and redeployments for any Slack workspace member, including external contractors, so anyone in the workspace (or a compromised Slack account) can roll production back to an older, possibly vulnerable, release or disrupt service. Restrict the command to an authorised release group, verify the caller's identity against the IdP, require approval for production, and log each invocation.",
+      "sections": ["8. Deployment to Production"],
+      "evidence": [
+        "Rollbacks and redeployments of an existing release can also be started from the #releases Slack channel with the /pw-deploy command.",
+        "The release bot accepts the command from any member of the Slack workspace, which includes about 60 contractors from design and support agencies."
+      ],
+      "cross_section": false,
+      "stride": ["Elevation of Privilege", "Denial of Service"],
+      "keywords": ["chatops", "slack", "release bot", "authorisation", "authorization", "rollback", "contractors", "deploy command"]
+    },
+    {
+      "id": "F8",
+      "domain": "security",
+      "severity": "LOW",
+      "acceptable_severities": ["LOW", "MEDIUM"],
+      "type": "gap",
+      "title": "No SBOM generated or retained for release images",
+      "description": "Builds publish images and test reports but no software bill of materials, so when a vulnerable component is disclosed the team cannot quickly find which released images contain it. Generate an SBOM for every image in the pipeline and keep it with the image for the release's lifetime.",
+      "sections": ["6. Artifact Registry and Container Images"],
+      "evidence": [
+        "Each build publishes its container image to ECR and its test and coverage reports to the CI artifact store."
+      ],
+      "cross_section": false,
+      "stride": ["Tampering"],
+      "keywords": ["sbom", "software bill of materials", "component inventory", "cyclonedx", "spdx"]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Containers run as root",
+      "why_not": "Only the build stage runs as root. Section 8 enforces the restricted Pod Security Standard in production, so pods that run as root, request privileged mode or add capabilities are rejected.",
+      "evidence": [
+        "The build stage of each Dockerfile runs as root so that operating system packages and native build dependencies can be installed.",
+        "The production clusters enforce the Kubernetes restricted Pod Security Standard, so pods that run as root, request privileged mode or add Linux capabilities are rejected at admission."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Application secrets stored insecurely in Kubernetes Secrets (base64 only)",
+      "why_not": "Section 7 sources the secrets from AWS Secrets Manager through the External Secrets Operator, enables EKS envelope encryption with a customer-managed KMS key, and limits read access to each namespace's workload service account.",
+      "evidence": [
+        "Application pods read database credentials and third-party API keys from Kubernetes Secrets in their namespace.",
+        "Runtime secrets are held in AWS Secrets Manager and synchronised into Kubernetes Secrets by the External Secrets Operator.",
+        "EKS envelope encryption with a customer-managed KMS key is enabled, and RBAC allows only each namespace's workload service account to read its Secrets."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Customer PII used in CI integration tests",
+      "why_not": "Section 7 states that all CI, staging and developer datasets are synthetic, generated by pw-fixtures, and that production data is never copied into those environments.",
+      "evidence": [
+        "Integration tests load a PostgreSQL database with about 50,000 shipment records, including recipient names, addresses and phone numbers, to exercise the tracking queries.",
+        "All datasets used in CI, staging and developer environments are synthetic and generated by the pw-fixtures library; production data is never copied into those environments."
+      ]
+    }
+  ],
+  "injection": null
+}

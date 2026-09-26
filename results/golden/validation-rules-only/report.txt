@@ -1,0 +1,23 @@
+========================================================================
+RESULTS  rules only (validation)  (12 docs, judge phi4:14b)
+========================================================================
+Findings reported          55
+  match an expected issue  18   (of which duplicates ~4)
+  raise a must-not-flag    9
+  match nothing in the key 28   (false positives, or real issues missing from the key)
+
+Precision                   32.7%
+Recall                      15.2%   (14/92 expected issues found)
+F1                          0.208
+Cross-section recall        16.0%
+Must-not-flag raised        15.6%   (7/45)   target < 15%
+Severity agreement          94.4%
+Clean-doc false positives  3.5 per doc   target <= 2
+Injection-doc recall        22.2%
+Valid evidence quotes        n/a (findings carry no quote yet - step A2)
+Avg pipeline time per doc  0 s
+
+Recall by severity   CRITICAL  20.0%  HIGH  18.9%  MEDIUM   8.8%  LOW  16.7%
+Recall by domain     application   5.3%  cloud_data  36.8%  network   0.0%  security  17.1%
+Recall by type       defect  17.1%  gap   6.2%
+Precision by origin  rules_engine  32.7% (n=55)

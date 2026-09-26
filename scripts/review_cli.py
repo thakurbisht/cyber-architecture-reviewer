@@ -1,24 +1,5 @@
-#!/usr/bin/env python3
-"""Run a review from the command line. Suitable for CI/CD gating.
-
-Usage
------
-    python scripts/review_cli.py design.md
-    python scripts/review_cli.py design.docx --domain network --domain security
-    python scripts/review_cli.py design.md --rules-only        # no LLM needed
-    python scripts/review_cli.py design.md --fail-on CRITICAL  # exit non-zero
-    python scripts/review_cli.py design.md --compare previous.json
-
-Exit codes
-----------
-    0  review completed within the failure threshold
-    1  review completed but the failure threshold was breached
-    2  the review could not run (Ollama down, file unreadable, KB empty)
-
-The --fail-on flag is what makes this usable as a pipeline gate: attach it to
-a pull request that changes a design document and the build fails on a new
-CRITICAL finding, the same way it would on a failing test.
-"""
+﻿#!/usr/bin/env python3
+"""Run a review from the command line. Suitable for CI/CD gating."""
 
 from __future__ import annotations
 
@@ -99,6 +80,8 @@ def main() -> int:
     ap.add_argument("--json-out", default=None, help="Write the full result JSON here")
     ap.add_argument("--compare", default=None,
                     help="Compare against a previous result JSON")
+    ap.add_argument("--acknowledge-file", default=None,
+                    help="JSON file with acknowledged finding fingerprints (excludes them from --fail-on)")
     ap.add_argument("--quiet", action="store_true", help="Suppress the findings list")
     ap.add_argument("--config", default=None)
     args = ap.parse_args()
@@ -108,7 +91,7 @@ def main() -> int:
 
     try:
         sections = parse_document(args.document)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"ERROR: could not read {args.document}: {exc}", file=sys.stderr)
         return 2
 
@@ -174,7 +157,7 @@ def main() -> int:
     if args.compare:
         try:
             previous = _load_previous(args.compare)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             print(f"WARNING: could not read {args.compare}: {exc}", file=sys.stderr)
         else:
             diff = diff_reviews(previous, result.findings)
@@ -188,16 +171,37 @@ def main() -> int:
             for f in diff["resolved"]:
                 print(f"  - [{f.severity}] {f.section}: {f.issue[:80]}")
 
+    # ------------------------------------------------ load acknowledgments
+    acknowledged_fps = set()
+    if args.acknowledge_file:
+        try:
+            ack_data = json.loads(Path(args.acknowledge_file).read_text(encoding="utf-8"))
+            acknowledged_fps = set(ack_data.get("acknowledged", []))
+            print(f"Loaded {len(acknowledged_fps)} acknowledged findings from "
+                  f"{args.acknowledge_file}")
+            for f in result.findings:
+                if f.fingerprint in acknowledged_fps:
+                    f.acknowledged_by = ack_data.get("acknowledged_by", "unknown")
+                    f.acknowledged_at = ack_data.get("acknowledged_at", "")
+                    f.acknowledgment_reason = ack_data.get("acknowledged_reason", "")
+        except Exception as exc:
+            print(f"WARNING: could not load acknowledgments from "
+                  f"{args.acknowledge_file}: {exc}", file=sys.stderr)
+
     # ---------------------------------------------------------------- gate
     if args.fail_on:
         threshold = SEVERITIES.index(args.fail_on)
         breaching = [f for f in result.findings
-                     if SEVERITIES.index(f.severity) <= threshold]
+                     if (SEVERITIES.index(f.severity) <= threshold and
+                         f.fingerprint not in acknowledged_fps)]
         if breaching:
-            print(f"\nFAILED: {len(breaching)} finding(s) at or above "
+            print(f"\nFAILED: {len(breaching)} unacknowledged finding(s) at or above "
                   f"{args.fail_on}.")
+            if acknowledged_fps:
+                print(f"        ({len([f for f in result.findings if f.fingerprint in acknowledged_fps])} "
+                      f"acknowledged and excluded from this check)")
             return 1
-        print(f"\nPASSED: no findings at or above {args.fail_on}.")
+        print(f"\nPASSED: no unacknowledged findings at or above {args.fail_on}.")
 
     return 0
 

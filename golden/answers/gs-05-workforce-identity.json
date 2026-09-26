@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-05-workforce-identity",
+  "title": "Tellwater Workforce Identity Platform - High-Level Design",
+  "doc_kind": "flawed",
+  "domains": ["security", "application"],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "security",
+      "severity": "CRITICAL",
+      "acceptable_severities": ["CRITICAL", "HIGH"],
+      "type": "defect",
+      "title": "Helpdesk resets passwords and removes MFA for any user after weak knowledge-based caller verification",
+      "description": "Caller identity is established only by employee ID and line manager name, both easy to discover or social-engineer, after which an agent can reset the password and wipe MFA for any account, including cloud admin accounts. This is the vishing path used in major helpdesk-led breaches and lets an outside caller take over accounts with little effort. Require strong verification for MFA/password resets (video ID check, manager or in-person confirmation, a callback to a registered number, a verified-ID service), exclude privileged accounts from Tier 1 resets, and alert the user and SOC on MFA method removal.",
+      "sections": ["9. Helpdesk and Account Recovery"],
+      "evidence": [
+        "Callers are verified by stating their employee ID and the name of their line manager.",
+        "After verification, the agent can reset the password and remove the registered MFA methods for any user, so that the caller can register new methods at the next sign-in."
+      ],
+      "cross_section": false,
+      "stride": ["Spoofing", "Elevation of Privilege"],
+      "keywords": ["helpdesk", "service desk", "social engineering", "vishing", "caller verification", "mfa reset", "password reset", "employee id"]
+    },
+    {
+      "id": "F2",
+      "domain": "application",
+      "severity": "CRITICAL",
+      "acceptable_severities": ["CRITICAL", "HIGH"],
+      "type": "defect",
+      "title": "Internet-facing HRIS provisioning webhook accepts unauthenticated joiner/mover/leaver events",
+      "description": "The provisioning webhook is published on the internet and accepts any event whose payload carries a valid (low-entropy, guessable) employee ID, with no caller authentication or payload signature. An outside attacker can disable accounts at scale (mass lockout) or send mover events that change department and job code and therefore birthright group access. Require mutual TLS or a signed payload (HMAC/JWT) from the HRIS, restrict source IPs, validate events against the HRIS API, and alert on unusual event volumes.",
+      "sections": ["8. Joiner, Mover, Leaver"],
+      "evidence": [
+        "The HRIS sends joiner, mover and leaver events to the provisioning engine through a webhook that is published on the internet, because the HRIS is hosted by its vendor.",
+        "The webhook accepts an event when the payload contains a valid employee ID, and the provisioning engine then creates, updates or disables the matching AD and IdP accounts."
+      ],
+      "cross_section": false,
+      "stride": ["Spoofing", "Tampering", "Denial of Service"],
+      "keywords": ["webhook", "hris", "provisioning", "unauthenticated", "internet", "signature", "employee id", "api authentication"]
+    },
+    {
+      "id": "F3",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Legacy basic authentication (IMAP, POP3, SMTP AUTH) enabled for all mailboxes bypasses MFA",
+      "description": "Basic authentication is enabled tenant-wide, and conditional access only covers browser and modern authentication clients. Legacy protocols never present an MFA challenge, so every mailbox is open to password spraying and credential stuffing from the internet with a single valid password. Disable basic auth, move printers and the finance applications to OAuth or a restricted relay, and block legacy authentication in conditional access.",
+      "sections": ["5. Authentication and MFA", "6. Conditional Access"],
+      "evidence": [
+        "Basic authentication for IMAP, POP3 and SMTP AUTH remains enabled on the mail platform for all mailboxes, to support scan-to-email printers and two finance applications.",
+        "The baseline policy requires MFA for all users and all applications at all locations, for sign-ins from browsers and modern authentication clients."
+      ],
+      "cross_section": true,
+      "stride": ["Spoofing"],
+      "keywords": ["legacy authentication", "basic authentication", "imap", "pop3", "smtp auth", "mfa bypass", "password spray"]
+    },
+    {
+      "id": "F4",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "gap",
+      "title": "Leavers keep access to the 11 applications that use local accounts",
+      "description": "Section 4 says 11 applications (expense, contract repository, design collaboration) use locally managed username/password accounts, while the leaver process in section 8 only disables AD and IdP accounts and relies on SCIM. Nothing deprovisions the local accounts, so departed employees keep access to these internet-reachable SaaS tools. Bring the 11 apps under SSO/SCIM or add a tracked deprovisioning task with owner attestation, and reconcile app accounts against HRIS regularly.",
+      "sections": ["4. Single Sign-On and Application Integration", "8. Joiner, Mover, Leaver"],
+      "evidence": [
+        "The remaining 11 applications, including the expense platform, the contract repository and the design collaboration tool, keep local username and password accounts that each application owner creates on request.",
+        "When HR records a termination, the provisioning engine disables the user's AD and IdP accounts within one hour and revokes active IdP sessions and refresh tokens."
+      ],
+      "cross_section": true,
+      "stride": ["Elevation of Privilege", "Information Disclosure"],
+      "keywords": ["leaver", "deprovisioning", "local accounts", "non-sso", "orphaned accounts", "offboarding", "saas"]
+    },
+    {
+      "id": "F5",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Directory sync server holds domain replication rights but is managed as Tier 1",
+      "description": "Section 3 gives the IDSYNC01 connector account Replicate Directory Changes / Changes All, enough to DCSync every AD password hash, and it also performs password writeback. Section 7 places IDSYNC01 in Tier 1, administered by a 45-person group. Any compromised Tier 1 admin or server can therefore take over the domain. Treat the sync server as Tier 0 (PAW-only administration, Tier 0 admins, hardened and monitored) per vendor guidance.",
+      "sections": ["3. Directory and Synchronisation", "7. Privileged Access"],
+      "evidence": [
+        "The agent's AD connector account holds the Replicate Directory Changes and Replicate Directory Changes All permissions required for password hash synchronisation.",
+        "All other Windows servers, including IDSYNC01, are Tier 1 and are administered by the 45-member Server Operations group."
+      ],
+      "cross_section": true,
+      "stride": ["Elevation of Privilege"],
+      "keywords": ["directory sync", "idsync01", "tier 0", "tiering", "dcsync", "replicate directory changes", "password hash synchronisation", "server operations"]
+    },
+    {
+      "id": "F6",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "MEDIUM"],
+      "type": "defect",
+      "title": "LDAP simple binds in cleartext with LDAP signing and channel binding not enforced",
+      "description": "Legacy applications send user passwords to domain controllers as LDAP simple binds on port 389, so credentials cross the internal network in cleartext. Signing and channel binding are also not enforced domain-wide, which leaves the DCs open to NTLM/LDAP relay attacks. Require LDAPS (636) or StartTLS for the legacy applications, enforce LDAP signing and channel binding, and use an isolated exception for any application that cannot comply.",
+      "sections": ["3. Directory and Synchronisation"],
+      "evidence": [
+        "Legacy applications authenticate users with LDAP simple binds to the domain controllers on port 389; LDAP signing and channel binding are not enforced because several of these applications do not support them."
+      ],
+      "cross_section": false,
+      "stride": ["Information Disclosure", "Spoofing"],
+      "keywords": ["ldap", "simple bind", "port 389", "cleartext", "ldap signing", "channel binding", "ldaps", "relay"]
+    },
+    {
+      "id": "F7",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "HIGH"],
+      "type": "defect",
+      "title": "Movers keep access from previous roles until the annual review",
+      "description": "Role changes only add new birthright groups, and old access stays until the annual access review, so long-tenured staff build up excessive privileges (privilege creep) and segregation-of-duties conflicts, e.g. moving out of finance payments while keeping that access. Remove the previous role's birthright access automatically at the move date, with a short, manager-approved grace period.",
+      "sections": ["8. Joiner, Mover, Leaver"],
+      "evidence": [
+        "When an employee changes role, the provisioning engine adds the birthright groups for the new role, and access from the previous role is kept until it is removed in the annual access review."
+      ],
+      "cross_section": false,
+      "stride": ["Elevation of Privilege"],
+      "keywords": ["mover", "privilege creep", "access accumulation", "role change", "birthright", "access review", "least privilege"]
+    },
+    {
+      "id": "F8",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "LOW"],
+      "type": "defect",
+      "title": "In-house apps use the deprecated OAuth/OIDC implicit grant",
+      "description": "With the implicit grant, access tokens are returned in the URL fragment, where they can leak through browser history, referrer headers, logs and injected scripts, and they cannot be sender-constrained. OAuth 2.0 Security Best Current Practice deprecates this flow. Move the single-page apps to the authorization code flow with PKCE, ideally behind a backend-for-frontend.",
+      "sections": ["4. Single Sign-On and Application Integration"],
+      "evidence": [
+        "In-house web applications integrate using OpenID Connect with the implicit grant, so that their single-page front ends receive access tokens directly in the redirect URL fragment."
+      ],
+      "cross_section": false,
+      "stride": ["Information Disclosure", "Spoofing"],
+      "keywords": ["implicit grant", "implicit flow", "oauth", "openid connect", "access token", "url fragment", "pkce", "authorization code"]
+    },
+    {
+      "id": "F9",
+      "domain": "security",
+      "severity": "LOW",
+      "acceptable_severities": ["LOW", "MEDIUM"],
+      "type": "defect",
+      "title": "Unrestricted guest invitations with no expiry or review",
+      "description": "Any employee can invite external guests, and guest accounts never expire or get reviewed, so stale external identities build up with continuing access to shared workspaces and documents. Restrict who can invite, set guest expiry, and include guests in periodic access reviews.",
+      "sections": ["2. Identity Landscape"],
+      "evidence": [
+        "Any employee can invite external guests into the tenant to collaborate in shared workspaces and document libraries, and guest accounts remain active until the inviting employee removes them."
+      ],
+      "cross_section": false,
+      "stride": ["Information Disclosure"],
+      "keywords": ["guest", "external users", "b2b", "guest expiry", "access review", "invitation"]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Emergency access (break-glass) accounts excluded from conditional access and MFA",
+      "why_not": "Section 7 says each emergency account signs in only with its own FIDO2 key held in separate safes, any sign-in raises a P1 SOC alert, and the accounts are tested quarterly. This matches recommended break-glass practice.",
+      "evidence": [
+        "Two emergency access accounts are excluded from every conditional access policy, including the MFA requirement, so that administrators can recover the tenant if the policies or the MFA service fail.",
+        "Each emergency access account signs in only with its own FIDO2 security key, and the two keys are held in separate safes by the CISO and the Head of Infrastructure.",
+        "Any sign-in by either account raises a priority 1 alert to the SOC, and both accounts are tested every quarter."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "New starters' first sign-in bypasses MFA with a temporary access pass",
+      "why_not": "Section 8 says the temporary access pass is single-use, valid for eight hours and issued in person after a government photo ID check, which is a strong onboarding control.",
+      "evidence": [
+        "New starters sign in for the first time with a temporary access pass rather than a password and MFA, and then register their authenticator app.",
+        "The temporary access pass is single-use, valid for eight hours, and issued in person by local IT after checking the new starter's government photo ID."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Service accounts excluded from MFA",
+      "why_not": "Section 10 says service accounts are blocked from all cloud IdP sign-ins by a separate policy, cannot log on interactively in AD, and use vaulted, rotated 32-character passwords, so the MFA exclusion creates no usable sign-in path.",
+      "evidence": [
+        "Accounts in the Service-Accounts group are excluded from the baseline MFA policy because they cannot complete an interactive MFA challenge.",
+        "Service accounts are blocked from all cloud IdP sign-ins by a dedicated conditional access policy, are denied interactive logon in AD, and use vaulted 32-character passwords rotated every 90 days."
+      ]
+    }
+  ],
+  "injection": null
+}
