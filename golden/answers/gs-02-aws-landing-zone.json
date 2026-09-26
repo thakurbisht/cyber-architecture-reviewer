@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-02-aws-landing-zone",
+  "title": "Harbourline Mutual - AWS Landing Zone Design",
+  "doc_kind": "flawed",
+  "domains": [
+    "cloud_data",
+    "security",
+    "network"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "cloud_data",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Data lake ETL role trusts every principal in the organisation, including sandbox administrators",
+      "description": "The datalake-etl role has read and write access to all data lake zones, and its trust policy accepts any principal in the organisation through aws:PrincipalOrgID. Every developer is an administrator in the sandbox accounts, so any developer can create a role there that assumes datalake-etl and read or alter all claims and medical data for 1.4 million policyholders. Any compromised workload in any account can do the same. The trust policy should list the specific ingestion role ARNs for each source account, and ingestion roles should be write-only to their own raw-zone prefixes.",
+      "sections": [
+        "5.1 IAM Identity Center",
+        "10. Data Lake Account"
+      ],
+      "evidence": [
+        "Its trust policy allows sts:AssumeRole for any principal in the organisation, using the aws:PrincipalOrgID condition, so that new source systems can be onboarded without trust policy changes.",
+        "Every developer receives the SandboxAdmin permission set, which grants AdministratorAccess in the sandbox accounts so that teams can experiment without raising tickets."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "trust policy",
+        "principalorgid",
+        "assume role",
+        "cross-account",
+        "datalake-etl"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Third-party SaaS vendor holds standing AdministratorAccess in every member account",
+      "description": "The CostwiseAutomation role gives an external cost-optimisation vendor full administrator rights in every account, including the data lake, security and network accounts. Its trust policy names the vendor's whole AWS account and has no external ID or other conditions. A compromise of the vendor, or of any principal in its account, gives an attacker control of the entire organisation, and the vendor needs far less than admin rights. The vendor role should be limited to read-only billing and usage permissions (plus narrowly scoped actions if automation is really required), deployed only to the accounts that need it, and protected with an external ID condition.",
+      "sections": [
+        "5.3 Third-party access"
+      ],
+      "evidence": [
+        "The Costwise cost-optimisation service is onboarded by deploying the CostwiseAutomation role to every member account with StackSets.",
+        "The role has the AdministratorAccess policy so that Costwise can apply rightsizing and scheduling recommendations automatically, and its trust policy names the Costwise AWS account as the only principal."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "third-party access",
+        "cross-account role",
+        "administratoraccess",
+        "external id",
+        "vendor"
+      ]
+    },
+    {
+      "id": "F3",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Break-glass admin IAM users without MFA and with passwords shared across 25 people",
+      "description": "The break-glass users have AdministratorAccess in the management account (and therefore every member account), have no MFA, and their passwords are readable by 25 people, so a single leaked vault entry or malicious insider yields full control of the whole organisation. Break-glass credentials should have hardware MFA held under dual control, be sealed with restricted, audited retrieval, and every use should raise an immediate alert.",
+      "sections": [
+        "5.2 Break-glass access"
+      ],
+      "evidence": [
+        "Their passwords are stored in the infrastructure team's shared vault folder, which all 25 members of the infrastructure team can open.",
+        "MFA is not enabled on the break-glass users, so that access does not depend on a hardware token being available during an incident."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "break-glass",
+        "mfa",
+        "iam user",
+        "management account",
+        "shared password"
+      ]
+    },
+    {
+      "id": "F4",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Single Transit Gateway route table gives any-to-any routing between sandbox, non-prod, prod and on-premises",
+      "description": "All VPC attachments, including sandbox accounts where developers are administrators and the on-premises Direct Connect, share one propagated route table and east-west traffic is not inspected, so there is no network segmentation between environments. A compromised sandbox or non-production workload can reach production and on-premises systems directly. Separate TGW route tables per environment (with explicit, inspected routes between them) should be used.",
+      "sections": [
+        "6. Network Architecture"
+      ],
+      "evidence": [
+        "All VPC attachments from the Workloads and Sandbox accounts, as well as the Direct Connect gateway attachment for the Harbourline data centres, are associated with one Transit Gateway route table and propagate their routes into it.",
+        "Traffic between VPCs does not pass through the inspection VPC, so that east-west latency stays low."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "transit gateway",
+        "route table",
+        "segmentation",
+        "east-west",
+        "sandbox"
+      ]
+    },
+    {
+      "id": "F5",
+      "domain": "cloud_data",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Data OU holding the data lake has no SCP guardrails (region, root, baseline protection)",
+      "description": "The new Data OU is not listed in the SCP attachment table, so the most sensitive account (claims and medical data) receives none of the guardrails: no EU region restriction for data residency, no root-user deny, no baseline or leave-organisation protection and no internet gateway restriction. The standard SCP set should be attached to the Data OU, and new OUs should inherit guardrails by default.",
+      "sections": [
+        "3. Organisation Structure",
+        "4. Service Control Policies"
+      ],
+      "evidence": [
+        "SCPs are attached at OU level as listed in Table 2.",
+        "The Data OU was introduced in this version and contains hlm-datalake-prod, which holds claims, policy and medical underwriting data for all business lines."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "scp",
+        "data ou",
+        "guardrails",
+        "data residency",
+        "region restriction"
+      ]
+    },
+    {
+      "id": "F6",
+      "domain": "network",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "LOW"
+      ],
+      "type": "defect",
+      "title": "Central WAF runs in count mode, so public applications have no blocking protection",
+      "description": "The central web ACLs only count matches from the managed rule groups, and blocking is opt-in per application team, so by default no malicious request to a public application is blocked. The WAF gives detection only. Managed rule groups should block by default, with rule-level exclusions for confirmed false positives and a time-boxed count period for new applications.",
+      "sections": [
+        "7. Internet Egress and Inspection"
+      ],
+      "evidence": [
+        "The central web ACLs run the AWS managed rule groups in count mode, and application teams can ask for blocking mode once they have finished tuning false positives."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Tampering",
+        "Denial of Service"
+      ],
+      "keywords": [
+        "waf",
+        "count mode",
+        "blocking",
+        "managed rules",
+        "ingress"
+      ]
+    },
+    {
+      "id": "F7",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "Security findings reviewed weekly with no real-time alerting",
+      "description": "GuardDuty, Access Analyzer and Macie findings are only reviewed at a weekly meeting, and no alerting is defined for high-severity findings, root or break-glass sign-in, or other privileged actions. An active compromise could run for days before anyone reacts. High-severity findings and privileged-access events should raise real-time alerts to an on-call responder.",
+      "sections": [
+        "9. Security Tooling and Monitoring"
+      ],
+      "evidence": [
+        "Findings from GuardDuty, Access Analyzer and Macie are aggregated in Security Hub and reviewed by the security operations team at a weekly triage meeting."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "alerting",
+        "guardduty",
+        "security hub",
+        "weekly review",
+        "detection"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "MFA not enforced for workforce access through IAM Identity Center",
+      "why_not": "Identity Center uses the corporate IdP as external identity source, and section 2 states the IdP enforces FIDO2 security-key MFA on every sign-in to the AWS application.",
+      "evidence": [
+        "No MFA settings are configured in IAM Identity Center itself.",
+        "All human access goes through IAM Identity Center federated with the corporate IdP, which enforces FIDO2 security-key MFA on every sign-in to the AWS application."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Workload VPCs have an uninspected 0.0.0.0/0 default route to the internet",
+      "why_not": "Section 7 states workload VPCs have no internet or NAT gateways and all internet-bound traffic goes through AWS Network Firewall with a domain allowlist; the DenyInternetGateways SCP enforces this for workload and sandbox accounts.",
+      "evidence": [
+        "Each workload VPC has a single default route, 0.0.0.0/0, pointing to its Transit Gateway attachment.",
+        "Internet-bound traffic is routed by the Transit Gateway to the inspection VPC, where AWS Network Firewall applies a domain allowlist per environment and drops all other egress, before leaving through the egress VPC."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Direct Connect traffic to on-premises is unencrypted",
+      "why_not": "Section 11 states both Direct Connect connections use MACsec layer-2 encryption, so the absence of an IPsec overlay does not leave traffic in cleartext.",
+      "evidence": [
+        "On-premises connectivity uses two 10 Gbps Direct Connect connections from the Dublin and Frankfurt data centres, without an IPsec overlay, to avoid the throughput limit of VPN tunnels.",
+        "Both Direct Connect connections use MACsec encryption at layer 2, with the connectivity association keys stored in AWS Secrets Manager in the network account."
+      ]
+    },
+    {
+      "id": "N4",
+      "title": "Medical claim files shared with external loss adjusters without access control",
+      "why_not": "Section 5.3 states adjusters reach the partner-exchange bucket only through AWS Transfer Family SFTP with per-adjuster users, SSH key authentication and firm-scoped home directories. Section 11 enforces S3 Block Public Access in every account.",
+      "evidence": [
+        "The partner-exchange zone (bucket hlm-dl-partner-exchange) is used to share claim files, including medical reports and repair assessments, with external loss adjusters.",
+        "Loss adjusters reach the partner-exchange bucket only through an AWS Transfer Family SFTP server, with one user per adjuster, SSH key authentication and a home directory restricted to their firm's prefix."
+      ]
+    }
+  ],
+  "injection": null
+}

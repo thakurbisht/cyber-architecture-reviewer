@@ -1,0 +1,120 @@
+{
+  "doc_id": "gs-07-azure-analytics-lake",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "7. Data Protection and Secrets",
+      "domain": "application",
+      "severity": "HIGH",
+      "issue": "Authorisation appears to be enforced in the client or gateway only, with the service trusting inbound identity claims.",
+      "recommendation": "Enforce object-level authorisation in the service that owns the data, on every request. Gateway and UI checks are usability features, not security controls.",
+      "standard_reference": "Application Security Architecture Standard §3.6",
+      "kb_source": "application/application-security-standard.md",
+      "evidence_excerpt": "...p-prd, with automatic annual rotation. Key Vault soft delete and purge protection are enabled, and shared key authorisation is disabled on dlstapprd. The sp-tap-dbw client secret and Event Hub credentials are held in a Key Vault-backed Databricks secret scope and referenced from c...",
+      "control_mappings": [
+        "OWASP API Top 10 API1",
+        "OWASP ASVS V4",
+        "NIST SP 800-53 AC-3"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-AUTHZ-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "issue": "No rate limiting or throttling is defined on externally reachable interfaces.",
+      "recommendation": "Apply per-client and per-endpoint rate limits at the gateway, with quotas tied to the authenticated principal, plus circuit breakers on downstream calls.",
+      "standard_reference": "Application Security Architecture Standard §7.2",
+      "kb_source": "application/application-security-standard.md",
+      "evidence_excerpt": "...ower BI VNet data gateway delegated to snet-pbi-gw, which reaches Synapse through its private endpoint, so no public Synapse endpoint is required. stexporttap is reachable on its public endpoint to support partner file exchange. All storage a...",
+      "control_mappings": [
+        "OWASP API Top 10 API4",
+        "NIST SP 800-53 SC-5"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "issue": "No dependency, container or supply-chain scanning is described in the pipeline.",
+      "recommendation": "Add SCA and container image scanning as blocking pipeline gates, publish an SBOM per release, and fail the build on new critical CVEs in direct dependencies.",
+      "standard_reference": "Secure SDLC Standard §4.2",
+      "kb_source": "application/secure-sdlc-standard.md",
+      "evidence_excerpt": "...crets and keys | Key Vault (kv-tap-prd) | Linked service credentials, customer-managed key | 3.1 Sources and Pipelines ADF pipelines run nightly at 01:00. The SHIR runs on two Windows VMs in the Farnborough data centre and extr...",
+      "control_mappings": [
+        "NIST SSDF PW.4",
+        "ISO 27001 A.8.28",
+        "MITRE ATT&CK T1195.002"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-SDLC-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "7. Data Protection and Secrets",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Shared, generic or service accounts are used by humans.",
+      "recommendation": "Bind every human action to a named identity. Convert service accounts to workload identities with no interactive logon rights and vault any that must retain a password.",
+      "standard_reference": "Identity & Privileged Access Standard §3.2",
+      "kb_source": "security/identity-access-standard.md",
+      "evidence_excerpt": "...ey in kv-tap-prd, with automatic annual rotation. Key Vault soft delete and purge protection are enabled, and shared key authorisation is disabled on dlstapprd. The sp-tap-dbw client secret and Event Hub credentials are held in a...",
+      "control_mappings": [
+        "NIST SP 800-53 AC-2",
+        "ISO 27001 A.5.16"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-IAM-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Tidewater Analytics Platform — High-Level Design Harbourline Bank, Data Platform Engineering. Version 1.3, submitted to the Architecture R...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

@@ -10,6 +10,7 @@ Review logic remains inside src/.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import sys
 import textwrap
@@ -52,7 +53,7 @@ from src.parser import (
     parse_text,
     summarise_sections,
 )
-from src.report import save_outputs
+from src.report import compute_risk, save_outputs
 from src.retriever import KnowledgeBase
 from src.rules import rules_summary
 
@@ -62,10 +63,10 @@ from src.rules import rules_summary
 # ============================================================================
 
 st.set_page_config(
-    page_title="Cyber Architecture Reviewer",
+    page_title="Archeo · Architecture Review",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 
@@ -73,18 +74,27 @@ st.set_page_config(
 # CONSTANTS
 # ============================================================================
 
+# Mirrors the severity and status tokens in assets/archeo.css.
 SEV_COLOUR = {
-    "CRITICAL": "#ff4d67",
-    "HIGH": "#ff9f43",
-    "MEDIUM": "#feca57",
-    "LOW": "#54a0ff",
+    "CRITICAL": "#D92D20",
+    "HIGH": "#E8702A",
+    "MEDIUM": "#E0A800",
+    "LOW": "#3B82F6",
 }
 
 RAG_COLOUR = {
-    "RED": "#ff4757",
-    "AMBER": "#ffa502",
-    "GREEN": "#2ed573",
+    "RED": "#B42318",
+    "AMBER": "#B54708",
+    "GREEN": "#0F8A7E",
 }
+
+RAG_LABEL = {
+    "RED": "High risk · requires attention",
+    "AMBER": "Elevated risk",
+    "GREEN": "Acceptable",
+}
+
+VERIFIER_STATES = ("CONFIRMED", "REFUTED", "NEEDS_HUMAN")
 
 RISK_ICON = {
     "critical": "🔴",
@@ -110,345 +120,153 @@ COMPONENT_ICONS = {
 # ============================================================================
 
 def load_custom_css() -> None:
-    """
-    Load project theme from assets/theme.css and add a few application-level
-    styles on top.
+    """Load the Archeo design system (assets/archeo.css, light theme).
+
+    theme.css, refine.css and enterprise.css (the earlier dark theme) are
+    kept on disk but not loaded.
     """
 
-    css_file = PROJECT_ROOT / "assets" / "theme.css"
+    css_file = PROJECT_ROOT / "assets" / "archeo.css"
 
-    if css_file.exists():
-        try:
-            css = css_file.read_text(
-                encoding="utf-8",
-                errors="ignore",
-            )
-            st.markdown(
-                f"<style>{css}</style>",
-                unsafe_allow_html=True,
-            )
-        except Exception:
-            pass
+    try:
+        css = css_file.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return
+
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+
+def esc(value) -> str:
+    """HTML-escape any document- or model-derived text before it is placed
+    inside an unsafe_allow_html block."""
+
+    return html.escape(str(value), quote=True)
+
+
+def html_block(markup: str) -> None:
+    """Render trusted HTML markup. Lines are stripped so Markdown does not
+    turn indented HTML into a code block."""
 
     st.markdown(
-        "\n".join(line.strip() for line in textwrap.dedent("""
-        <style>
-
-        /* ============================================================
-           GLOBAL
-        ============================================================ */
-
-        .stApp {
-            background:
-                radial-gradient(
-                    circle at 10% 0%,
-                    rgba(50, 90, 160, 0.10),
-                    transparent 30%
-                ),
-                radial-gradient(
-                    circle at 90% 10%,
-                    rgba(100, 50, 160, 0.08),
-                    transparent 30%
-                );
-        }
-
-        .block-container {
-            padding-top: 1.8rem;
-            padding-bottom: 4rem;
-            max-width: 1500px;
-        }
-
-        /* ============================================================
-           HERO
-        ============================================================ */
-
-        .hero {
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(120, 150, 190, 0.18);
-            border-radius: 22px;
-            padding: 30px 34px;
-            margin-bottom: 25px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(16, 24, 40, 0.98),
-                    rgba(20, 31, 55, 0.94)
-                );
-
-            box-shadow:
-                0 18px 60px rgba(0, 0, 0, 0.25);
-        }
-
-        .hero:before {
-            content: "";
-            position: absolute;
-            width: 280px;
-            height: 280px;
-            right: -90px;
-            top: -100px;
-            border-radius: 50%;
-            background: rgba(75, 120, 255, 0.16);
-            filter: blur(5px);
-        }
-
-        .hero-title {
-            font-size: 38px;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            margin: 0;
-            color: #f8fafc;
-        }
-
-        .hero-subtitle {
-            margin-top: 8px;
-            font-size: 15px;
-            color: #aab8cc;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            padding: 5px 10px;
-            margin-bottom: 12px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            color: #9fc1ff;
-            background: rgba(70, 110, 220, 0.12);
-            border: 1px solid rgba(100, 140, 255, 0.25);
-        }
-
-        /* ============================================================
-           CARDS
-        ============================================================ */
-
-        .metric-card {
-            border: 1px solid rgba(120, 140, 170, 0.16);
-            border-radius: 16px;
-            padding: 18px 20px;
-            background: rgba(255, 255, 255, 0.025);
-            transition:
-                transform 180ms ease,
-                border-color 180ms ease,
-                box-shadow 180ms ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(100, 150, 255, 0.35);
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
-        }
-
-        .metric-label {
-            font-size: 11px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.09em;
-        }
-
-        .metric-value {
-            margin-top: 4px;
-            font-size: 28px;
-            font-weight: 750;
-            color: #f8fafc;
-        }
-
-        .component-card {
-            min-height: 115px;
-            border: 1px solid rgba(120, 140, 170, 0.15);
-            border-radius: 14px;
-            padding: 15px;
-            margin-bottom: 10px;
-            background:
-                linear-gradient(
-                    145deg,
-                    rgba(255,255,255,0.035),
-                    rgba(255,255,255,0.012)
-                );
-            transition:
-                transform 180ms ease,
-                border-color 180ms ease;
-        }
-
-        .component-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(100, 150, 255, 0.35);
-        }
-
-        .component-name {
-            font-size: 15px;
-            font-weight: 700;
-            color: #eef2ff;
-        }
-
-        .component-type {
-            margin-top: 3px;
-            font-size: 11px;
-            color: #8291a7;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .component-description {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #9aa8bb;
-            line-height: 1.45;
-        }
-
-        /* ============================================================
-           STATUS
-        ============================================================ */
-
-        .status-card {
-            border-radius: 18px;
-            padding: 18px 22px;
-            color: white;
-            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
-        }
-
-        .status-label {
-            font-size: 10px;
-            letter-spacing: 0.12em;
-            opacity: 0.78;
-            font-weight: 700;
-        }
-
-        .status-value {
-            font-size: 30px;
-            font-weight: 800;
-            margin-top: 4px;
-        }
-
-        .status-score {
-            font-size: 12px;
-            opacity: 0.85;
-        }
-
-        /* ============================================================
-           ARCHITECTURE EDITOR
-        ============================================================ */
-
-        .editor-header {
-            border-radius: 18px;
-            padding: 20px 24px;
-            margin: 10px 0 18px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(24, 35, 58, 0.95),
-                    rgba(15, 23, 42, 0.98)
-                );
-
-            border: 1px solid rgba(100, 140, 220, 0.2);
-        }
-
-        .editor-title {
-            font-size: 25px;
-            font-weight: 800;
-            color: #f8fafc;
-        }
-
-        .editor-subtitle {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 5px;
-        }
-
-        .flow-pill {
-            display: inline-block;
-            padding: 5px 9px;
-            margin-right: 5px;
-            border-radius: 999px;
-            background: rgba(100, 140, 255, 0.1);
-            border: 1px solid rgba(100, 140, 255, 0.2);
-            font-size: 11px;
-            color: #9fb9ff;
-        }
-
-        /* ============================================================
-           SIDEBAR
-        ============================================================ */
-
-        [data-testid="stSidebar"] {
-            border-right: 1px solid rgba(120, 140, 170, 0.12);
-        }
-
-        /* ============================================================
-           BUTTONS
-        ============================================================ */
-
-        .stButton > button {
-            border-radius: 10px;
-            font-weight: 650;
-            transition:
-                transform 150ms ease,
-                box-shadow 150ms ease;
-        }
-
-        .stButton > button:hover {
-            transform: translateY(-1px);
-        }
-
-        /* ============================================================
-           TABLE
-        ============================================================ */
-
-        [data-testid="stDataFrame"] {
-            border-radius: 14px;
-            overflow: hidden;
-        }
-
-        </style>
-        """).splitlines()),
+        "\n".join(line.strip() for line in markup.splitlines()),
         unsafe_allow_html=True,
     )
 
-    # --- refine.css (added by patch; delete this block to revert) ---
-    refine_file = PROJECT_ROOT / "assets" / "refine.css"
 
-    if refine_file.exists():
+# ============================================================================
+# HEADER, STEPPER, SECTION HEADINGS
+# ============================================================================
+
+SHIELD_SVG = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" '
+    'stroke-linecap="round" stroke-linejoin="round">'
+    '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.9C8 19.3 5 15.5 5 11V6l7-3z"/>'
+    '<path d="M9 12.5V11a3 3 0 0 1 6 0v1.5"/></svg>'
+)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def latest_eval_scores() -> dict:
+    """Most recent scored golden-set run (results/golden/*/scores.json).
+
+    Surfaces measured pipeline quality in the UI. Empty dict when no run has
+    been scored yet - the UI then says so instead of showing a number."""
+
+    runs = sorted(
+        (PROJECT_ROOT / "results" / "golden").glob("*/scores.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for path in runs:
         try:
-            refine_css = refine_file.read_text(
-                encoding="utf-8",
-                errors="ignore",
-            )
-            st.markdown(
-                f"<style>{refine_css}</style>",
-                unsafe_allow_html=True,
-            )
-        except Exception:
-            pass
-    # --- end refine.css ---
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not data.get("rules_only"):
+            return data
+    return {}
 
 
-# ============================================================================
-# HERO
-# ============================================================================
+def configured_model(key: str) -> str:
+    """Model named under `models:` in config.yaml, or '' when the stage is
+    not configured (verifier: A4 not built yet)."""
 
-def render_hero() -> None:
-    st.markdown(
-        "\n".join(line.strip() for line in textwrap.dedent("""
-        <div class="hero">
-            <div class="hero-badge">
-                CYBERSECURITY · ARCHITECTURE ASSURANCE
-            </div>
+    return str(get_config().raw.get("models", {}).get(key, "") or "")
 
-            <div class="hero-title">
-                Cyber Architecture Reviewer
-            </div>
 
-            <div class="hero-subtitle">
-                Evidence-based architecture assurance across
-                network, application, security, cloud and data.
-            </div>
+def render_header() -> None:
+    """Brand, connection status and the model line-up."""
+
+    ollama = get_ollama_status()
+
+    if ollama["reachable"] and not ollama["missing_models"]:
+        status = '<span class="status ok"><span class="dot ok"></span>Ollama connected</span>'
+    elif ollama["reachable"]:
+        status = '<span class="status warn"><span class="dot warn"></span>Models missing</span>'
+    else:
+        status = '<span class="status bad"><span class="dot bad"></span>Ollama offline</span>'
+
+    verifier = configured_model("verifier") or "off"
+    judge = latest_eval_scores().get("judge_model") or "none"
+
+    html_block(f"""
+    <div class="ax-header">
+      <div class="ax-brand">
+        <div class="ax-logo">{SHIELD_SVG}</div>
+        <div>
+          <div class="ax-name">Archeo</div>
+          <div class="ax-tag">Architecture threat detection with evidence and verification</div>
         </div>
-        """).splitlines()),
-        unsafe_allow_html=True,
-    )
+      </div>
+      <div class="ax-right">
+        {status}
+        <div class="ax-config">Model <b>{esc(ollama.get("llm") or configured_model("llm"))}</b>
+          · Verifier <b>{esc(verifier)}</b> · Judge <b>{esc(judge)}</b></div>
+      </div>
+    </div>
+    """)
+
+
+STEPS = (
+    ("Intake", "Upload or paste a design"),
+    ("Pre-flight", "Deterministic checks"),
+    ("AI review", "Standards-grounded analysis"),
+    ("Report", "Findings and assurance status"),
+)
+
+
+def render_stepper(active: int, slot=None) -> None:
+    """Workflow stepper. `active` is the 0-based index of the current step;
+    earlier steps render as done. `slot` is an st.empty() placeholder so the
+    stepper can sit at the top but be drawn once the state is known."""
+
+    items = []
+    for i, (label, sub) in enumerate(STEPS):
+        state = "done" if i < active else "active" if i == active else ""
+        mark = "&#10003;" if i < active else str(i + 1)
+        items.append(
+            f'<div class="step {state}"><div class="step-num">{mark}</div>'
+            f'<div><div class="step-label">{label}</div>'
+            f'<div class="step-sub">{sub}</div></div></div>'
+        )
+    (slot or st).markdown(f'<div class="stepper">{"".join(items)}</div>',
+                          unsafe_allow_html=True)
+
+
+def section_header(eyebrow: str, title: str, desc: str = "") -> None:
+    desc_html = f'<div class="sec-desc">{desc}</div>' if desc else ""
+    html_block(f"""
+    <div class="sec-head">
+      <div class="sec-eyebrow">{eyebrow}</div>
+      <div class="sec-title">{title}</div>
+      {desc_html}
+    </div>
+    """)
+
+
+def severity_chip(severity: str) -> str:
+    sev = severity if severity in SEV_COLOUR else "LOW"
+    return f'<span class="badge {sev}">{esc(severity)}</span>'
 
 
 # ============================================================================
@@ -552,161 +370,76 @@ def render_sidebar() -> list[str]:
 
     cfg = get_config()
 
-    st.sidebar.markdown(
-        """
-        <div style="
-            font-size:22px;
-            font-weight:800;
-            margin-bottom:2px;
-        ">
-            🛡️ Reviewer
-        </div>
+    with st.sidebar:
+        html_block('<div class="sec-title" style="font-size:16px">Settings</div>')
 
-        <div style="
-            font-size:11px;
-            color:#8b9ab0;
-            margin-bottom:20px;
-        ">
-            LOCAL-FIRST ARCHITECTURE ASSURANCE
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        # --------------------------------------------------------------
+        # SCOPE
+        # --------------------------------------------------------------
+        html_block('<div class="sb-label">Review scope</div>')
 
-    st.sidebar.subheader("Review domains")
+        selected: list[str] = []
+        for key in ("network", "application", "security", "cloud_data"):
+            default = cfg.raw["domains"].get(key, True)
+            if st.checkbox(DOMAIN_LABELS[key], value=default, key=f"dom_{key}"):
+                selected.append(key)
 
-    selected: list[str] = []
+        # --------------------------------------------------------------
+        # SYSTEM STATUS
+        # --------------------------------------------------------------
+        ollama = get_ollama_status()
+        kb = get_kb_status()
+        total = kb.get("total", 0)
 
-    for key in (
-        "network",
-        "application",
-        "security",
-        "cloud_data",
-    ):
-        default = cfg.raw["domains"].get(key, True)
-
-        if st.sidebar.checkbox(
-            DOMAIN_LABELS[key],
-            value=default,
-            key=f"dom_{key}",
-        ):
-            selected.append(key)
-
-    st.sidebar.divider()
-
-    st.sidebar.subheader("System status")
-
-    # ------------------------------------------------------------------
-    # OLLAMA
-    # ------------------------------------------------------------------
-
-    ollama = get_ollama_status()
-
-    if ollama["reachable"]:
-
-        if ollama["missing_models"]:
-
-            st.sidebar.error(
-                "Ollama is running but required models are missing."
-            )
-
-            st.sidebar.code(
-                "\n".join(
-                    f"ollama pull {model}"
-                    for model in ollama["missing_models"]
-                ),
-                language="powershell",
-            )
-
+        if ollama["reachable"] and not ollama["missing_models"]:
+            engine = f'<span class="dot ok"></span>{esc(ollama["llm"])}'
+        elif ollama["reachable"]:
+            engine = '<span class="dot warn"></span>Models missing'
         else:
+            engine = '<span class="dot bad"></span>Offline'
 
-            st.sidebar.success(
-                f"Ollama ready · {ollama['llm']}"
+        standards = (f'<span class="dot ok"></span>{total} clauses' if total
+                     else '<span class="dot bad"></span>Empty')
+        rule_count = sum(rules_summary().values())
+
+        html_block(f"""
+        <div class="sb-label">System status</div>
+        <div class="sb-status">
+          <div class="sb-row">Review engine <span class="v">{engine}</span></div>
+          <div class="sb-row">Standards library <span class="v">{standards}</span></div>
+          <div class="sb-row">Deterministic rules <span class="v">{rule_count}</span></div>
+          <div class="sb-row">Embeddings <span class="v">{esc(kb.get("embedding_model") or "-")}</span></div>
+        </div>
+        """)
+
+        if not ollama["reachable"]:
+            st.caption(ollama.get("error", "")[:200])
+            st.code("ollama serve", language="powershell")
+        elif ollama["missing_models"]:
+            st.code("\n".join(f"ollama pull {m}" for m in ollama["missing_models"]),
+                    language="powershell")
+        if not total:
+            st.code("python scripts/seed_kb.py", language="powershell")
+
+        with st.expander("Coverage by domain", expanded=False):
+            counts = kb.get("counts", {})
+            rules = rules_summary()
+            rows = "".join(
+                f'<div class="sb-row">{esc(DOMAIN_LABELS.get(d, d))}'
+                f'<span class="v">{counts.get(d, 0)} clauses · {rules.get(d, 0)} rules</span></div>'
+                for d in ("network", "application", "security", "cloud_data")
             )
+            html_block(f'<div class="sb-status">{rows}</div>')
 
-    else:
+        for warning in kb.get("warnings", []):
+            st.warning(warning)
 
-        st.sidebar.error("Ollama unreachable")
-
-        st.sidebar.caption(
-            ollama.get("error", "")[:200]
-        )
-
-        st.sidebar.code(
-            "ollama serve",
-            language="powershell",
-        )
-
-    # ------------------------------------------------------------------
-    # KNOWLEDGE BASE
-    # ------------------------------------------------------------------
-
-    kb = get_kb_status()
-    total = kb.get("total", 0)
-
-    if total:
-
-        st.sidebar.success(
-            f"Knowledge base · {total} clauses"
-        )
-
-    else:
-
-        st.sidebar.error(
-            "Knowledge base is empty"
-        )
-
-        st.sidebar.code(
-            "python scripts/seed_kb.py",
-            language="powershell",
-        )
-
-    with st.sidebar.expander(
-        "Clauses by domain",
-        expanded=False,
-    ):
-
-        for domain, count in kb.get(
-            "counts",
-            {},
-        ).items():
-
-            st.write(
-                f"**{DOMAIN_LABELS.get(domain, domain)}** — {count}"
-            )
-
-        st.caption(
-            f"Embedding model: `{kb.get('embedding_model')}`"
-        )
-
-    # ------------------------------------------------------------------
-    # RULES
-    # ------------------------------------------------------------------
-
-    with st.sidebar.expander(
-        "Deterministic rules",
-        expanded=False,
-    ):
-
-        for domain, count in rules_summary().items():
-
-            st.write(
-                f"**{DOMAIN_LABELS.get(domain, domain)}** — {count} rules"
-            )
-
-        st.caption(
-            "Rules execute before the model and provide deterministic findings."
-        )
-
-    for warning in kb.get("warnings", []):
-        st.sidebar.warning(warning)
-
-    st.sidebar.divider()
-
-    st.sidebar.caption(
-        "Read and flag only. This tool has no write access "
-        "to any system and does not approve or reject designs."
-    )
+        html_block("""
+        <div class="sb-foot">
+          Read and flag only. This tool has no write access to any system
+          and does not approve or reject designs.
+        </div>
+        """)
 
     return selected
 
@@ -715,18 +448,22 @@ def render_sidebar() -> list[str]:
 # CHECKPOINT
 # ============================================================================
 
+def kpi(label: str, value, sub: str = "") -> str:
+    sub_html = f'<div class="kpi-sub">{sub}</div>' if sub else ""
+    return (f'<div class="kpi"><div class="kpi-label">{label}</div>'
+            f'<div class="kpi-value">{value}</div>{sub_html}</div>')
+
+
 def render_checkpoint(
     sections: list,
     domains: list[str],
 ) -> None:
 
-    st.divider()
-
-    st.subheader("🔍 Pre-Flight Checkpoint")
-
-    st.caption(
-        "Review the deterministic analysis before crossing "
-        "the trust boundary into the AI review layer."
+    section_header(
+        "Step 2 · Pre-flight",
+        "Deterministic checkpoint",
+        "Rule-based findings and scope, reviewed before the document crosses "
+        "the trust boundary into the AI review layer.",
     )
 
     agent = ReviewAgent(
@@ -739,176 +476,188 @@ def render_checkpoint(
         domains,
     )
 
-    # ------------------------------------------------------------------
-    # METRICS
-    # ------------------------------------------------------------------
-
-    in_scope_count = sum(
-        1
-        for section in sections
-        if section.domain in domains
-    )
-
+    in_scope_count = sum(1 for section in sections if section.domain in domains)
     kb_total = sum(kb_counts.values())
+    critical = sum(1 for f in layer1_findings if f.severity == "CRITICAL")
 
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        st.metric(
-            "Total Sections",
-            len(sections),
-        )
-
-    with c2:
-        st.metric(
-            "In-Scope",
-            in_scope_count,
-        )
-
-    with c3:
-        st.metric(
-            "Layer 1 Findings",
-            len(layer1_findings),
-        )
-
-    with c4:
-        st.metric(
-            "KB Clauses",
-            kb_total,
-        )
-
-    # ------------------------------------------------------------------
-    # DOMAIN BREAKDOWN
-    # ------------------------------------------------------------------
-
-    with st.expander(
-        "📊 Section Distribution by Domain",
-        expanded=False,
-    ):
-
-        summary = summarise_sections(sections)
-
-        if domains:
-
-            cols = st.columns(len(domains))
-
-            for col, domain in zip(
-                cols,
-                sorted(domains),
-            ):
-
-                count = summary.get(
-                    domain,
-                    0,
-                )
-
-                col.metric(
-                    DOMAIN_LABELS.get(
-                        domain,
-                        domain,
-                    ),
-                    count,
-                )
-
-    # ------------------------------------------------------------------
-    # FINDINGS
-    # ------------------------------------------------------------------
-
-    if layer1_findings:
-
-        with st.expander(
-            "🚩 Layer 1 Findings",
-            expanded=True,
-        ):
-
-            st.caption(
-                f"{len(layer1_findings)} findings from deterministic rules."
-            )
-
-            for finding in layer1_findings:
-
-                sev_color = SEV_COLOUR.get(
-                    finding.severity,
-                    "#777",
-                )
-
-                st.markdown(
-                    "\n".join(line.strip() for line in textwrap.dedent(f"""
-                    <div style="
-                        padding:12px 15px;
-                        border-left:4px solid {sev_color};
-                        margin-bottom:9px;
-                        border-radius:0 9px 9px 0;
-                        background:rgba(255,255,255,0.025);
-                    ">
-                        <b>{finding.severity}</b>
-                        · {finding.section[:60]}
-                        <br>
-                        <span style="color:#a0aec0;">
-                            {finding.issue[:150]}
-                        </span>
-                    </div>
-                    """).splitlines()),
-                    unsafe_allow_html=True,
-                )
-
-    else:
-
-        st.success(
-            "✓ No findings from deterministic rules."
-        )
-
-    # ------------------------------------------------------------------
-    # PIPELINE
-    # ------------------------------------------------------------------
+    cols = st.columns(4)
+    cards = [
+        kpi("Sections", len(sections), "parsed from the document"),
+        kpi("In scope", in_scope_count, f"across {len(domains)} domain(s)"),
+        kpi("Rule findings", len(layer1_findings),
+            f"{critical} critical" if critical else "none critical"),
+        kpi("Standards clauses", kb_total, "available for grounding"),
+    ]
+    for col, card in zip(cols, cards):
+        with col:
+            html_block(card)
 
     st.write("")
-    st.subheader("Pipeline")
 
-    p1, p2, p3, p4, p5 = st.columns(5)
+    with st.expander("Section distribution by domain", expanded=False):
+        summary = summarise_sections(sections)
+        tags = "".join(
+            f'<span class="tag">{esc(DOMAIN_LABELS.get(d, d))} <b>{summary.get(d, 0)}</b></span>'
+            for d in sorted(domains)
+        )
+        html_block(f'<div class="doc-tags">{tags}</div>')
 
-    pipeline = [
-        ("01", "Parse", "Complete"),
-        ("02", "Classify", "Complete"),
-        ("03", "Rules", "Complete"),
-        ("04", "AI Review", "Next"),
-        ("05", "Assurance", "Next"),
-    ]
+    if layer1_findings:
+        rows = "".join(
+            f"""<div class="frow">
+                  <div>{severity_chip(f.severity)}</div>
+                  <div>
+                    <div class="frow-sec">{esc(f.section[:80])}</div>
+                    <div class="frow-issue">{esc(f.issue[:220])}</div>
+                  </div>
+                </div>"""
+            for f in layer1_findings
+        )
+        with st.expander(f"Rule findings ({len(layer1_findings)})", expanded=True):
+            html_block(f'<div class="flist">{rows}</div>')
+    else:
+        st.success("No findings from deterministic rules.")
 
-    for col, item in zip(
-        [p1, p2, p3, p4, p5],
-        pipeline,
-    ):
+    st.caption(
+        "Next: standards retrieval, AI reasoning, citation verification, "
+        "cross-domain consistency, assurance report."
+    )
 
-        number, title, status = item
 
-        col.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">{number}</div>
-                <div style="
-                    font-size:15px;
-                    font-weight:700;
-                    margin-top:5px;
-                ">
-                    {title}
-                </div>
-                <div style="
-                    font-size:11px;
-                    color:#8291a7;
-                    margin-top:4px;
-                ">
-                    {status}
-                </div>
-            </div>
-            """,
+# ============================================================================
+# PROGRESS
+# ============================================================================
+
+# Stages the agent actually reports (src/agent.py _emit calls). The verifier
+# stage (A4) is listed so the pipeline reads end to end, and shows as not
+# enabled until a verifier model is configured.
+PIPELINE_STAGES = (
+    ("parse", "Parse document"),
+    ("rules", "Deterministic rules"),
+    ("review", "Standards retrieval and AI review"),
+    ("correlate", "Cross-domain consistency"),
+    ("verify", "Verifier"),
+    ("report", "Risk score and report"),
+)
+
+
+def ollama_gpu_share() -> str:
+    """What `ollama ps` reports for the reviewer model: share held in VRAM.
+    (Ollama exposes no utilisation or temperature, so none is shown.)"""
+
+    try:
+        import urllib.request
+        base = get_config().raw["models"].get("ollama_host", "http://localhost:11434")
+        with urllib.request.urlopen(base.rstrip("/") + "/api/ps", timeout=1.5) as resp:
+            models = json.loads(resp.read().decode("utf-8")).get("models", [])
+    except Exception:  # noqa: BLE001 - status line only
+        return ""
+    parts = []
+    for m in models:
+        size = m.get("size") or 0
+        if size:
+            vram_gb = (m.get("size_vram") or 0) / 1e9
+            parts.append(f'{esc(m.get("name", "?"))} <b>{(m.get("size_vram") or 0) / size:.0%}</b> on GPU'
+                         f' ({vram_gb:.1f} GB)')
+    return " · ".join(parts)
+
+
+class ProgressTracker:
+    """Renders the stage list while ReviewAgent runs. Streamlit blocks during
+    agent.review(), so the panel is redrawn from the agent's progress
+    callback; there is no cancel button because a running review cannot be
+    interrupted from the same script run."""
+
+    def __init__(self, document_name: str) -> None:
+        self.document_name = document_name
+        self.slot = st.empty()
+        self.t0 = time.time()
+        self.started: dict = {}
+        self.ended: dict = {}
+        self.detail = ""
+        self.verifier_on = bool(configured_model("verifier"))
+        self._last_gpu = 0.0
+        self._gpu = ""
+
+    def start(self, key: str) -> None:
+        self.started.setdefault(key, time.time())
+        self.render()
+
+    def finish(self, key: str) -> None:
+        self.started.setdefault(key, time.time())
+        self.ended.setdefault(key, time.time())
+
+    def _advance(self, key: str) -> None:
+        order = [k for k, _ in PIPELINE_STAGES]
+        for k in order[: order.index(key)]:
+            if k == "verify" and not self.verifier_on:
+                continue
+            self.finish(k)
+        self.start(key)
+
+    def on_agent_progress(self, stage: str, pct: float) -> None:
+        text = str(stage)
+        if text.startswith("Reviewing:"):
+            self.detail = text.split(":", 1)[1].strip()
+            self._advance("review")
+        elif text.startswith("Deterministic rules"):
+            self.finish("rules")
+            self.start("review")
+        elif text.startswith("Cross-domain"):
+            self.detail = ""
+            self._advance("correlate")
+        elif text.startswith("Writing report"):
+            self._advance("report")
+        elif text == "Complete":
+            self._advance("report")
+            self.finish("report")
+        self.render(pct)
+
+    def durations(self) -> dict:
+        return {k: round(self.ended[k] - self.started[k], 1)
+                for k in self.ended if k in self.started}
+
+    def render(self, pct: float = 0.0) -> None:
+        now = time.time()
+        if now - self._last_gpu > 5:
+            self._gpu, self._last_gpu = ollama_gpu_share(), now
+        rows = []
+        for key, label in PIPELINE_STAGES:
+            if key == "verify" and not self.verifier_on:
+                rows.append(f'<div class="prow skip"><span class="ic"></span>'
+                            f'<span class="nm">{label}<span class="detail">not enabled yet (A4)</span></span>'
+                            f'<span class="t">skipped</span></div>')
+                continue
+            if key in self.ended:
+                state, icon = "done", "&#10003;"
+                t = f"{self.ended[key] - self.started[key]:.1f}s"
+            elif key in self.started:
+                state, icon = "active", ""
+                t = f"{now - self.started[key]:.0f}s elapsed"
+            else:
+                state, icon, t = "todo", "", ""
+            detail = (f'<span class="detail">{esc(self.detail[:70])}</span>'
+                      if key == "review" and state == "active" and self.detail else "")
+            rows.append(f'<div class="prow {state}"><span class="ic">{icon}</span>'
+                        f'<span class="nm">{label}{detail}</span><span class="t">{t}</span></div>')
+
+        remaining = ""
+        if 0.05 < pct < 1.0:
+            elapsed = now - self.t0
+            remaining = f" · about {max(0, elapsed / pct - elapsed) / 60:.0f} min remaining"
+        gpu = f"<span>{self._gpu}</span>" if self._gpu else ""
+        self.slot.markdown(
+            f'''<div class="prog"><div class="prog-title">Analyzing <span>{esc(self.document_name)}</span></div>
+            {"".join(rows)}
+            <div class="prog-foot"><span>Elapsed <b>{now - self.t0:.0f}s</b>{remaining}</span>{gpu}</div></div>''',
             unsafe_allow_html=True,
         )
 
-    st.info(
-        "**Next:** KB retrieval → AI reasoning → citation verification "
-        "→ cross-domain consistency → assurance report."
-    )
+    def fail(self, message: str) -> None:
+        self.detail = f"failed: {message}"
+
+    def clear(self) -> None:
+        self.slot.empty()
 
 
 # ============================================================================
@@ -1040,7 +789,7 @@ def render_architecture_flow(
 
     if flow.components:
 
-        st.subheader("Detected Components")
+        st.subheader("Detected components")
 
         cols = st.columns(3)
 
@@ -1187,7 +936,7 @@ def render_architecture_flow(
 
     with editor_col1:
 
-        st.subheader("➕ Add Component")
+        st.subheader("Add component")
 
         comp_type = st.selectbox(
             "Component type",
@@ -1335,7 +1084,7 @@ def render_architecture_flow(
 
     with editor_col2:
 
-        st.subheader("🔗 Data Flows")
+        st.subheader("Data flows")
 
         if flow.connections:
 
@@ -1410,7 +1159,7 @@ def render_architecture_flow(
 
         st.divider()
 
-        st.subheader("Create Connection")
+        st.subheader("Create connection")
 
         if len(flow.components) >= 2:
 
@@ -1527,384 +1276,326 @@ def render_architecture_flow(
 # RESULT RENDERING
 # ============================================================================
 
+def verifier_status(finding) -> str:
+    """A4 verifier verdict when the pipeline sets one, else UNVERIFIED."""
+    status = str(getattr(finding, "verifier_status", "") or "").upper()
+    return status if status in VERIFIER_STATES else "UNVERIFIED"
+
+
+def finding_sources(finding) -> list[str]:
+    sources = getattr(finding, "sources", None) or [finding.origin]
+    return [str(src) for src in sources if src]
+
+
+def confidence_label(value: float) -> str:
+    if value >= 0.8:
+        return "high"
+    if value >= 0.6:
+        return "moderate"
+    return "low"
+
+
+def kv(key: str, value: str, pending: bool = False) -> str:
+    cls = "v pending" if pending else "v"
+    return f'<div class="kv"><span class="k">{key}</span><span class="{cls}">{value}</span></div>'
+
+
+def findings_csv(findings: list) -> str:
+    import csv
+    import io
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["severity", "verifier_status", "confidence", "domain", "section",
+                     "issue", "recommendation", "evidence", "standard_reference",
+                     "sources", "rule_id", "fingerprint"])
+    for f in findings:
+        writer.writerow([f.severity, verifier_status(f), f.confidence, f.domain, f.section,
+                         f.issue, f.recommendation, f.evidence_excerpt, f.standard_reference,
+                         "|".join(finding_sources(f)), f.rule_id, f.fingerprint])
+    return buf.getvalue()
+
+
+VERIFIER_LABEL = {
+    "CONFIRMED": "&#10003; Verified",
+    "REFUTED": "&#10007; Refuted",
+    "NEEDS_HUMAN": "? Needs review",
+    "UNVERIFIED": "Not verified",
+}
+
+
+def finding_card(f) -> str:
+    vstat = verifier_status(f)
+    evidence = f.evidence_excerpt.strip()
+    if evidence:
+        quote = f'<div class="quote">&ldquo;{esc(evidence)}&rdquo;</div>'
+    else:
+        quote = '<div class="quote missing">No evidence quote captured for this finding (A2).</div>'
+    reason = str(getattr(f, "verifier_reason", "") or "")
+    vnote = ""
+    if reason and vstat != "UNVERIFIED":
+        vnote = (f'<div class="vnote {vstat}">Verifier '
+                 f'{vstat.lower().replace("_", " ")}: {esc(reason)}</div>')
+    sources = "".join(f'<span class="pill">{esc(src)}</span>' for src in finding_sources(f))
+    if f.rule_id:
+        sources += f'<span class="pill">{esc(f.rule_id)}</span>'
+    if f.standard_reference:
+        standard = f'<span>Standard: <b>{esc(f.standard_reference)}</b></span>'
+    else:
+        standard = "<span>No standard clause cited</span>"
+    return f"""
+    <div class="fcard {f.severity}">
+      <div class="fmeta">
+        {severity_chip(f.severity)}
+        <span class="badge {vstat}">{VERIFIER_LABEL[vstat]}</span>
+        <span class="fconf">Confidence {f.confidence:.2f} ({confidence_label(f.confidence)})</span>
+      </div>
+      <div class="ftitle">{esc(f.issue)}</div>
+      <div class="fdesc"><b>Recommendation.</b> {esc(f.recommendation)}</div>
+      {quote}
+      <div class="fsec">Section: <b>{esc(f.section)}</b> · {esc(DOMAIN_LABELS.get(f.domain, f.domain))}</div>
+      <div class="ffoot"><span>Detected by</span>{sources}{standard}</div>
+      {vnote}
+    </div>
+    """
+
+
+def domain_risk_colour(score: float) -> str:
+    if score >= 70:
+        return SEV_COLOUR["CRITICAL"]
+    if score >= 40:
+        return SEV_COLOUR["HIGH"]
+    if score >= 12:
+        return SEV_COLOUR["MEDIUM"]
+    return SEV_COLOUR["LOW"]
+
+
 def render_result(
     result,
 ) -> None:
 
+    cfg = get_config()
+    findings = result.findings
     counts = result.counts_by_severity()
+    n = len(findings)
 
-    # ------------------------------------------------------------------
-    # SUMMARY
-    # ------------------------------------------------------------------
-
-    c1, c2, c3, c4 = st.columns(
-        [1.5, 1, 1, 1]
+    section_header(
+        "Step 4 · Results",
+        f"Findings summary · {esc(result.document_name)}",
+        "Risk status is computed from the findings table, never by the model, "
+        "so anyone can recompute it by hand.",
     )
 
-    with c1:
+    # ------------------------------------------------------------------
+    # KEY METRICS
+    # ------------------------------------------------------------------
 
-        colour = RAG_COLOUR.get(
-            result.rag_status,
-            "#555",
-        )
-
-        st.markdown(
-            "\n".join(line.strip() for line in textwrap.dedent(f"""
-            <div class="status-card"
-                 style="background:{colour};">
-
-                <div class="status-label">
-                    ASSURANCE STATUS
-                </div>
-
-                <div class="status-value">
-                    {result.rag_status}
-                </div>
-
-                <div class="status-score">
-                    Risk score {result.risk_score}/100
-                </div>
-
-            </div>
-            """).splitlines()),
-            unsafe_allow_html=True,
-        )
-
-    with c2:
-
-        st.metric(
-            "Findings",
-            len(result.findings),
-        )
-
-    with c3:
-
-        st.metric(
-            "Critical",
-            counts.get(
-                "CRITICAL",
-                0,
-            ),
-        )
-
-    with c4:
-
-        st.metric(
-            "Sections analysed",
-            len(result.sections),
-        )
+    cards = [("TOTAL", "Total findings", n)] + [
+        (sev, sev.title(), counts.get(sev, 0)) for sev in SEVERITIES
+    ]
+    for col, (cls, label, value) in zip(st.columns(len(cards)), cards):
+        with col:
+            html_block(f'<div class="kpi sev {cls}"><div class="kpi-label">{label}</div>'
+                       f'<div class="kpi-value">{value}</div></div>')
 
     st.write("")
 
-    # ------------------------------------------------------------------
-    # SEVERITY STRIP
-    # ------------------------------------------------------------------
-
-    severity_cols = st.columns(
-        len(SEVERITIES)
-    )
-
-    for col, severity in zip(
-        severity_cols,
-        SEVERITIES,
-    ):
-
-        col.markdown(
-            f"""
-            <div style="
-                border-left:4px solid {SEV_COLOUR[severity]};
-                padding:9px 13px;
-                border-radius:0 8px 8px 0;
-                background:rgba(255,255,255,0.025);
-            ">
-                <b style="font-size:18px;">
-                    {counts.get(severity, 0)}
-                </b>
-                <span style="
-                    font-size:11px;
-                    color:#8291a7;
-                    margin-left:7px;
-                ">
-                    {severity}
-                </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    v1, v2, v3 = st.columns([1, 1, 1.25])
 
     # ------------------------------------------------------------------
-    # WARNINGS
+    # VERIFICATION (A4)
     # ------------------------------------------------------------------
+
+    with v1:
+        vcounts = {state: 0 for state in VERIFIER_STATES + ("UNVERIFIED",)}
+        for f in findings:
+            vcounts[verifier_status(f)] += 1
+        if n and vcounts["UNVERIFIED"] < n:
+            bar = "".join(
+                f'<span style="width:{vcounts[state] / n * 100:.1f}%;background:{colour}"></span>'
+                for state, colour in (("CONFIRMED", "#0F8A7E"), ("REFUTED", "#C0392B"),
+                                      ("NEEDS_HUMAN", "#B7791F"))
+                if vcounts[state]
+            )
+            body = (f'<div class="vbar">{bar}</div>'
+                    + kv("Confirmed", f'{vcounts["CONFIRMED"]} / {n} ({vcounts["CONFIRMED"] / n:.0%})')
+                    + kv("Refuted", str(vcounts["REFUTED"]))
+                    + kv("Needs human review", str(vcounts["NEEDS_HUMAN"])))
+        else:
+            body = (kv("Confirmed", "not run", True)
+                    + kv("Refuted", "not run", True)
+                    + kv("Needs human review", "not run", True)
+                    + '<div class="pending-note">The verifier stage (A4, phi4:14b) is not built '
+                      'yet, so no finding has been independently confirmed. Treat every '
+                      'finding as a candidate.</div>')
+        html_block(f'<div class="panel"><div class="panel-title">Verification</div>{body}</div>')
+
+    # ------------------------------------------------------------------
+    # EVIDENCE AND QUALITY (A2, A3, A6)
+    # ------------------------------------------------------------------
+
+    with v2:
+        with_quote = sum(1 for f in findings if f.evidence_excerpt.strip())
+        grounded = sum(1 for f in findings if f.is_grounded)
+        avg_conf = sum(f.confidence for f in findings) / n if n else 0.0
+        scores = latest_eval_scores()
+        kappa = scores.get("judge_kappa")
+        has_kappa = isinstance(kappa, (int, float))
+        if has_kappa:
+            kappa_txt = f"{kappa:.2f} " + ("&#10003; trustworthy" if kappa >= 0.7 else "&#9888; below 0.7")
+        else:
+            kappa_txt = "not calibrated (A6)"
+        quote_txt = f"{with_quote} / {n}" + (f" ({with_quote / n:.0%})" if n else "")
+        body = (kv("Avg confidence", f"{avg_conf:.2f} ({confidence_label(avg_conf)})")
+                + kv("Evidence quotes", quote_txt)
+                + kv("Cited to a standard", f"{grounded} / {n}")
+                + kv("Semantic dedup", "not built yet (A3)", True)
+                + kv("Judge agreement (kappa)", kappa_txt, not has_kappa))
+        if scores:
+            body += (f'<div class="pending-note">Golden-set benchmark '
+                     f'<b>{esc(scores.get("label") or scores.get("run_name", ""))}</b>: '
+                     f'precision {scores.get("precision", 0):.0%}, '
+                     f'recall {scores.get("recall", 0):.0%}, '
+                     f'mitigated items flagged {scores.get("trap_violation_rate", 0):.0%}.</div>')
+        html_block(f'<div class="panel"><div class="panel-title">Evidence and quality</div>{body}</div>')
+
+    # ------------------------------------------------------------------
+    # RISK SCORE (A5)
+    # ------------------------------------------------------------------
+
+    with v3:
+        domains_present = [
+            d for d in ("network", "application", "security", "cloud_data")
+            if d in result.domains_reviewed or any(f.domain == d for f in findings)
+        ]
+        bars = ""
+        for d in domains_present:
+            score = compute_risk([f for f in findings if f.domain == d], cfg)[0]
+            bars += (f'<div class="bar-row"><span class="bar-label">{esc(DOMAIN_LABELS.get(d, d))}</span>'
+                     f'<div class="bar-track"><div class="bar-fill" style="width:{score:.0f}%;'
+                     f'background:{domain_risk_colour(score)}"></div></div>'
+                     f'<span class="bar-val">{score:.0f}</span></div>')
+        rag = result.rag_status if result.rag_status in RAG_COLOUR else "GREEN"
+        html_block(f"""
+        <div class="panel">
+          <div class="panel-title">Risk score</div>
+          <div class="risk-top">
+            <span class="risk-score">{result.risk_score:.0f}</span><span class="risk-of">/ 100</span>
+            <span class="rag-pill {rag}">{esc(result.rag_status)}</span>
+          </div>
+          <div class="muted" style="font-size:13px;margin:-8px 0 8px">{RAG_LABEL.get(rag, "")}</div>
+          {bars}
+        </div>
+        """)
 
     for warning in result.warnings:
         st.warning(warning)
+
+    st.write("")
 
     # ------------------------------------------------------------------
     # TABS
     # ------------------------------------------------------------------
 
-    tabs = st.tabs(
-        [
-            "📋 Report",
-            "🚩 Findings",
-            "📐 Architecture Flow",
-            "🔎 Audit Trail",
-            "🗂️ Section Map",
-            "📤 Export",
-        ]
-    )
-
-    # ==================================================================
-    # REPORT
-    # ==================================================================
+    tabs = st.tabs(["Findings", "Report", "Architecture flow", "Audit trail", "Section map", "Export"])
 
     with tabs[0]:
-
-        st.markdown(
-            result.report_markdown
-        )
-
-    # ==================================================================
-    # FINDINGS
-    # ==================================================================
-
-    with tabs[1]:
-
-        if not result.findings:
-
-            st.info(
-                "No findings were raised."
-            )
-
+        if not findings:
+            st.info("No findings were raised.")
         else:
-
-            sev_filter = st.multiselect(
-                "Severity",
-                SEVERITIES,
-                default=list(SEVERITIES),
+            c1, c2, c3, c4 = st.columns([1.2, 1.2, 1, 1.6])
+            sev_filter = c1.multiselect("Severity", SEVERITIES, default=list(SEVERITIES))
+            available_domains = sorted({f.domain for f in findings})
+            dom_filter = c2.multiselect("Domain", available_domains, default=available_domains,
+                                        format_func=lambda d: DOMAIN_LABELS.get(d, d))
+            status_filter = c3.selectbox(
+                "Verifier status",
+                ["All", "Confirmed", "Refuted", "Needs review", "Not verified"],
+                key="findings_status",
             )
+            query = c4.text_input("Search", placeholder="Issue, section, recommendation or evidence",
+                                  key="findings_search")
 
-            available_domains = sorted(
-                {
-                    finding.domain
-                    for finding in result.findings
-                }
-            )
-
-            dom_filter = st.multiselect(
-                "Domain",
-                available_domains,
-                default=available_domains,
-                format_func=lambda domain:
-                    DOMAIN_LABELS.get(
-                        domain,
-                        domain,
-                    ),
-            )
-
-            only_grounded = st.checkbox(
-                "Only findings cited to a knowledge base clause",
-                value=False,
-            )
-
+            status_key = {"Confirmed": "CONFIRMED", "Refuted": "REFUTED",
+                          "Needs review": "NEEDS_HUMAN", "Not verified": "UNVERIFIED"}.get(status_filter)
+            q = query.strip().lower()
             shown = [
-                finding
-                for finding in result.findings
-                if (
-                    finding.severity in sev_filter
-                    and finding.domain in dom_filter
-                    and (
-                        finding.is_grounded
-                        or not only_grounded
-                    )
-                )
+                f for f in findings
+                if f.severity in sev_filter
+                and f.domain in dom_filter
+                and (status_key is None or verifier_status(f) == status_key)
+                and (not q or q in f"{f.issue} {f.section} {f.recommendation} {f.evidence_excerpt}".lower())
             ]
 
-            st.caption(
-                f"{len(shown)} of "
-                f"{len(result.findings)} findings"
-            )
+            page = st.session_state.setdefault("findings_page_size", 10)
+            st.caption(f"Showing {min(page, len(shown))} of {len(shown)} matching findings ({n} total)")
 
-            for finding in shown:
-
-                label = (
-                    f"{finding.severity} · "
-                    f"{finding.section[:60]} · "
-                    f"{finding.issue[:90]}"
-                )
-
-                with st.expander(label):
-
-                    st.markdown(
-                        f"**Issue.** {finding.issue}"
-                    )
-
-                    st.markdown(
-                        f"**Recommendation.** "
-                        f"{finding.recommendation}"
-                    )
-
-                    if finding.standard_reference:
-
-                        standard = (
-                            f"**Standard.** "
-                            f"{finding.standard_reference}"
-                        )
-
-                        if finding.kb_source:
-
-                            standard += (
-                                f" — `{finding.kb_source}`"
-                            )
-
-                        st.markdown(
-                            standard
-                        )
-
+            for f in shown[:page]:
+                html_block(finding_card(f))
+                with st.expander("Details"):
+                    if f.control_mappings:
+                        st.markdown("**Control mappings.** " + ", ".join(f.control_mappings))
+                    if f.kb_source:
+                        st.markdown(f"**Standards source.** `{f.kb_source}`")
+                    if f.origin == "rules_engine":
+                        model = "deterministic rule"
                     else:
-
-                        st.caption(
-                            "No knowledge base clause cited — "
-                            "this reflects general practice, "
-                            "not your organisation's standard."
-                        )
-
-                    if finding.evidence_excerpt:
-
-                        st.markdown(
-                            "**Evidence from the design**"
-                        )
-
-                        st.code(
-                            finding.evidence_excerpt,
-                            language=None,
-                        )
-
-                    if finding.control_mappings:
-
-                        st.markdown(
-                            "**Controls.** "
-                            + ", ".join(
-                                finding.control_mappings
-                            )
-                        )
-
+                        model = getattr(f, "model", "") or configured_model("llm")
                     st.caption(
-                        f"Provenance: {finding.origin}"
-                        + (
-                            f" ({finding.rule_id})"
-                            if finding.rule_id
-                            else ""
-                        )
-                        + f" · confidence {finding.confidence}"
-                        + f" · id {finding.fingerprint}"
+                        f"Origin {f.origin}"
+                        + (f" · rule {f.rule_id}" if f.rule_id else "")
+                        + f" · model {model} · id {f.fingerprint}"
                     )
 
-    # ==================================================================
-    # ARCHITECTURE FLOW
-    # ==================================================================
+            if len(shown) > page:
+                if st.button(f"Show more findings ({len(shown) - page} remaining)", key="more_findings"):
+                    st.session_state.findings_page_size = page + 10
+                    st.rerun()
+
+    with tabs[1]:
+        st.markdown(result.report_markdown)
 
     with tabs[2]:
-
-        render_architecture_flow(
-            result.sections,
-            result.findings,
-        )
-
-    # ==================================================================
-    # AUDIT
-    # ==================================================================
+        render_architecture_flow(result.sections, findings)
 
     with tabs[3]:
-
-        st.caption(
-            "Every retrieval, tool call and model decision "
-            "in this run."
-        )
-
+        st.caption("Every retrieval, tool call and model decision in this run.")
         from src.audit import AuditTrail
 
         trail = AuditTrail()
-
-        trail.extend(
-            result.audit
-        )
-
-        st.markdown(
-            trail.render_markdown(
-                limit=300
-            )
-        )
-
-    # ==================================================================
-    # SECTION MAP
-    # ==================================================================
+        trail.extend(result.audit)
+        st.markdown(trail.render_markdown(limit=300))
 
     with tabs[4]:
-
-        st.caption(
-            "How each section of the document was classified."
-        )
-
-        rows = [
-            {
-                "Section": section.heading,
-                "Domain": DOMAIN_LABELS.get(
-                    section.domain,
-                    section.domain,
-                ),
-                "Topic": section.topic,
-                "Confidence": section.topic_confidence,
-                "Words": section.word_count,
-            }
-            for section in result.sections
-        ]
-
+        st.caption("How each section of the document was classified.")
         st.dataframe(
-            rows,
+            [
+                {
+                    "Section": section.heading,
+                    "Domain": DOMAIN_LABELS.get(section.domain, section.domain),
+                    "Topic": section.topic,
+                    "Confidence": section.topic_confidence,
+                    "Words": section.word_count,
+                }
+                for section in result.sections
+            ],
             width="stretch",
             hide_index=True,
         )
 
-    # ==================================================================
-    # EXPORT
-    # ==================================================================
-
     with tabs[5]:
-
-        paths = save_outputs(
-            result,
-            get_config(),
-        )
-
-        st.success(
-            f"Saved to `{paths['report'].parent}`"
-        )
-
-        st.download_button(
-            "⬇️ Download report",
-            data=result.report_markdown,
-            file_name=paths["report"].name,
-            mime="text/markdown",
-            width="stretch",
-        )
-
-        st.download_button(
-            "⬇️ Download audit bundle",
-            data=json.dumps(
-                result.to_dict(),
-                indent=2,
-                default=str,
-            ),
-            file_name=paths["audit"].name,
-            mime="application/json",
-            width="stretch",
-        )
-
-        st.caption(
-            "The audit bundle contains findings, sections "
-            "and the reasoning trail."
-        )
+        paths = save_outputs(result, cfg)
+        st.caption(f"Saved to {paths['report'].parent}")
+        e1, e2, e3 = st.columns(3)
+        e1.download_button("Export report (.md)", data=result.report_markdown,
+                           file_name=paths["report"].name, mime="text/markdown", width="stretch")
+        e2.download_button("Download JSON bundle",
+                           data=json.dumps(result.to_dict(), indent=2, default=str),
+                           file_name=paths["audit"].name, mime="application/json", width="stretch")
+        e3.download_button("Export findings (.csv)", data=findings_csv(findings),
+                           file_name=paths["report"].with_suffix(".csv").name, mime="text/csv",
+                           width="stretch")
+        st.caption("The JSON bundle holds findings, sections and the full reasoning trail.")
 
 
 # ============================================================================
@@ -1919,7 +1610,16 @@ def main() -> None:
 
     domains = render_sidebar()
 
-    render_hero()
+    render_header()
+
+    stepper_slot = st.empty()
+
+    section_header(
+        "Step 1 · Intake",
+        "Upload architecture document",
+        "Analyze architecture documents. Get findings with evidence and "
+        "verification. Runs on this machine; nothing is sent anywhere.",
+    )
 
     # ------------------------------------------------------------------
     # INPUT MODE
@@ -1945,7 +1645,7 @@ def main() -> None:
     if mode == "Upload a document":
 
         uploaded = st.file_uploader(
-            "Upload HLD / LLD / architecture document",
+            "Drag a document here or browse · .md .pdf .docx .txt .yaml .json · max 10 MB",
             type=[
                 suffix.lstrip(".")
                 for suffix in sorted(
@@ -2040,15 +1740,19 @@ def main() -> None:
             sections
         )
 
-        st.info(
-            f"Parsed **{len(sections)} sections** — "
-            + " · ".join(
-                f"{DOMAIN_LABELS.get(domain, domain)}: {count}"
-                for domain, count in sorted(
-                    summary.items()
-                )
-            )
+        tags = "".join(
+            f'<span class="tag">{esc(DOMAIN_LABELS.get(domain, domain))} <b>{count}</b></span>'
+            for domain, count in sorted(summary.items())
         )
+        html_block(f"""
+        <div class="doc-card">
+          <div>
+            <div class="doc-name">{esc(document_name or "Pasted design")}</div>
+            <div class="doc-sub">{len(sections)} sections parsed and classified</div>
+          </div>
+          <div class="doc-tags">{tags}</div>
+        </div>
+        """)
 
         # ==============================================================
         # GUARDRAIL
@@ -2107,7 +1811,7 @@ def main() -> None:
                 )
 
                 if st.button(
-                    "✓ Approve & Proceed to AI Review",
+                    "Approve and continue to AI review",
                     type="primary",
                     key="checkpoint_approve",
                     width="stretch",
@@ -2124,7 +1828,7 @@ def main() -> None:
             else:
 
                 with st.expander(
-                    "✓ Checkpoint Approved",
+                    "Pre-flight checkpoint approved",
                     expanded=False,
                 ):
 
@@ -2137,7 +1841,7 @@ def main() -> None:
                     )
 
                     if st.button(
-                        "Review Checkpoint Again",
+                        "Reopen checkpoint",
                         key="reopen_checkpoint",
                     ):
 
@@ -2146,8 +1850,11 @@ def main() -> None:
 
                         st.rerun()
 
-                st.success(
-                    "Trust boundary passed — Layer 2 AI review is ready."
+                section_header(
+                    "Step 3 · AI review",
+                    "Standards-grounded review",
+                    "The model reviews each in-scope section against your "
+                    "standards library. Expect a few minutes per document.",
                 )
 
     # ==================================================================
@@ -2193,7 +1900,7 @@ def main() -> None:
         )
 
     if st.button(
-        "🚀 Run Architecture Review",
+        "Run architecture review",
         type="primary",
         disabled=disabled,
         key="run_review",
@@ -2240,36 +1947,16 @@ def main() -> None:
         # PROGRESS
         # --------------------------------------------------------------
 
-        progress = st.progress(
-            0.0,
-            text="Starting architecture review...",
-        )
-
-        started = time.time()
-
-        # --------------------------------------------------------------
-        # AGENT
-        # --------------------------------------------------------------
+        tracker = ProgressTracker(document_name or "design")
+        tracker.start("parse")
+        tracker.finish("parse")
+        tracker.start("rules")
 
         agent = ReviewAgent(
             config=get_config(),
             kb=get_kb(),
         )
-
-        def update_progress(
-            stage,
-            pct,
-        ):
-
-            progress.progress(
-                pct,
-                text=(
-                    f"{stage} · "
-                    f"{int(time.time() - started)}s"
-                ),
-            )
-
-        agent.progress = update_progress
+        agent.progress = tracker.on_agent_progress
 
         # --------------------------------------------------------------
         # REVIEW
@@ -2282,8 +1969,11 @@ def main() -> None:
                 document_name or "design",
                 domains,
             )
+            st.session_state.stage_times = tracker.durations()
 
         except Exception as exc:
+
+            tracker.fail(str(exc))
 
             st.error(
                 f"Review failed: {exc}"
@@ -2295,7 +1985,7 @@ def main() -> None:
 
         finally:
 
-            progress.empty()
+            tracker.clear()
 
     # ==================================================================
     # RESULT
@@ -2308,6 +1998,21 @@ def main() -> None:
         render_result(
             st.session_state.result
         )
+
+    # ------------------------------------------------------------------
+    # STEPPER (drawn last, shown first)
+    # ------------------------------------------------------------------
+
+    if st.session_state.result:
+        step = 3
+    elif checkpoint_approved:
+        step = 2
+    elif sections:
+        step = 1
+    else:
+        step = 0
+
+    render_stepper(step, stepper_slot)
 
 
 # ============================================================================

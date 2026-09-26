@@ -52,6 +52,7 @@ _DEFAULTS: Dict[str, Any] = {
         "max_sections": 40,
         "enable_cross_domain_pass": True,
         "enable_rules_engine": True,
+        "enable_threat_modeling": True,
     },
     "domains": {
         "network": True,

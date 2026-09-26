@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-07-azure-analytics-lake",
+  "title": "Tidewater Analytics Platform — High-Level Design",
+  "doc_kind": "flawed",
+  "domains": [
+    "cloud_data",
+    "security",
+    "application"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "cloud_data",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Customer PII export container allows anonymous public read access",
+      "description": "The exports container in stexporttap has public access level 'Container', so anyone on the internet who learns or guesses the account/container name can list and download the weekly segment file with customer names, email addresses and postcodes; the account is on its public endpoint. Disable anonymous blob access (AllowBlobPublicAccess=false) and give the agency authenticated access, e.g. SFTP with per-partner local users, short-lived user-delegation SAS scoped to a single blob, or Entra B2B identities, restricted by IP where possible.",
+      "sections": [
+        "3.2 Lake Zones",
+        "5. Network Design"
+      ],
+      "evidence": [
+        "Once a week, a Databricks job writes a customer segment file containing customer name, email address, postcode and segment code to the exports container in stexporttap.",
+        "The container's public access level is set to Container so that the bank's external marketing agency can download the file without an account in the bank's Azure AD tenant."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "public access",
+        "anonymous",
+        "container",
+        "blob",
+        "stexporttap",
+        "marketing agency",
+        "pii"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "application",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Core banking database password stored in source control",
+      "description": "The password of the core banking Oracle extraction account is stored as a pipeline parameter default value, which is committed to the tap-adf Git repository readable by about 180 users; anyone with repository access (or its history) obtains a production credential to the core banking replica. Move the credential to a Key Vault linked-service reference like the other linked services, rotate the exposed password immediately, and scrub it from Git history.",
+      "sections": [
+        "3.1 Sources and Pipelines"
+      ],
+      "evidence": [
+        "The core banking linked service uses the Oracle account TAP_EXTRACT, whose password is held as the default value of the pipeline parameter pCoreBankingPwd so that the nightly trigger runs unattended.",
+        "The factory definition, including pipeline parameters, is committed to the tap-adf repository in Azure Repos, which is readable by all members of the Data & Analytics DevOps project (about 180 users)."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "password",
+        "source control",
+        "git",
+        "pipeline parameter",
+        "core banking",
+        "secret",
+        "key vault"
+      ]
+    },
+    {
+      "id": "F3",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Data scientists can read raw PII zone through shared cluster service principal",
+      "description": "The access model says data scientists may read only the curated zone, but their shared interactive clusters authenticate to the lake as sp-tap-dbw, which holds Storage Blob Data Contributor on the whole storage account; any data scientist can therefore read (and modify or delete) raw, un-pseudonymised PII. Use per-user identity for interactive access (Unity Catalog with user-level grants or credential passthrough), scope the engineering service principal to job clusters only, and assign container-level roles.",
+      "sections": [
+        "4.1 Databricks",
+        "6. Identity and Access Model"
+      ],
+      "evidence": [
+        "Both the job clusters and the shared interactive clusters access the lake as the service principal sp-tap-dbw, configured through the cluster Spark configuration.",
+        "sp-tap-dbw holds Storage Blob Data Contributor on the dlstapprd storage account so that engineering jobs can read the raw zone and write curated tables.",
+        "Data scientists are granted read access to the curated zone only; the raw zone is restricted to the ingestion pipelines and the platform engineering team."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "service principal",
+        "shared cluster",
+        "storage blob data contributor",
+        "raw zone",
+        "data scientists",
+        "least privilege",
+        "credential passthrough",
+        "unity catalog"
+      ]
+    },
+    {
+      "id": "F4",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Pseudonymisation uses unsalted SHA-256 of low-entropy identifiers",
+      "description": "Account numbers, sort codes and national insurance numbers have small, structured value spaces, so an unsalted SHA-256 hash can be reversed by enumerating all candidate values; the curated zone therefore still contains effectively identifiable customer data while being treated as pseudonymised. Use a keyed hash (HMAC with a secret held in Key Vault) or a tokenisation service so that consistent joins are preserved without reversibility by data consumers.",
+      "sections": [
+        "3.2 Lake Zones"
+      ],
+      "evidence": [
+        "In the curated zone, direct identifiers (account number, sort code and national insurance number) are replaced with an unsalted SHA-256 hash of the original value, so that datasets from different domains can still be joined."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "unsalted",
+        "sha-256",
+        "hash",
+        "pseudonymisation",
+        "re-identification",
+        "hmac",
+        "tokenisation"
+      ]
+    },
+    {
+      "id": "F5",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Power BI Publish to web enabled tenant-wide for reports with customer data",
+      "description": "Publish to web creates unauthenticated public links reachable by anyone on the internet, and enabling it for the whole organisation lets any of about 400 report creators publish reports that contain customer-level balances and arrears data. Disable Publish to web (or restrict it to a small security group with review), and use secure embedding or organisational sharing for intranet and branch displays.",
+      "sections": [
+        "4.2 Synapse and Power BI"
+      ],
+      "evidence": [
+        "The Power BI tenant setting Publish to web is enabled for the entire organisation so that branch performance dashboards can be shown on intranet pages and branch displays without viewers signing in.",
+        "Reports in the Collections and Retail Performance workspaces contain customer-level account balances and arrears status."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "publish to web",
+        "power bi",
+        "tenant setting",
+        "public link",
+        "anonymous",
+        "report creators"
+      ]
+    },
+    {
+      "id": "F6",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Unmasked production PII copied to non-production with broad contractor access",
+      "description": "The development lake receives a full copy of the production raw zone (unmasked PII for 2.1 million customers) and every engineering group member, including offshore contractors, has read/write access to it, outside the production access model. Use synthetic or masked data for non-production, or apply production-equivalent controls and data-transfer approval if production data is unavoidable.",
+      "sections": [
+        "8. Environments"
+      ],
+      "evidence": [
+        "The non-production lake (dlstapdev) is refreshed monthly with a full copy of the production raw and curated zones, so that pipelines can be tested against realistic volumes and edge cases.",
+        "In non-production, all members of the TAP engineering group, including contractors from the offshore delivery partner, hold Storage Blob Data Contributor on dlstapdev."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "production data",
+        "non-production",
+        "dev",
+        "test data",
+        "masking",
+        "contractors",
+        "offshore"
+      ]
+    },
+    {
+      "id": "F7",
+      "domain": "cloud_data",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "No soft delete, immutability or backup for irreplaceable raw zone history",
+      "description": "The raw zone holds seven years of regulatory history while the sources keep only 13 months, yet recovery relies solely on re-running pipelines against those sources; ZRS protects against zone failure, not deletion, corruption or ransomware, so older history would be lost permanently. Enable blob/container soft delete, time-based immutability (WORM) for the raw zone, and an independent backup or object-replicated copy with restricted delete rights.",
+      "sections": [
+        "3.2 Lake Zones",
+        "10. Resilience and Disaster Recovery"
+      ],
+      "evidence": [
+        "The raw zone is the bank's long-term record of source extracts and retains seven years of history to meet regulatory record-keeping obligations.",
+        "The source systems themselves keep only 13 months of transaction history online.",
+        "Recovery from accidental deletion or corruption of lake data is by re-running the ADF pipelines against the source systems."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Tampering",
+        "Denial of Service"
+      ],
+      "keywords": [
+        "backup",
+        "soft delete",
+        "immutable",
+        "worm",
+        "raw zone",
+        "ransomware",
+        "recovery",
+        "retention"
+      ]
+    },
+    {
+      "id": "F8",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "No data-plane access logging on lake and export storage; 30-day retention",
+      "description": "Only capacity and transaction metrics are collected for dlstapprd and stexporttap, so there is no record of who read, wrote or deleted which blobs (including anonymous downloads from the export container), and the workspace keeps data for only 30 days. Enable StorageRead/StorageWrite/StorageDelete resource logs, forward them to Sentinel with 12-month retention, and alert on bulk reads or deletions of PII.",
+      "sections": [
+        "9. Logging and Monitoring"
+      ],
+      "evidence": [
+        "Diagnostic settings on dlstapprd and stexporttap send capacity and transaction metrics to the Log Analytics workspace log-tap-prd, which retains data for 30 days."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "diagnostic settings",
+        "storage logs",
+        "data plane",
+        "audit",
+        "retention",
+        "30 days",
+        "sentinel"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Synapse exposed to the internet for Power BI Service refreshes",
+      "why_not": "Section 5 disables public network access on syn-tap-prd and routes Power BI refreshes through a VNet data gateway that uses Synapse's private endpoint.",
+      "evidence": [
+        "Power BI Service, which runs outside the bank's network, queries the Synapse serverless SQL endpoint for scheduled dataset refreshes.",
+        "Power BI dataset refreshes run through a Power BI VNet data gateway delegated to snet-pbi-gw, which reaches Synapse through its private endpoint, so no public Synapse endpoint is required.",
+        "Public network access is disabled on dlstapprd, kv-tap-prd, evh-tap-prd and syn-tap-prd; these services are reached through private endpoints in snet-pe with private DNS zones linked to the hub."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Standing Contributor access for platform engineers on production",
+      "why_not": "Contributor is eligible-only: section 6 states there are no standing privileged assignments and activation through PIM requires MFA, a ticket, second-person approval and expires after four hours.",
+      "evidence": [
+        "The six platform engineers are eligible to activate the Contributor role on the TAP production subscription through PIM so that they can rebuild services during an incident.",
+        "Platform engineers activate Contributor through Privileged Identity Management, which requires MFA, a ticket reference and approval by a second platform engineer, and expires after four hours."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Remote data scientist access to transaction data without MFA or device controls",
+      "why_not": "Section 6 requires phishing-resistant MFA and a compliant device via Conditional Access, publishes Databricks only through front-end Private Link via ZTNA, and disables result download.",
+      "evidence": [
+        "About 60 data scientists, many of whom work from home several days a week, develop models against transaction-level data in Databricks notebooks from their laptops.",
+        "A Conditional Access policy requires phishing-resistant MFA and an Intune-compliant device for Databricks, Synapse Studio, the Azure portal and Power BI.",
+        "The Databricks front end is published only through front-end Private Link, which remote users reach through the bank's zero-trust network access client; notebook result download and the DBFS file browser are disabled."
+      ]
+    }
+  ],
+  "injection": null
+}

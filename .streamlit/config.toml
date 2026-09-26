@@ -1,0 +1,22 @@
+[theme]
+base = "light"
+primaryColor = "#4A5FD4"
+backgroundColor = "#F8F9FA"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#202124"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+# Kept on: this is a local tool, and a hidden traceback (as with the
+# get_layer1_findings crash) costs far more than it protects.
+showErrorDetails = true
+
+[logger]
+level = "error"
+
+[server]
+maxUploadSize = 10
+
+[browser]
+gatherUsageStats = false

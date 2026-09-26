@@ -1,0 +1,276 @@
+{
+  "da38dabe8e21a92eeb2e9a3ad453bbdd530f8532e4d943c6e174da97b6f3e861": {
+    "reason": "The reported finding specifically addresses an API or service endpoint being exposed without authentication, which directly matches the issue described in C5 where an unauthenticated payment webhook allows forged payment confirmations. Both involve endpoints that are accessible without authentication, posing a critical security risk.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "5ab58ca971754182534f4401bc21de2ab6ee2c48a156226e79b9a96da7f52923": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data being written to application logs, which directly corresponds to the handling of customer PII as described in candidate issue C3. Both involve the improper handling of sensitive data, with C3 focusing on the lack of encryption for PII, which could lead to sensitive data being exposed in logs.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "92325c1cefc5cd68bce1e0ebfa777fb4639ffbd8a0239bb0566613490031620f": {
+    "reason": "The reported finding specifically addresses the issue of management or database ports being reachable from the internet, recommending the removal of 0.0.0.0/0 ingress on administrative and data ports. This directly matches the issue described in candidate issue C2, where a reporting read replica with customer PII is publicly accessible on port 5432 from any address.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "8ab33cea10719922a8afefc75840d9513b0b81f4bc08f584564f6d05841a5b25": {
+    "reason": "The reported finding specifically addresses the lack of a defined custody, rotation, or escrow model for encryption keys, which is directly related to the management and security of encryption keys. None of the candidate issues directly address this specific weakness in encryption key management.",
+    "matches": []
+  },
+  "fecc1097cc65203bf2e9de6ac6bac9fa84c4d1078d82f4c1ab9909e1600bcf0b": {
+    "reason": "The reported finding focuses on the lack of immutability, offline copy, or a tested restore for backups, which is not directly related to any of the candidate issues. None of the candidate issues address backup immutability or disaster recovery specifics.",
+    "matches": []
+  },
+  "3c90dd26251fca363d61cd7bef86b3d8a4ff6c13ed74c27fb9f3be2935055b7b": {
+    "reason": "The reported finding focuses on the absence of a threat model or documented attack-surface analysis, which is a high-level design issue. None of the candidate issues specifically address the lack of a threat model or attack-surface analysis.",
+    "matches": []
+  },
+  "795f7c8c9232b616872e58433d9fcb9c764292ab4ee4fb04c00355cad7d3c630": {
+    "reason": "The reported finding focuses on the lack of dependency, container, or supply-chain scanning in the pipeline, which is not directly related to any of the candidate issues. None of the candidates specifically address the absence of SCA and container image scanning as a security control.",
+    "matches": []
+  },
+  "a377d204b78851c3b8b4d9bd71627d55e5ede4ecf5bde0bdc048de4f9a896982": {
+    "reason": "The reported finding specifically addresses the issue of wildcard IAM permissions or a broad managed admin role being granted to workloads, which is directly related to the issue described in candidate issue C3 regarding break-glass admin IAM users with overly broad permissions.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "f2dc21a52c15b4328cdba6fe9171ba2eda90572f483a1037544480c1708f5502": {
+    "reason": "The reported finding specifically addresses the issue of wildcard IAM permissions or a broad managed admin role being granted to workloads, which is directly related to the issue described in candidate issue C4, where a third-party SaaS vendor holds standing AdministratorAccess in every member account without sufficient restrictions.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "ef0a1d6684ea4fe1a0b149172ae7e73799369617797743cfebeac01790c7bd6b": {
+    "reason": "The reported finding specifically addresses the issue of wildcard IAM permissions or a broad managed admin role being granted to workloads, which matches the issue described in candidate C1 where the data lake ETL role trusts every principal in the organization and has broad access.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "479fd172c50bda2682041bd74e664f92e5d8e2d974e1b41238ff55b0f2a7e11d": {
+    "reason": "The reported finding specifically addresses issues related to encryption key management, including the lack of defined custody, rotation, or escrow model, which is not directly related to any of the candidate issues listed. None of the candidate issues focus on encryption key management or the specific weaknesses described in the reported finding.",
+    "matches": []
+  },
+  "7c2e54ff978d58a62a9d4172a6009001ddd5ca3be9ee9983c14971d1b222c220": {
+    "reason": "The reported finding specifically addresses the lack of multi-factor authentication for privileged or administrative access, which directly corresponds to the issue described in candidate issue C4 regarding break-glass admin IAM users without MFA.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "157e41e352553a1f3475926e6caa07020eab2b85260e4326407fc0d5640133e1": {
+    "reason": "The reported finding highlights the absence of a threat model or documented attack-surface analysis, which is a high-level architectural issue. None of the candidate issues specifically address the lack of a threat model or attack-surface analysis.",
+    "matches": []
+  },
+  "97ea552fb3e0e7ea7dfb26de2654a2c559230e6cfe52ece99179f532f286fcaa": {
+    "reason": "The reported finding focuses on the lack of classification, residency constraints, or retention periods for sensitive or regulated data, which aligns with the issue in C7 where the integration engine keeps full PHI message payloads indefinitely without a defined retention period.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "f4b019351dae8e94a341fd3ef1787995a719d7015ba24eb2a630390294ffc9f1": {
+    "reason": "The reported finding specifically addresses the lack of a defined custody, rotation, or escrow model for encryption keys, which is directly related to the issue of no encryption at rest specified for the clinical data repository (C4). Both involve encryption key management and protection of PHI data.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "43d7a0e68b13d52450f4fc72eff1eba06484b6a4deeca92e826c2221efaefdb0": {
+    "reason": "The reported finding focuses on the lack of immutability, offline copy, or a tested restore for backups, which directly relates to the issue described in candidate issue C3 about PHI backups being sent to a third-party provider unprotected. Both involve the security and integrity of backups, specifically addressing the need for immutability and testing restores.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "8104d0882ea14bf416debafa244478959db6af101b5e2635e47e911bf4050dfb": {
+    "reason": "The reported finding highlights the absence of a threat model or documented attack-surface analysis, which is a high-level issue affecting the entire design. It does not specifically address any single component or data flow, unlike the candidate issues which focus on specific vulnerabilities.",
+    "matches": []
+  },
+  "e36a57fa85602df7fd0f4820dfcf981fc318274afa1b98a8b13792a0e24bf083": {
+    "reason": "The reported finding addresses the use of shared, generic, or service accounts by humans, recommending binding every human action to a named identity and converting service accounts to workload identities. This matches C4, which involves HMI auto-logon with a shared local account, as it directly relates to the use of shared accounts by humans.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "814df343c00a7d0f398ffbcd0ae638f7af2d1bb83f93123e0040f5b8bfc4c677": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copy, or a tested restore for backups, which is not directly related to any of the candidate issues listed. None of the candidate issues pertain to backup immutability or restore testing.",
+    "matches": []
+  },
+  "d4542f40d1a7d619c82137dd5cf7b2fcbbbbad9462d2d17d25ae5242154868b5": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copy, or a tested restore for backups, which is not directly related to any of the candidate issues listed. Each candidate issue pertains to different vulnerabilities or weaknesses in the network architecture, none of which involve backup and recovery practices.",
+    "matches": []
+  },
+  "c4cd97f1ac0152ff6b53e0547fb30bb92260fbc722b92c5e3f7626a795d31f25": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copy, or a tested restore for backups, which is not directly related to any of the candidate issues listed. Each candidate issue pertains to different network security concerns such as MFA, VLAN configurations, port security, controller modes, direct internet access, network segmentation, and direct connections to the OT historian.",
+    "matches": []
+  },
+  "5a2e0208a228c5ccaf19c7c9c9401acd2829fdb1dda85013e69f6e7b5eccdc6f": {
+    "reason": "The reported finding highlights the absence of a threat model or documented attack-surface analysis, which is a high-level issue affecting the entire architecture. None of the candidate issues specifically address this overarching lack of threat modeling or attack-surface documentation.",
+    "matches": []
+  },
+  "12aaf45bec9c9c701b77919a3e5dc2352ab2e13987fba9b5d450a61aa93fada0": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data being written to application logs, which matches the concern in candidate issue C1 about credentials crossing the internal network in cleartext. The recommendation to mask or omit sensitive data in logs aligns with the need to secure data in transit and storage, as highlighted in C1.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "3a7c3350d9c1891a773c8d430f2a1e5bba8a13154fbfc80e6df0056a1c3bbea2": {
+    "reason": "The reported finding highlights the absence of a threat model or documented attack-surface analysis, which is a high-level issue affecting the entire design. It does not specify a particular component or data flow, unlike the candidate issues which address specific vulnerabilities.",
+    "matches": []
+  },
+  "ed9e47f7b719cda62e82f50846fab974bf58bb042ed2013f2a072bd8579f4950": {
+    "reason": "The reported finding specifically addresses the lack of policy scanning and drift detection in Infrastructure as Code (IaC), which is not directly related to the issues described in any of the candidate issues. The candidates focus on different security concerns such as SBOM generation, dependency confusion, secret storage, AWS account separation, image tag mutability, PII usage, and release branch protection.",
+    "matches": []
+  },
+  "4690ce386dca921cdf2c4fee4b011b193c935efbbdf2325c4ea60dfc979663aa": {
+    "reason": "The reported finding concerns the absence of a threat model or documented attack-surface analysis, which is a high-level security oversight. None of the candidate issues specifically address this lack of a threat model or attack-surface analysis.",
+    "matches": []
+  },
+  "7d22bd7dcd1c6bbfc2ea27e9709f461d0b71ce478ac5b3e9b794951734c81e35": {
+    "reason": "The reported finding focuses on the issue of authorization being enforced only at the client or gateway level, with the service trusting inbound identity claims. This matches C1, where data scientists can access raw PII due to inadequate authorization controls, as they authenticate with a shared service principal that has broad permissions.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "ffba2e67ce8edae68eb5747cc197bd4c38834acb3cc1deeabb70caa2855f7d8c": {
+    "reason": "The reported finding addresses the lack of rate limiting or throttling on externally reachable interfaces, which is not directly related to any of the candidate issues listed. Each candidate issue pertains to different security concerns such as data exposure, access controls, or logging, none of which involve rate limiting or throttling.",
+    "matches": []
+  },
+  "c03e6bda052f27a25ae13a346c6173db0f45a0b51d6bb7dd767613df3cef9c75": {
+    "reason": "The reported finding focuses on the lack of dependency, container, or supply-chain scanning in the pipeline, which is not directly related to any of the candidate issues listed. Each candidate issue addresses a different specific security concern, such as access control, data protection, or logging, none of which involve scanning for vulnerabilities in dependencies or containers.",
+    "matches": []
+  },
+  "417dbe6fdfc64cfdf63423f3e034cec421ea08b34657c71cde98b55a8f84864a": {
+    "reason": "The reported finding addresses the use of shared, generic, or service accounts by humans, recommending binding human actions to named identities and converting service accounts to workload identities. This matches C5, which involves a shared cluster service principal allowing data scientists to access raw PII, indicating shared service account usage.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "39302a71d77825876ade85d74ce605907749aa2097b35e74b6193f5a9076632e": {
+    "reason": "The reported finding concerns the absence of a threat model or documented attack-surface analysis, which is a high-level design issue. None of the candidate issues specifically address the lack of a threat model or attack-surface analysis.",
+    "matches": []
+  },
+  "8e362ff331b5ac8fd1d2b229762214748cd472c261617e2ff82a3cd47b36a784": {
+    "reason": "The reported finding addresses a single point of failure in the WAN and Internet Breakout path, recommending redundancy with two uplinks on separate devices. This matches C4, which involves SD-WAN edge management interfaces exposed to the internet, as it relates to the WAN path's security and redundancy.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "bb85f2c6514f28214b76fd0b2fd69f4879737bb57a6793b1a5d9306321465572": {
+    "reason": "The reported finding addresses the use of shared, generic, or service accounts by humans, recommending binding human actions to named identities and converting service accounts to workload identities. This matches C7, which involves a shared cloud controller admin account with organization-wide rights and no SSO, indicating a similar issue of shared accounts and lack of individual accountability.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "24f6d18fd84eac05c66c394a68e25d6e922abb1266c416e83add7ac60f2e17cb": {
+    "reason": "The reported finding concerns the lack of immutability, offline copy, or a tested restore for backups, which does not directly relate to any of the candidate issues listed. Each candidate issue addresses a different specific security concern, such as encryption, password management, or logging, none of which involve backup immutability or testing.",
+    "matches": []
+  },
+  "fa04ecc934b304db4166070fdce7fe8722c018ccf655083fd02dc7edea6c6980": {
+    "reason": "The reported finding focuses on the lack of immutability, offline copy, or a tested restore for backups, which is not directly related to any of the candidate issues listed. None of the candidates address backup immutability or restore testing.",
+    "matches": []
+  },
+  "28784aed36f63f3165e0f580de9efcc3384880a7740871388a3a873db859e171": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copy, or a tested restore for backups, which is not directly related to any of the candidate issues listed. Each candidate issue pertains to different security concerns such as exposure of interfaces, password management, traffic inspection, encryption, logging, authentication, and account management.",
+    "matches": []
+  },
+  "be0d53bad73cf349c3ed5771b456cf4113a571ada13d17025d54a10ec49dbecf": {
+    "reason": "The reported finding highlights the absence of a threat model or documented attack-surface analysis, which is a high-level issue concerning the overall security design and its evaluation. None of the candidate issues specifically address the lack of a threat model or attack-surface analysis.",
+    "matches": []
+  },
+  "8a928f559cbb7fb9c15a151944e7c4d7262dfe75315b97a7e81c992573a3fd7b": {
+    "reason": "The reported finding focuses on the lack of dependency, container, or supply-chain scanning in the pipeline, which is not directly related to any of the candidate issues. None of the candidate issues address this specific weakness.",
+    "matches": []
+  },
+  "ef9bf87dcda742380f7fffc395610a3220998994d702ba5e152b89cad0ba5463": {
+    "reason": "The reported finding concerns the handling of sensitive or regulated data without proper classification, residency constraints, or retention periods, which aligns with the issue in C4 where cardholder data is leaking to the SIEM outside the CDE. This indicates a lack of proper data handling and classification.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "4d09ea14545fc8c36204564f857aa5b11744b7c3256354dea701752ca8ab8eb1": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copy, or a tested restore for backups, which directly corresponds to the issue described in candidate issue C3 regarding vault backups not being protected.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "953d49a12e405bf87690ac2251f2e3b25b1aef3e7f52fd939e70f037720b02d0": {
+    "reason": "The reported finding focuses on the lack of immutability, offline copy, and tested restore for backups, which aligns with the concern in candidate issue C2 about vault backups not being protected when copied outside the CDE. The other candidate issues do not address the same underlying weakness related to backup protection.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "4885c54f11565ad027739b4a8009c77f0d6f31776d038306f338d7a9a4a9e0c3": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copy, or a tested restore for backups, which directly corresponds to the issue described in candidate issue C4 regarding vault backups not being protected and copied outside the CDE.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "a77fd6d5f5307f7eb1c3f026736e561f360112859474e3cd8270d1529287d270": {
+    "reason": "The reported finding addresses the absence of a threat model or documented attack-surface analysis, which is a high-level design issue not specific to any particular component or data flow. None of the candidate issues directly relate to this high-level oversight.",
+    "matches": []
+  },
+  "4c2bd0f7d1187ea16a9256aaf741352840e481c4af2e4d498303cd33310bfce2": {
+    "reason": "The reported finding addresses the absence of a threat model or documented attack-surface analysis, which is a high-level design issue. None of the candidate issues specifically mention a lack of threat modeling or attack-surface analysis.",
+    "matches": []
+  },
+  "bdc07e02d5a1e5f00f1c0c93b9ce197ce85ecb6cd7f5f62b3535a77f93ab7773": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data being written to application logs, which matches the concern in candidate issue C7 about bearer tokens and sensitive headers being logged. Both involve the improper logging of sensitive information, making C7 the correct match.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "b69782c32571a1ef8f812f544814865d902389dc4ef00461d3b42aa2a32be95b": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data being written to application logs, which directly matches the issue described in candidate C4 regarding bearer tokens and sensitive headers being logged. Both involve the logging of sensitive information, making C4 the correct match.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "33cbeef1df7e8e975f6bf370b75013f79a9f44703bc33ccbf47f66f77139d0f0": {
+    "reason": "The reported finding specifically addresses the lack of dependency, container, or supply-chain scanning in the pipeline, which is not directly related to any of the candidate issues listed. None of the candidate issues mention or imply a lack of scanning for dependencies or supply-chain vulnerabilities.",
+    "matches": []
+  },
+  "ad0b884d2580375704dfa499a914ed7ee36d6745e10c8061c27706c935ef1155": {
+    "reason": "The reported finding specifically addresses the lack of immutability and offline copies for backups, as well as the absence of tested restores, which directly corresponds to the issue described in candidate issue C5 regarding backups not being immutable and held in the production account.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "f378220ea351f7851c1adb405f9d33bd8b34771aeb0bb8433985eefd547519a5": {
+    "reason": "The reported finding addresses the absence of a threat model or documented attack-surface analysis, which is a high-level design issue. None of the candidate issues specifically mention the lack of a threat model or attack-surface analysis.",
+    "matches": []
+  },
+  "1ad08a322151a566ff5f3588bf163432db6b27293e9fe02aac034a0a0fd5a30c": {
+    "reason": "The reported finding focuses on the lack of object-level authorization in the service that owns the data, relying instead on client or gateway authorization. This matches C2, where any device certificate can publish commands to any scooter due to insufficient message-level authentication, allowing unauthorized access to scooter controls.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "d30c3a466f421d3598aacaf15e0510da9b0a2980f9930162290d6628a443a544": {
+    "reason": "The reported finding focuses on the lack of dependency, container, or supply-chain scanning in the pipeline, which is not directly related to any specific candidate issue listed. None of the candidate issues address this particular aspect of security scanning or supply-chain management.",
+    "matches": []
+  },
+  "57b9439c7489d3482ebc3da9d2701febceaaffac52da35ce0242bb004b107b8c": {
+    "reason": "The reported finding specifically addresses the lack of a defined custody, rotation, or escrow model for encryption keys, which is directly related to the secure management of cryptographic keys. This matches with candidate issue C5, where the CA private key is stored insecurely as a file, highlighting the need for secure key management practices such as using an HSM.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "b3c5e8c788eb04d84b0bd05e1c8a22e9ad10485c5938472ec3fe4e18bbccc676": {
+    "reason": "The reported finding specifically addresses the lack of a defined custody, rotation, or escrow model for encryption keys, recommending storage in an HSM or managed KMS with dual control. This directly matches the issue in C1, where the fleet firmware signing key is exposed and lacks proper security controls, including secure storage and management.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "72100275793ba6eca9ef4f77f1f066aef112f7cd9773c03a74995847e957c7ea": {
+    "reason": "The reported finding specifically addresses the lack of a defined custody, rotation, or escrow model for encryption keys, recommending storage in an HSM or managed KMS with dual control. This directly matches the issue described in C2, where the fleet firmware signing key is exposed and should be kept in an HSM.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "a31339dc1eb244ee0fc911be96decf0ea70dfaeb9d7ed9300690138e7f597222": {
+    "reason": "The reported finding highlights the absence of a threat model or documented attack-surface analysis, which is a high-level issue affecting the entire design. It does not specifically address any single component or data flow but rather the overall lack of threat modeling across all trust boundaries. None of the candidate issues directly relate to this overarching design-level concern.",
+    "matches": []
+  }
+}

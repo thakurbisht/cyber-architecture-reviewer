@@ -1,0 +1,144 @@
+{
+  "doc_id": "gs-01-checkout-api",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "4. API Layer",
+      "domain": "application",
+      "severity": "CRITICAL",
+      "issue": "An API or service endpoint is exposed without authentication.",
+      "recommendation": "Require authentication on every endpoint by default. If an endpoint must be anonymous (health probe, well-known metadata), document it explicitly, keep it free of business data, and rate-limit it.",
+      "standard_reference": "Application Security Architecture Standard §3.1",
+      "kb_source": "application/application-security-standard.md",
+      "evidence_excerpt": "...he /kong-admin path, so that customer service team leads can switch the shop into maintenance mode. The Admin API has no authentication plugin configured; access is limited by its network placement.",
+      "control_mappings": [
+        "OWASP ASVS V2",
+        "OWASP API Top 10 API2",
+        "NIST SP 800-53 IA-2"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-AUTH-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:44+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "4. API Layer",
+      "domain": "application",
+      "severity": "HIGH",
+      "issue": "Sensitive data is written to application logs.",
+      "recommendation": "Mask or omit PII, card data, tokens and full request bodies in logs. Log identifiers and correlation IDs instead of payloads, and apply the same classification controls to log stores as to the source data.",
+      "standard_reference": "Logging & Detection Standard §3.3",
+      "kb_source": "security/logging-detection-standard.md",
+      "evidence_excerpt": "...e | Method | Description | |---|---|---| | /v1/auth/register | POST | Customer self-registration | | /v1/auth/login | POST | Email and password sign-in, returns an access token | | /v1/cart | GET, PUT | Read and update the basket | | /v1/checkout | POST...",
+      "control_mappings": [
+        "OWASP ASVS V7",
+        "ISO 27001 A.8.15",
+        "PCI DSS 4.0 3.3"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-LOG-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:44+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "6. Network Design",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "issue": "Management or database ports are reachable from the internet.",
+      "recommendation": "Remove 0.0.0.0/0 ingress on administrative and data ports. Reach instances through a bastion or SSM-style session broker, and place data services on private subnets with private endpoints only.",
+      "standard_reference": "Cloud Landing Zone Standard §5.3",
+      "kb_source": "cloud_data/cloud-landing-zone-standard.md",
+      "evidence_excerpt": "...mits only PayCrest API hostnames and AWS service endpoints. The checkout-reporting security group allows TCP 5432 from 0.0.0.0/0, because the BI provider does not publish a fixed list of source addresses. The EKS API server endpoint is p...",
+      "control_mappings": [
+        "CIS AWS 5.2",
+        "NIST SP 800-53 SC-7",
+        "MITRE ATT&CK T1133"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "CLD-NET-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "8. Data Protection",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Encryption keys have no defined custody, rotation or escrow model.",
+      "recommendation": "Store keys in an HSM or managed KMS with dual control, define a rotation period per key class, separate key custodians from data administrators, and document the recovery procedure.",
+      "standard_reference": "Cryptography Standard §5.2",
+      "kb_source": "security/cryptography-key-management-standard.md",
+      "evidence_excerpt": "...igher is enforced on CloudFront, on the Kong listener and on calls to PayCrest. The RDS instance uses storage encryption with a customer-managed KMS key, and its parameter group sets rds.force_ssl to 1 so that every client connect...",
+      "control_mappings": [
+        "NIST SP 800-57",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-CRYPTO-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:44+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "11. Availability and Disaster Recovery",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...rvice runs at least three replicas across three availability zones. RPO is 15 minutes and RTO is 4 hours. AWS Backup copies nightly RDS snapshots to a vault in the separate larkfield-backup account in eu-central-1, protected b...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:44+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "1. Purpose and Scope This document describes the high-level design of the Checkout Platform, which replaces the checkout module of the legacy Larkfield Outfitters web shop. It...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.1
+}

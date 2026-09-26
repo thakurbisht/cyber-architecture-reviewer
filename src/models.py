@@ -115,6 +115,11 @@ class Finding:
     evidence_chunk_ids: List[str] = field(default_factory=list)
     created_at: str = field(default_factory=_now)
 
+    # Human feedback tracking
+    acknowledged_by: str = ""           # human who reviewed this
+    acknowledged_at: str = ""           # when they reviewed it
+    acknowledgment_reason: str = ""     # why they marked it (mitigated, false_positive, accept_risk, n/a)
+
     def __post_init__(self) -> None:
         self.severity = normalise_severity(self.severity)
 
@@ -221,6 +226,11 @@ class ReviewResult:
     finished_at: str = ""
     kb_chunk_count: int = 0
     warnings: List[str] = field(default_factory=list)
+    # Populated by threat_model_node (see agent.py) when
+    # config.agent.enable_threat_modeling is true. A plain dict (already
+    # ThreatModel.to_dict()'s shape), not the dataclass, so it serialises
+    # for free wherever ReviewResult already does.
+    threat_model: Optional[Dict[str, Any]] = None
 
     def counts_by_severity(self) -> Dict[str, int]:
         out = {s: 0 for s in SEVERITIES}
@@ -242,6 +252,7 @@ class ReviewResult:
             "findings": [f.to_dict() for f in self.findings],
             "sections": [s.to_dict() for s in self.sections],
             "audit": [a.to_dict() for a in self.audit],
+            "threat_model": self.threat_model,
         }
 
 

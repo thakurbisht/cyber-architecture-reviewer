@@ -1,0 +1,572 @@
+{
+  "document_name": "sample-campus-lan-lld.md",
+  "started_at": "2026-09-05T20:20:07+00:00",
+  "finished_at": "",
+  "domains_reviewed": [
+    "network",
+    "application",
+    "security",
+    "cloud_data"
+  ],
+  "risk_score": 99.9,
+  "rag_status": "RED",
+  "kb_chunk_count": 0,
+  "counts_by_severity": {
+    "CRITICAL": 7,
+    "HIGH": 10,
+    "MEDIUM": 1,
+    "LOW": 0
+  },
+  "warnings": [],
+  "findings": [
+    {
+      "section": "10. Management Plane",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "issue": "A default or guessable SNMP community string (public/private) is specified in the design.",
+      "recommendation": "Remove default community strings. Under SNMPv3 use per-device credentials issued from the credential vault with scheduled rotation.",
+      "standard_reference": "Secure Management Plane Standard \u00a72.2",
+      "kb_source": "network/network-management-standard.md",
+      "evidence_excerpt": "...legacy management tool does not support SSH key exchange with the older platform. SNMPv2c is configured with community string \"public\" for read access by the monitoring platform, and \"private\" for write access used by the configuration backup...",
+      "control_mappings": [
+        "NIST SP 800-53 IA-5",
+        "ISO 27001 A.5.17"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-MGMT-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "cc897b86e68ceece",
+      "grounded": true
+    },
+    {
+      "section": "10. Management Plane",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "issue": "SNMP v1/v2c is in use, transmitting community strings in cleartext.",
+      "recommendation": "Migrate all managed devices to SNMPv3 with authPriv (SHA authentication, AES-128 or stronger privacy). Remove v1/v2c configuration entirely rather than leaving it as a fallback.",
+      "standard_reference": "Secure Management Plane Standard \u00a72.1",
+      "kb_source": "network/network-management-standard.md",
+      "evidence_excerpt": "...eam's workstations, as the legacy management tool does not support SSH key exchange with the older platform. SNMPv2c is configured with community string \"public\" for read access by the monitoring platform, and \"private\" for wr...",
+      "control_mappings": [
+        "NIST SP 800-53 SC-8",
+        "ISO 27001 A.8.20",
+        "CIS 4.x"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-MGMT-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "c64bed828caa6363",
+      "grounded": true
+    },
+    {
+      "section": "3. Access Layer Design",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "issue": "Two uplinks are described but both terminate on the same upstream device - redundancy in quantity without diversity.",
+      "recommendation": "Reroute one uplink so the pair terminates on two different upstream devices. Two links into one chassis do not survive that chassis failing.",
+      "standard_reference": "Three-Tier LAN Architecture Standard \u00a73.2",
+      "kb_source": "network/three-tier-lan-standard.md",
+      "evidence_excerpt": ".../6 | DIST-SW-B Gi1/0/6 | | 9 | ACC-F9-01 | DIST-SW-A Gi1/0/9 | DIST-SW-A Gi1/0/10 | Floor 4 and Floor 9 have two uplinks each but both terminate on the same distribution switch, DIST-SW-A, because the fibre count to those floors was insufficient at the time of survey. This was a...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-2",
+        "ISO 27001 A.8.14"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-HA-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "c2330fda38ac138e",
+      "grounded": true
+    },
+    {
+      "section": "5. Distribution and Core",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "issue": "A single uplink, single device, or acknowledged single point of failure exists in the path.",
+      "recommendation": "Provide two uplinks terminating on two physically separate upstream devices. Validate that no single chassis, line card, power feed or path failure isolates the downstream segment.",
+      "standard_reference": "Three-Tier LAN Architecture Standard \u00a73.1",
+      "kb_source": "network/three-tier-lan-standard.md",
+      "evidence_excerpt": "...ibution pair, DIST-SW-A and DIST-SW-B, are chassis switches with dual supervisors. DIST-SW-A is fitted with a single power supply; the second bay is reserved for a future upgrade. DIST-SW-B has dual power supplies. Both distribution switc...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-2",
+        "ISO 27001 A.8.14"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-HA-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "09aff30d38b08074",
+      "grounded": true
+    },
+    {
+      "section": "7. WAN Edge and Internet",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "issue": "A single uplink, single device, or acknowledged single point of failure exists in the path.",
+      "recommendation": "Provide two uplinks terminating on two physically separate upstream devices. Validate that no single chassis, line card, power feed or path failure isolates the downstream segment.",
+      "standard_reference": "Three-Tier LAN Architecture Standard \u00a73.1",
+      "kb_source": "network/three-tier-lan-standard.md",
+      "evidence_excerpt": "7. WAN Edge and Internet The site connects to the regional WAN over a single 1 Gbps MPLS circuit from Carrier A. A second circuit was priced but removed from scope during value engineering. MPLS traffic is...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-2",
+        "ISO 27001 A.8.14"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-HA-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "b3254a9f632e6b5d",
+      "grounded": true
+    },
+    {
+      "section": "8. Firewall and Segmentation",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "issue": "A permit-any-any firewall or ACL rule is present, defeating segmentation between zones.",
+      "recommendation": "Replace the any-any rule with explicit source/destination/port entries derived from the application flow matrix, terminated by an explicit deny-all with logging enabled.",
+      "standard_reference": "Network Segmentation Standard \u00a74.1",
+      "kb_source": "network/segmentation-standard.md",
+      "evidence_excerpt": "...Service | Action | |---|---|---|---|---| | 1 | Campus VLAN 100 | Data Centre Server Zone | Any | Allow | | 2 | Any | Any | Any | Allow | | 3 | Data Centre | Campus | Any | Allow | Rule 2 was added during migration testing to resolv...",
+      "control_mappings": [
+        "NIST SP 800-53 SC-7",
+        "ISO 27001 A.8.22",
+        "MITRE ATT&CK TA0008"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-SEG-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "8660a44f0d0e7bb9",
+      "grounded": true
+    },
+    {
+      "section": "10. Management Plane",
+      "domain": "security",
+      "severity": "CRITICAL",
+      "issue": "Privileged or administrative access is described without multi-factor authentication.",
+      "recommendation": "Enforce phishing-resistant MFA (FIDO2 or certificate-based) for every administrative session, brokered through PAM with session recording and just-in-time elevation.",
+      "standard_reference": "Identity & Privileged Access Standard \u00a72.1",
+      "kb_source": "security/identity-access-standard.md",
+      "evidence_excerpt": "...and \"private\" for write access used by the configuration backup tool. Authentication to devices uses a local admin account. The same enable password is configured on all devices to simplify operations. TACACS+ was considered but the...",
+      "control_mappings": [
+        "NIST SP 800-53 IA-2(1)",
+        "ISO 27001 A.8.5",
+        "MITRE ATT&CK T1078.002"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-IAM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "76465cb7ec154b79",
+      "grounded": true
+    },
+    {
+      "section": "10. Management Plane",
+      "domain": "network",
+      "severity": "HIGH",
+      "issue": "Cleartext device management protocols (Telnet/HTTP/FTP/TFTP) are permitted.",
+      "recommendation": "Permit SSHv2 and HTTPS only. Disable telnet, HTTP, FTP and TFTP transport on every managed device and block those ports at the management ACL.",
+      "standard_reference": "Secure Management Plane Standard \u00a72.3",
+      "kb_source": "network/network-management-standard.md",
+      "evidence_excerpt": "10. Management Plane Devices are managed in-band over VLAN 100. Management access is by telnet from the network team's workstations, as the legacy management tool does not support SSH key exchange with th...",
+      "control_mappings": [
+        "NIST SP 800-53 AC-17",
+        "ISO 27001 A.8.20"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-MGMT-003",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "40391c85ea85aa65",
+      "grounded": true
+    },
+    {
+      "section": "10. Management Plane",
+      "domain": "network",
+      "severity": "HIGH",
+      "issue": "Device administration uses local accounts or shared credentials rather than centralised AAA.",
+      "recommendation": "Integrate all network devices with TACACS+ (or RADIUS where TACACS+ is unavailable) backed by the enterprise directory, with command authorisation and per-user accounting. Retain exactly one break-glass local account with a vaulted, rotated password.",
+      "standard_reference": "Secure Management Plane Standard \u00a73.1",
+      "kb_source": "network/network-management-standard.md",
+      "evidence_excerpt": "...form, and \"private\" for write access used by the configuration backup tool. Authentication to devices uses a local admin account. The same enable password is configured on all devices to simplify operations. TACACS+ was considered but the...",
+      "control_mappings": [
+        "NIST SP 800-53 AC-2",
+        "ISO 27001 A.5.15"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-MGMT-004",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "24e6123366ac8209",
+      "grounded": true
+    },
+    {
+      "section": "4. VLAN and Addressing Design",
+      "domain": "network",
+      "severity": "HIGH",
+      "issue": "The design relies on a flat VLAN or a single broadcast domain for differently-trusted workloads.",
+      "recommendation": "Separate workloads into zones by trust level and data classification, enforce inter-zone policy at a stateful device, and document the permitted flow matrix.",
+      "standard_reference": "Network Segmentation Standard \u00a72.2",
+      "kb_source": "network/segmentation-standard.md",
+      "evidence_excerpt": "4. VLAN and Addressing Design A single VLAN, VLAN 100, is used for all user devices across all nine floors to simplify the address plan and allow users to move between floors without re-addressing. VLAN 1...",
+      "control_mappings": [
+        "NIST SP 800-53 SC-7(21)",
+        "ISO 27001 A.8.22"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-SEG-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "e8a83ee74bc15a39",
+      "grounded": true
+    },
+    {
+      "section": "6. Routing Design",
+      "domain": "network",
+      "severity": "HIGH",
+      "issue": "A dynamic routing protocol is deployed without neighbour authentication.",
+      "recommendation": "Enable cryptographic neighbour authentication on every routing adjacency (OSPF HMAC-SHA, BGP TCP-AO or MD5 where AO is unsupported) and passive-interface on all user-facing ports.",
+      "standard_reference": "Routing Architecture Standard \u00a75.3",
+      "kb_source": "network/routing-standard.md",
+      "evidence_excerpt": "6. Routing Design OSPF is used between distribution and core, in a single area 0. All interfaces are enabled for OSPF to simplify co...",
+      "control_mappings": [
+        "NIST SP 800-53 SC-8",
+        "ISO 27001 A.8.20"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-RTG-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "c653f3e3bdca075b",
+      "grounded": true
+    },
+    {
+      "section": "7. WAN Edge and Internet",
+      "domain": "network",
+      "severity": "HIGH",
+      "issue": "WAN or inter-site traffic traverses untrusted transport without encryption.",
+      "recommendation": "Encrypt all inter-site traffic in transit (IPsec or MACsec) regardless of whether the carrier describes the circuit as private. Carrier-private is not the same as confidential.",
+      "standard_reference": "WAN & Edge Standard \u00a73.4",
+      "kb_source": "network/routing-standard.md",
+      "evidence_excerpt": "...and Internet The site connects to the regional WAN over a single 1 Gbps MPLS circuit from Carrier A. A second circuit was priced but removed from scope during value engineering. MPLS traffic is not encrypted, as the carrier circuit is private and dedicated to our organisation. Internet access is provided centrally...",
+      "control_mappings": [
+        "NIST SP 800-53 SC-8",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-WAN-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "f2964acb6bf79958",
+      "grounded": true
+    },
+    {
+      "section": "9. Wireless",
+      "domain": "network",
+      "severity": "HIGH",
+      "issue": "Wireless uses a pre-shared key or a deprecated security mode for corporate access.",
+      "recommendation": "Use WPA2-Enterprise or WPA3-Enterprise with 802.1X and certificate-based EAP-TLS for corporate SSIDs. Reserve PSK for isolated guest or IoT SSIDs with their own segment.",
+      "standard_reference": "Wireless Standard \u00a72.1",
+      "kb_source": "network/network-management-standard.md",
+      "evidence_excerpt": "...provided by controller-based access points attached to the access layer. Two SSIDs are defined: - CORP-WIFI: WPA2-PSK, passphrase distributed to staff by the service desk and rotated annually. - GUEST-WIFI: open SSID with capti...",
+      "control_mappings": [
+        "NIST SP 800-53 AC-18",
+        "ISO 27001 A.8.20"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "NET-WLS-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "753a2bbbc404d92f",
+      "grounded": true
+    },
+    {
+      "section": "10. Management Plane",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard \u00a74.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...\"public\" for read access by the monitoring platform, and \"private\" for write access used by the configuration backup tool. Authentication to devices uses a local admin account. The same enable password is configured on all de...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "2274ba4a4eb7253a",
+      "grounded": true
+    },
+    {
+      "section": "11. Availability and Convergence",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard \u00a74.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...ence times have not been measured but are expected to be within a few seconds based on vendor documentation. Backup of device configurations is described in section 10. Restore has not been tested.",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "7a4c91d1e202cfa9",
+      "grounded": true
+    },
+    {
+      "section": "9. Wireless",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Shared, generic or service accounts are used by humans.",
+      "recommendation": "Bind every human action to a named identity. Convert service accounts to workload identities with no interactive logon rights and vault any that must retain a password.",
+      "standard_reference": "Identity & Privileged Access Standard \u00a73.2",
+      "kb_source": "security/identity-access-standard.md",
+      "evidence_excerpt": "...y controller-based access points attached to the access layer. Two SSIDs are defined: - CORP-WIFI: WPA2-PSK, passphrase distributed to staff by the service desk and rotated annually. - GUEST-WIFI: open SSID with captive portal, bridged onto VLAN 100. Rogue AP detection...",
+      "control_mappings": [
+        "NIST SP 800-53 AC-2",
+        "ISO 27001 A.5.16"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-IAM-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "6836118e7d6cb46c",
+      "grounded": true
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "No central log aggregation or SIEM forwarding is described for security-relevant events.",
+      "recommendation": "Forward authentication, authorisation, configuration-change and administrative events to the SIEM in near real time, with a documented retention period and write-once storage for the security log tier.",
+      "standard_reference": "Logging & Detection Standard \u00a72.1",
+      "kb_source": "security/logging-detection-standard.md",
+      "evidence_excerpt": "...tly over TFTP to the network management server. Syslog is written to local buffer on each device. Central syslog forwarding is a phase 2 item. NTP is not currently configured; devices use their internal clocks. 11. Availability and Convergence...",
+      "control_mappings": [
+        "NIST SP 800-53 AU-6",
+        "ISO 27001 A.8.15",
+        "NIST CSF DE.CM"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-LOG-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "b22123f402b03975",
+      "grounded": true
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard \u00a71.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Low Level Design: Meridian Tower Campus LAN Refresh Document ID: LLD-NET-2026-014 Author: Infrastructure Delivery Status: For...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-05T20:20:07+00:00",
+      "fingerprint": "53a0ba6a49cf8dae",
+      "grounded": true
+    }
+  ],
+  "sections": [
+    {
+      "index": 0,
+      "heading": "Low Level Design: Meridian Tower Campus LAN Refresh",
+      "body": "Document ID: LLD-NET-2026-014\nAuthor: Infrastructure Delivery\nStatus: For design authority review\nSite tier: Tier 1 (primary regional office, 1,400 users)",
+      "level": 1,
+      "domain": "network",
+      "topic": "wan_edge",
+      "topic_confidence": 0.5,
+      "secondary_topics": [
+        "app_structure"
+      ],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 20
+    },
+    {
+      "index": 1,
+      "heading": "1. Introduction and Scope",
+      "body": "This document describes the target state design for the campus LAN refresh at Meridian Tower. The refresh replaces end-of-life access switching across nine floors, introduces a new distribution layer, and re-homes the site onto the regional WAN. The design covers wired access, distribution, core, WAN edge, wireless attachment and the management plane. Application architecture is out of scope.\n\nThe site availability target is 99.95% for wired connectivity.",
+      "level": 2,
+      "domain": "general",
+      "topic": "context_scope",
+      "topic_confidence": 0.438,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 67
+    },
+    {
+      "index": 2,
+      "heading": "2. Physical Topology Overview",
+      "body": "The design uses a three-tier model. Each floor has two access switch stacks located in the floor IDF. Access stacks connect to the distribution pair located in the basement MDF. The distribution pair connects to the two core switches, which in turn connect to the WAN edge routers.\n\nFloors 1 through 8 follow the standard pattern. Floor 9 hosts the executive floor and the site data room.",
+      "level": 2,
+      "domain": "network",
+      "topic": "distribution_core",
+      "topic_confidence": 0.5,
+      "secondary_topics": [
+        "access_layer"
+      ],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 67
+    },
+    {
+      "index": 3,
+      "heading": "3. Access Layer Design",
+      "body": "Access switching is provided by 48-port stackable switches, two stacks per floor, delivering PoE+ to all user ports.\n\nUplink arrangement per floor:\n\n| Floor | Access stack | Uplink 1 terminates on | Uplink 2 terminates on |\n|---|---|---|---|\n| 1 | ACC-F1-01 | DIST-SW-A Gi1/0/1 | DIST-SW-B Gi1/0/1 |\n| 2 | ACC-F2-01 | DIST-SW-A Gi1/0/2 | DIST-SW-B Gi1/0/2 |\n| 3 | ACC-F3-01 | DIST-SW-A Gi1/0/3 | DIST-SW-B Gi1/0/3 |\n| 4 | ACC-F4-01 | DIST-SW-A Gi1/0/4 | DIST-SW-A Gi1/0/5 |\n| 5 | ACC-F5-01 | DIST-SW-A Gi1/0/6 | DIST-SW-B Gi1/0/6 |\n| 9 | ACC-F9-01 | DIST-SW-A Gi1/0/9 | DIST-SW-A Gi1/0/10 |\n\nFloor 4 and Floor 9 have two uplinks each but both terminate on the same distribution switch, DIST-SW-A, because the fibre count to those floors was insufficient at the time of survey. This was accepted by the project to avoid delaying the cutover.\n\nAccess ports are configured with portfast. Port security is not enabled as the site operates an open desk policy and MAC learning was found to generate excessive support tickets. 802.1X is planned for a future phase and is not in scope for this refresh.\n\nUnused ports remain in the default VLAN and administratively up to allow ad-hoc desk moves without a change request.",
+      "level": 2,
+      "domain": "network",
+      "topic": "access_layer",
+      "topic_confidence": 0.6,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 211
+    },
+    {
+      "index": 4,
+      "heading": "4. VLAN and Addressing Design",
+      "body": "A single VLAN, VLAN 100, is used for all user devices across all nine floors to simplify the address plan and allow users to move between floors without re-addressing. VLAN 100 is trunked to both distribution switches and spans the entire campus.\n\nServer devices in the floor 9 data room are placed in VLAN 100 alongside user devices, as the server count is small and the additional VLAN was judged unnecessary.\n\nThe gateway for VLAN 100 resides on DIST-SW-A. HSRP was considered but not implemented; DIST-SW-B is configured as a Layer 2 path only.\n\nSpanning tree is left at default settings. Root bridge election is allowed to occur naturally as the distribution switches have the lowest MAC addresses.",
+      "level": 2,
+      "domain": "network",
+      "topic": "segmentation",
+      "topic_confidence": 0.583,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 118
+    },
+    {
+      "index": 5,
+      "heading": "5. Distribution and Core",
+      "body": "The distribution pair, DIST-SW-A and DIST-SW-B, are chassis switches with dual supervisors. DIST-SW-A is fitted with a single power supply; the second bay is reserved for a future upgrade. DIST-SW-B has dual power supplies.\n\nBoth distribution switches connect to CORE-SW-01. CORE-SW-02 is planned for phase 2 and is not part of this delivery. The core is therefore a single device in the current design.",
+      "level": 2,
+      "domain": "network",
+      "topic": "distribution_core",
+      "topic_confidence": 1.0,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 64
+    },
+    {
+      "index": 6,
+      "heading": "6. Routing Design",
+      "body": "OSPF is used between distribution and core, in a single area 0. All interfaces are enabled for OSPF to simplify configuration, including the user-facing SVIs. Neighbour authentication is not configured as the campus is a trusted environment.\n\nStatic default route points from the core to the WAN edge.",
+      "level": 2,
+      "domain": "network",
+      "topic": "routing",
+      "topic_confidence": 0.625,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 48
+    },
+    {
+      "index": 7,
+      "heading": "7. WAN Edge and Internet",
+      "body": "The site connects to the regional WAN over a single 1 Gbps MPLS circuit from Carrier A. A second circuit was priced but removed from scope during value engineering. MPLS traffic is not encrypted, as the carrier circuit is private and dedicated to our organisation.\n\nInternet access is provided centrally from the regional hub; there is no local internet breakout at this site.",
+      "level": 2,
+      "domain": "network",
+      "topic": "wan_edge",
+      "topic_confidence": 0.786,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 63
+    },
+    {
+      "index": 8,
+      "heading": "8. Firewall and Segmentation",
+      "body": "An internal firewall pair sits between the campus and the data centre. The rule set for this design is:\n\n| Rule | Source | Destination | Service | Action |\n|---|---|---|---|---|\n| 1 | Campus VLAN 100 | Data Centre Server Zone | Any | Allow |\n| 2 | Any | Any | Any | Allow |\n| 3 | Data Centre | Campus | Any | Allow |\n\nRule 2 was added during migration testing to resolve an application issue and has been retained to avoid regression. There is no terminating deny rule; the firewall default is permit for this policy set.\n\nManagement traffic to network devices traverses VLAN 100 alongside user traffic.",
+      "level": 2,
+      "domain": "network",
+      "topic": "segmentation",
+      "topic_confidence": 0.933,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 115
+    },
+    {
+      "index": 9,
+      "heading": "9. Wireless",
+      "body": "Wireless is provided by controller-based access points attached to the access layer. Two SSIDs are defined:\n\n- CORP-WIFI: WPA2-PSK, passphrase distributed to staff by the service desk and rotated annually.\n- GUEST-WIFI: open SSID with captive portal, bridged onto VLAN 100.\n\nRogue AP detection is enabled on the controller.",
+      "level": 2,
+      "domain": "network",
+      "topic": "wireless",
+      "topic_confidence": 0.786,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 49
+    },
+    {
+      "index": 10,
+      "heading": "10. Management Plane",
+      "body": "Devices are managed in-band over VLAN 100. Management access is by telnet from the network team's workstations, as the legacy management tool does not support SSH key exchange with the older platform.\n\nSNMPv2c is configured with community string \"public\" for read access by the monitoring platform, and \"private\" for write access used by the configuration backup tool.\n\nAuthentication to devices uses a local admin account. The same enable password is configured on all devices to simplify operations. TACACS+ was considered but the AAA server project has slipped and is not available for this delivery.\n\nConfiguration backup runs nightly over TFTP to the network management server.\n\nSyslog is written to local buffer on each device. Central syslog forwarding is a phase 2 item.\n\nNTP is not currently configured; devices use their internal clocks.",
+      "level": 2,
+      "domain": "network",
+      "topic": "network_management",
+      "topic_confidence": 0.462,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 132
+    },
+    {
+      "index": 11,
+      "heading": "11. Availability and Convergence",
+      "body": "The design targets 99.95% availability. Convergence times have not been measured but are expected to be within a few seconds based on vendor documentation.\n\nBackup of device configurations is described in section 10. Restore has not been tested.",
+      "level": 2,
+      "domain": "security",
+      "topic": "resilience_ir",
+      "topic_confidence": 0.667,
+      "secondary_topics": [
+        "api_integration"
+      ],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 38
+    },
+    {
+      "index": 12,
+      "heading": "12. Assumptions",
+      "body": "- The existing structured cabling is fit for purpose.\n- Users accept a brief outage during cutover.\n- The AAA server will be available in phase 2.\n- 802.1X will be delivered in phase 2.",
+      "level": 2,
+      "domain": "general",
+      "topic": "context_scope",
+      "topic_confidence": 0.5,
+      "secondary_topics": [],
+      "source_file": "sample-campus-lan-lld.md",
+      "word_count": 35
+    }
+  ],
+  "audit": []
+}

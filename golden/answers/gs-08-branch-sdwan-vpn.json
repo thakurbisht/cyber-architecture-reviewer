@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-08-branch-sdwan-vpn",
+  "title": "Store Network Refresh — SD-WAN, Store LAN and Remote Access Design",
+  "doc_kind": "flawed",
+  "domains": [
+    "network",
+    "security"
+  ],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "acceptable_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "VNC to in-store POS servers port-forwarded from any internet address",
+      "description": "Every store forwards TCP 5900 from the public internet, with no source restriction, to the POS server that handles card authorisation data, exposing VNC (commonly weakly authenticated and unencrypted) in 300 cardholder data environments to internet scanning and brute force. Remove the inbound NAT rules and provide vendor access through an MFA-protected, brokered remote access path (e.g. PAM or ZTNA with session recording and just-in-time approval).",
+      "sections": [
+        "6.2 POS Vendor Support"
+      ],
+      "evidence": [
+        "On each store edge, TCP 5900 on the broadband public IP address is forwarded to the POS server in VLAN 20 from any source address, so that Tillcraft engineers can connect with VNC."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "vnc",
+        "5900",
+        "port forward",
+        "nat",
+        "any source",
+        "pos server",
+        "vendor access",
+        "internet exposed"
+      ]
+    },
+    {
+      "id": "F2",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "gap",
+      "title": "Internet-facing remote-access VPN uses password-only authentication",
+      "description": "The SSL VPN for about 2,500 staff and supplier accounts authenticates with Active Directory username and password only; no MFA is specified, so password spraying, phishing or credential reuse gives an attacker on the internet a foothold inside the corporate and store networks. Require phishing-resistant MFA (and ideally device posture checks) for all VPN users, including suppliers.",
+      "sections": [
+        "6.1 Staff and Supplier VPN"
+      ],
+      "evidence": [
+        "Remote-access VPN for head-office staff, area managers and IT (about 2,500 users) terminates on the DC1 firewall pair as SSL VPN on TCP 443.",
+        "Users authenticate with their Active Directory username and password, which the firewall checks against the NPS RADIUS servers."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "vpn",
+        "mfa",
+        "password",
+        "remote access",
+        "radius",
+        "active directory",
+        "ssl vpn"
+      ]
+    },
+    {
+      "id": "F3",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "POS / cardholder data VLAN not segmented from other store VLANs",
+      "description": "The POS VLAN shares an internal zone with back-office PCs, staff devices and building systems (CCTV, HVAC, door access) with any-to-any traffic permitted, so a compromised PC or IoT device can reach the POS server and tills directly; this also fails PCI DSS segmentation expectations and puts all store VLANs in scope. Place the POS VLAN in its own zone with default-deny and only the specific flows required (e.g. back office to the POS server application port).",
+      "sections": [
+        "4. Store LAN Design"
+      ],
+      "evidence": [
+        "VLANs 20–50 form the store's internal firewall zone, and the store policy permits all traffic between VLANs within the internal zone so that back-office PCs and scanners can reach the POS server and printers.",
+        "The in-store POS server aggregates till transactions, including card authorisation data, and forwards them to the payment switch in DC1."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "segmentation",
+        "pos",
+        "cardholder data environment",
+        "pci",
+        "inter-vlan",
+        "flat network",
+        "cctv",
+        "building systems"
+      ]
+    },
+    {
+      "id": "F4",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "MEDIUM"
+      ],
+      "type": "defect",
+      "title": "Switch management plane reachable from the shared staff and supplier VPN pool",
+      "description": "Switch SSH and SNMP are permitted from the whole VPN pool, and that pool is shared by all 2,500 staff and third-party supplier accounts, so any VPN user (or an attacker with one VPN password) can reach the management interfaces of every store switch. Give network administrators a separate VPN profile/address pool or a jump host/PAM, and restrict management ACLs to that source only.",
+      "sections": [
+        "6.1 Staff and Supplier VPN",
+        "8.2 Switches"
+      ],
+      "evidence": [
+        "All VPN clients, staff and suppliers alike, receive addresses from the pool 10.200.0.0/16.",
+        "Switch management interfaces in VLAN 10 accept SSH and SNMP from the NMS subnet 10.10.5.0/24 and from the VPN pool 10.200.0.0/16, so that network engineers can work remotely."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Elevation of Privilege",
+        "Tampering"
+      ],
+      "keywords": [
+        "management plane",
+        "vpn pool",
+        "ssh",
+        "snmp",
+        "acl",
+        "jump host",
+        "suppliers",
+        "10.200.0.0/16"
+      ]
+    },
+    {
+      "id": "F5",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "HIGH",
+        "CRITICAL"
+      ],
+      "type": "defect",
+      "title": "Shared cloud controller admin account with organisation-wide rights and no SSO",
+      "description": "The internet-reachable cloud controller controls every store firewall and access point, yet it uses local accounts and the MSP shares a single Organisation Administrator account, so one phished or leaked password gives control of all 300 stores' perimeter with no individual accountability and no stated MFA. Federate with the corporate IdP (or at least enforce MFA) now, issue named per-engineer accounts, and restrict the MSP to least-privilege roles.",
+      "sections": [
+        "8.1 Cloud Controller"
+      ],
+      "evidence": [
+        "The cloud controller dashboard is administered with local dashboard accounts.",
+        "The MSP's network operations centre uses a single shared account, noc@brightwell-msp.example, with Organisation Administrator rights over all 300 stores."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Repudiation"
+      ],
+      "keywords": [
+        "shared account",
+        "cloud controller",
+        "dashboard",
+        "organisation administrator",
+        "msp",
+        "mfa",
+        "sso",
+        "saml"
+      ]
+    },
+    {
+      "id": "F6",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Identical local fallback admin password on all store switches",
+      "description": "The fallback netadmin account has the same password on every store switch and is embedded in the standard configuration template, so anyone who obtains it from one switch, a config backup or the template can administer all 600 switches whenever TACACS+ is unreachable (or can be made unreachable). Use a unique per-device local password managed by a PAM/password vault with rotation, and restrict local login to console or loss of TACACS+ only.",
+      "sections": [
+        "8.2 Switches"
+      ],
+      "evidence": [
+        "If both TACACS+ servers are unreachable, switches fall back to the local account netadmin, whose password is set in the standard configuration template and is identical on all store switches."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Spoofing"
+      ],
+      "keywords": [
+        "local account",
+        "shared password",
+        "fallback",
+        "tacacs+",
+        "netadmin",
+        "configuration template",
+        "password vault"
+      ]
+    },
+    {
+      "id": "F7",
+      "domain": "network",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Local internet breakout bypasses the web gateway for back-office PCs",
+      "description": "Back-office browsing breaks out locally, but web filtering, TLS inspection and malware sandboxing exist only in the DC1 proxy and the store edges have no URL filtering or IPS licences, so store PCs browse the internet uninspected. Either steer back-office web traffic to the SWG, deploy a cloud SWG agent on store PCs, or license and enable URL filtering and threat prevention on the edges.",
+      "sections": [
+        "3. WAN and Internet Breakout",
+        "7. Security Controls"
+      ],
+      "evidence": [
+        "General internet browsing from back-office PCs breaks out locally at the store edge to reduce overlay bandwidth and improve SaaS performance.",
+        "Web filtering, TLS inspection and malware sandboxing for corporate users are provided by the secure web gateway proxy cluster in DC1.",
+        "Store edges are licensed for stateful firewalling and SD-WAN only."
+      ],
+      "cross_section": true,
+      "stride": [
+        "Tampering",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "local breakout",
+        "secure web gateway",
+        "web filtering",
+        "tls inspection",
+        "malware",
+        "back-office",
+        "direct internet access"
+      ]
+    },
+    {
+      "id": "F8",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "SNMP v2c with a fleet-wide read-write community string",
+      "description": "SNMP v2c sends the community string in clear text, and a single read-write community shared across all stores, usable at any time and reachable from the whole VPN pool, lets anyone who captures or learns it change switch configuration (VLANs, ports) fleet-wide. Move to SNMPv3 with authPriv and per-role credentials, use read-only SNMP for polling, push configuration changes over SSH/NETCONF, and limit SNMP sources to the NMS.",
+      "sections": [
+        "8.2 Switches"
+      ],
+      "evidence": [
+        "The NMS in DC1 polls store switches using SNMP v2c with a read-write community string common to all stores, which it also uses to push VLAN and port changes.",
+        "Switch management interfaces in VLAN 10 accept SSH and SNMP from the NMS subnet 10.10.5.0/24 and from the VPN pool 10.200.0.0/16, so that network engineers can work remotely."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Tampering",
+        "Information Disclosure"
+      ],
+      "keywords": [
+        "snmp v2c",
+        "community string",
+        "read-write",
+        "snmpv3",
+        "cleartext",
+        "nms"
+      ]
+    },
+    {
+      "id": "F9",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Store firewall logs kept only 7 days and not sent to the SIEM",
+      "description": "Store edge firewall logs, which are the only record of traffic in and out of 300 cardholder data environments, stay in the controller for seven days and are not forwarded to the SIEM, preventing correlation, alerting and incident investigation and falling short of PCI DSS log retention (12 months). Forward store edge event and traffic logs to the SIEM (syslog or API) with 12-month retention and alerting.",
+      "sections": [
+        "9. Logging and Monitoring"
+      ],
+      "evidence": [
+        "Store edge firewall event and traffic logs are held in the cloud controller, which retains them for seven days.",
+        "The corporate SIEM collects Active Directory, VPN, DC firewall and secure web gateway logs and retains them for 12 months."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Repudiation"
+      ],
+      "keywords": [
+        "log retention",
+        "siem",
+        "firewall logs",
+        "seven days",
+        "7 days",
+        "pci",
+        "monitoring"
+      ]
+    },
+    {
+      "id": "F10",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "defect",
+      "title": "Third-party suppliers share the staff VPN pool with no supplier-specific controls",
+      "description": "The MSP and application vendors receive addresses from the same 10.200.0.0/16 pool as 2,500 staff, so the DC firewalls cannot restrict each supplier to the systems it supports, and no MFA, approval or session monitoring is described for supplier access. Give suppliers dedicated VPN profiles/pools (or a PAM/ZTNA broker) with per-supplier least-privilege firewall rules, MFA, time-bound access and session logging.",
+      "sections": [
+        "6.1 Staff and Supplier VPN"
+      ],
+      "evidence": [
+        "Third-party suppliers, including the network managed service provider (MSP) and two application vendors, are issued VPN accounts in a dedicated Active Directory OU.",
+        "All VPN clients, staff and suppliers alike, receive addresses from the pool 10.200.0.0/16."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Elevation of Privilege",
+        "Repudiation"
+      ],
+      "keywords": [
+        "third-party access",
+        "supplier",
+        "vendor",
+        "msp",
+        "vpn pool",
+        "least privilege",
+        "session monitoring",
+        "mfa"
+      ]
+    },
+    {
+      "id": "F11",
+      "domain": "network",
+      "severity": "MEDIUM",
+      "acceptable_severities": [
+        "MEDIUM",
+        "HIGH"
+      ],
+      "type": "gap",
+      "title": "No 802.1X, NAC or port security on store switch ports",
+      "description": "Access ports are statically assigned to VLANs and no port authentication is specified, so anyone who plugs a device into a store switch port lands in the open internal zone that also contains the POS VLAN. Enable 802.1X/MAB-based NAC with dynamic VLAN assignment (or at minimum port security), and shut or quarantine unused ports.",
+      "sections": [
+        "4. Store LAN Design"
+      ],
+      "evidence": [
+        "Switch access ports are assigned to VLANs statically from the store build template, so that replacement devices can be connected without network team involvement.",
+        "VLANs 20–50 form the store's internal firewall zone, and the store policy permits all traffic between VLANs within the internal zone so that back-office PCs and scanners can reach the POS server and printers."
+      ],
+      "cross_section": false,
+      "stride": [
+        "Spoofing",
+        "Elevation of Privilege"
+      ],
+      "keywords": [
+        "802.1x",
+        "nac",
+        "network access control",
+        "port security",
+        "switch ports",
+        "rogue device",
+        "unused ports"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Open guest Wi-Fi can reach internal store networks",
+      "why_not": "Section 7 places guest VLAN 90 in its own zone with deny-all to the internal zone, management VLAN and overlay, local-breakout-only egress and client isolation.",
+      "evidence": [
+        "The guest SSID, Brightwell-Guest, is an open network with a captive portal for terms acceptance, available to customers in every store.",
+        "The guest zone (VLAN 90) has a deny-all policy towards the internal zone, the management VLAN and the overlay; guest traffic can only egress through local breakout, and client isolation is enabled on the guest SSID."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Store and payment traffic sent unencrypted over broadband internet",
+      "why_not": "Section 7 carries all store-to-DC traffic, including LTE backup, in an IPsec overlay (IKEv2, AES-256-GCM) with certificate-authenticated devices.",
+      "evidence": [
+        "Each store has a single business broadband circuit (80–500 Mbps) and a 4G LTE backup; MPLS is removed entirely, and store traffic to the data centres crosses the public internet.",
+        "All store-to-data-centre traffic, including traffic over the LTE backup, is carried in the SD-WAN overlay, which uses IPsec tunnels (IKEv2, AES-256-GCM) authenticated with device certificates issued by the controller."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "SD-WAN edge management interfaces exposed to the internet",
+      "why_not": "Section 8.1 states edges only make an outbound TLS session to the controller, accept no inbound management on WAN interfaces and have the local status page disabled.",
+      "evidence": [
+        "The SD-WAN edges are configured and monitored entirely from the vendor's cloud controller over the internet.",
+        "Edges and access points hold an outbound TLS session to the cloud controller for configuration and telemetry; they accept no inbound management connections on their WAN interfaces, and the local status page is disabled."
+      ]
+    }
+  ],
+  "injection": null
+}

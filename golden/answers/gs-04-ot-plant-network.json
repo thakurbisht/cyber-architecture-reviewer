@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "doc_id": "gs-04-ot-plant-network",
+  "title": "Calderwick Plant IT/OT Network Architecture - High-Level Design",
+  "doc_kind": "flawed",
+  "domains": ["network", "security"],
+  "expected_findings": [
+    {
+      "id": "F1",
+      "domain": "network",
+      "severity": "CRITICAL",
+      "acceptable_severities": ["CRITICAL", "HIGH"],
+      "type": "defect",
+      "title": "OEM LTE router gives direct internet-originated access to Level 1 controllers, bypassing the DMZ",
+      "description": "The robot OEM's cellular router is connected straight to a Level 1 switch, creating an internet-reachable path to robot controllers and the cell PLC that bypasses both firewall pairs, the DMZ remote access gateway, MFA, supervisor approval and session recording. Because Level 1 and Level 2 are routed without ACLs, the path reaches controllers on every line. The reviewer should require removal of the LTE routers and OEM access through the existing DMZ gateway (or, at minimum, a firewalled, normally-off, approved and recorded connection).",
+      "sections": ["6. Remote Access"],
+      "evidence": [
+        "The two robotic welding cells on Line 3 are supported by their manufacturer, Varda Robotics, through an LTE router supplied with each cell.",
+        "The router connects to the cell's Level 1 switch and gives Varda's support centre direct access to the robot controllers and cell PLC for diagnostics and program updates."
+      ],
+      "cross_section": false,
+      "stride": ["Elevation of Privilege", "Tampering"],
+      "keywords": ["lte", "cellular", "4g router", "vendor backdoor", "bypass dmz", "level 1", "robot oem", "direct access"]
+    },
+    {
+      "id": "F2",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Dual-homed engineering workstations bridge the corporate LAN (VLAN 412) and Level 3, bypassing the DMZ",
+      "description": "Section 5 gives each engineering workstation a second NIC on VLAN 412, and section 2 shows VLAN 412 is the Level 4 corporate office network. The workstations that program every controller therefore sit on both the corporate LAN and the OT network, so a phished or compromised corporate host can reach them directly, defeating the DMZ design rule. Remove the corporate NIC and give engineers corporate access from a separate device or via the DMZ.",
+      "sections": ["5. Site Operations (Level 3)", "2. Plant Overview and Zone Model"],
+      "evidence": [
+        "Each engineering workstation has a second network interface on VLAN 412 so that engineers can reach the document management system and project schedule from the same machine.",
+        "At Calderwick the corporate office network is carried on VLAN 412, which is part of the Level 4 corporate LAN and is routed to the corporate data centre over the site WAN link."
+      ],
+      "cross_section": true,
+      "stride": ["Elevation of Privilege", "Tampering"],
+      "keywords": ["dual-homed", "dual homed", "second network interface", "vlan 412", "engineering workstation", "bridge", "it/ot", "bypass dmz"]
+    },
+    {
+      "id": "F3",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Shared-PSK scanner Wi-Fi is bridged into a flat, ACL-free Level 1/Level 2 routed network",
+      "description": "Section 7 puts the handheld scanner SSID, secured only by a single WPA2-Personal key held on 60 devices, onto VLAN 213; section 4 routes VLANs 210-213 to all Level 1 controller VLANs with no ACLs. Anyone who obtains the key (from a lost scanner or a former employee) and is in RF range, including the loading bays, gets unauthenticated EtherNet/IP reach to every PLC and HMI. Recommend WPA2/3-Enterprise with per-device certificates, a separate scanner zone that can reach only the SCADA scan service, and ACLs between lines and between Level 2 and Level 1.",
+      "sections": ["7. Wireless Scanning Network", "4. Control Network (Levels 0-2)"],
+      "evidence": [
+        "The scanners connect to the SSID CAL-SCAN using WPA2-Personal with a single pre-shared key, and the SSID is bridged to VLAN 213 on the Level 3 core switches.",
+        "The Level 3 core switches route between Level 2 VLANs 210-213 and Level 1 VLANs 110-112 without access control lists, so that HMIs and SCADA servers on any line can read tags from controllers on the other lines."
+      ],
+      "cross_section": true,
+      "stride": ["Spoofing", "Tampering"],
+      "keywords": ["wireless", "wpa2-personal", "pre-shared key", "psk", "scanner", "vlan 213", "no acl", "flat network", "segmentation"]
+    },
+    {
+      "id": "F4",
+      "domain": "security",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "OT Active Directory trusts the corporate domain and corporate accounts hold admin rights on all OT hosts",
+      "description": "The OT domain trusts the corporate domain and a corporate group is nested into OT-Admins, so compromise of the corporate AD or of any controls engineer's corporate password (phishing) yields local administrator on every HMI, SCADA server and engineering workstation, with password-only logon. The trust also requires domain controller traffic between Level 3 and Level 4. Recommend a standalone OT forest with no trust to IT, separate OT admin accounts, and MFA for OT administration.",
+      "sections": ["8. Identity and Access Management"],
+      "evidence": [
+        "The OT Active Directory domain (ot.brennock.local) trusts the corporate domain through a one-way trust, so that controls engineers log on to OT systems with their corporate accounts.",
+        "The corporate group Controls-Engineers is a member of the OT-Admins group, which has local administrator rights on all Level 2 and Level 3 Windows hosts."
+      ],
+      "cross_section": false,
+      "stride": ["Elevation of Privilege", "Spoofing"],
+      "keywords": ["active directory", "domain trust", "one-way trust", "corporate accounts", "ot-admins", "local administrator", "it/ot identity"]
+    },
+    {
+      "id": "F5",
+      "domain": "network",
+      "severity": "HIGH",
+      "acceptable_severities": ["HIGH", "CRITICAL"],
+      "type": "defect",
+      "title": "Safety instrumented system (burner management) shares the process control network",
+      "description": "The SIL 2 burner management safety controllers sit on the same Level 1 VLANs as the process PLCs and accept trip resets from HMIs, so any compromise of the control network (or of the flat routed Level 1/2 network) can reach and tamper with the safety layer that protects the furnaces. IEC 61511 / IEC 62443 practice is to place the SIS in its own zone behind a conduit that allows only read-only status and tightly controlled, hardwired or authenticated resets.",
+      "sections": ["4. Control Network (Levels 0-2)"],
+      "evidence": [
+        "The furnace burner management systems, which are SIL 2 safety controllers, are connected to each line's Level 1 VLAN alongside the process PLCs so that HMIs can display flame status and send trip resets."
+      ],
+      "cross_section": false,
+      "stride": ["Tampering", "Denial of Service"],
+      "keywords": ["safety instrumented system", "sis", "burner management", "sil 2", "safety controller", "same vlan", "trip reset"]
+    },
+    {
+      "id": "F6",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "LOW"],
+      "type": "defect",
+      "title": "Controller key switches permanently left in REMOTE mode",
+      "description": "Leaving all controllers in REMOTE means logic and mode changes can be pushed from any host that can reach Level 1 with the engineering software, with no physical interlock. Given the flat Level 1/2 routing and several paths into OT, this removes a cheap defence against unauthorised logic changes. Recommend RUN mode by default, switching to REMOTE only under an approved change, plus controller change detection.",
+      "sections": ["4. Control Network (Levels 0-2)"],
+      "evidence": [
+        "Controller key switches on all lines are left in the REMOTE position so that logic changes can be downloaded from the engineering workstations without an electrician attending the cabinet."
+      ],
+      "cross_section": false,
+      "stride": ["Tampering"],
+      "keywords": ["key switch", "remote mode", "run mode", "plc", "logic download", "controller mode"]
+    },
+    {
+      "id": "F7",
+      "domain": "network",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "HIGH"],
+      "type": "defect",
+      "title": "Unused switch ports left live in control VLANs for contractor laptops",
+      "description": "Unused access ports in the control VLANs stay enabled so that unmanaged contractor laptops can be plugged directly into Level 1/2 without a change request. These transient devices bypass allowlisting, USB control and the DMZ file path, and give anyone with cabinet access an unauthenticated network foothold. Recommend disabling unused ports, port security or 802.1X, and a managed transient-device process such as a scanned, plant-owned maintenance laptop.",
+      "sections": ["4. Control Network (Levels 0-2)"],
+      "evidence": [
+        "Unused access ports on the Level 1 and Level 2 switches are left enabled in the line's control VLAN so that maintenance contractors can connect laptops for drive tuning without raising a change request."
+      ],
+      "cross_section": false,
+      "stride": ["Spoofing", "Tampering"],
+      "keywords": ["unused ports", "switch ports", "port security", "802.1x", "contractor laptop", "transient device"]
+    },
+    {
+      "id": "F8",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "acceptable_severities": ["MEDIUM", "LOW"],
+      "type": "gap",
+      "title": "No monitoring of industrial protocol traffic or controller changes at Levels 1-2",
+      "description": "Logging covers Windows hosts, firewalls and switches, but nothing observes EtherNet/IP traffic, so PLC program downloads, mode changes, firmware updates or new devices on control VLANs (such as the LTE routers or contractor laptops) would go undetected. Recommend passive OT network monitoring on the Level 1/2 switches with alerts to the SOC for controller writes, downloads and unknown assets.",
+      "sections": ["10. Logging and Monitoring"],
+      "evidence": [
+        "Windows event logs from Level 2 and Level 3 hosts, OT firewall logs and switch syslog are collected by the log relay in the DMZ and forwarded to the corporate SIEM, where they are retained for 12 months.",
+        "The SOC has alert rules for failed logons, new local administrator accounts, firewall rule changes and blocked connection attempts from the DMZ."
+      ],
+      "cross_section": false,
+      "stride": ["Repudiation", "Tampering"],
+      "keywords": ["ot monitoring", "intrusion detection", "ids", "network monitoring", "industrial protocol", "controller changes", "asset discovery"]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "id": "N1",
+      "title": "Vendor internet RDP access to engineering workstations lacks MFA, approval or oversight",
+      "why_not": "Section 8 requires a FIDO2 key for every gateway session, per-session supervisor approval for vendors and a four-hour limit; section 6 says credentials are vaulted and section 10 says every session is recorded.",
+      "evidence": [
+        "Approved equipment vendors connect from the internet to the remote access gateway in the DMZ and open RDP sessions to the engineering workstations in Level 3.",
+        "Every session through the remote access gateway requires a FIDO2 security key and ends automatically after four hours; vendor sessions must also be approved in the gateway by the on-shift production supervisor."
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Corporate users and ERP connect directly to the OT historian",
+      "why_not": "Section 3 states corporate users and the ERP only read a DMZ replica fed by an outbound push from Level 3, with no path back into Level 3; Table 2 confirms it.",
+      "evidence": [
+        "Quality and production engineers in the corporate offices use historian data every day for yield reporting, and the ERP system reads hourly production counts.",
+        "They read from the historian replica in the DMZ, which receives data only through the outbound push from Level 3 and has no connection path back into Level 3."
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "HMI auto-logon with a shared local account",
+      "why_not": "Section 8 confines hmi-operator to a kiosk shell with no admin or network logon rights, and operators authenticate by badge in the HMI application, with every control action attributed in an audit trail.",
+      "evidence": [
+        "Line HMIs start automatically at boot and log on with the local Windows account hmi-operator, so that operator screens are available immediately after a power cycle.",
+        "The hmi-operator account is a standard user confined by a kiosk shell to the HMI runtime and has no network logon rights.",
+        "Operators sign in to the HMI application with their badge, and each control action is recorded against the badge holder in the HMI audit trail."
+      ]
+    }
+  ],
+  "injection": null
+}

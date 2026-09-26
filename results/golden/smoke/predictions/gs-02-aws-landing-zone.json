@@ -1,0 +1,167 @@
+{
+  "doc_id": "gs-02-aws-landing-zone",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "Whole document",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "issue": "No dependency, container or supply-chain scanning is described in the pipeline.",
+      "recommendation": "Add SCA and container image scanning as blocking pipeline gates, publish an SBOM per release, and fail the build on new critical CVEs in direct dependencies.",
+      "standard_reference": "Secure SDLC Standard §4.2",
+      "kb_source": "application/secure-sdlc-standard.md",
+      "evidence_excerpt": "...on. 2. Design Principles - One workload and one environment per account, created through the account vending pipeline. - Preventive guardrails through SCPs, and detective guardrails through AWS Config conformance packs. - All h...",
+      "control_mappings": [
+        "NIST SSDF PW.4",
+        "ISO 27001 A.8.28",
+        "MITRE ATT&CK T1195.002"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-SDLC-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "5.1 IAM Identity Center",
+      "domain": "cloud_data",
+      "severity": "CRITICAL",
+      "issue": "Wildcard IAM permissions or a broad managed admin role is granted to workloads.",
+      "recommendation": "Replace wildcard grants with least-privilege policies scoped to the specific actions and resource ARNs the workload needs, generated from observed access and reviewed quarterly.",
+      "standard_reference": "Cloud Landing Zone Standard §4.1",
+      "kb_source": "cloud_data/cloud-landing-zone-standard.md",
+      "evidence_excerpt": "...|---|---| | ViewOnly | ViewOnlyAccess | All engineers | Workloads and Infrastructure accounts | | Developer | PowerUserAccess | Product teams | Workloads/NonProd accounts | | ProdOperator | Custom operations policy | On-call engineers...",
+      "control_mappings": [
+        "CIS AWS 1.16",
+        "NIST SP 800-53 AC-6",
+        "MITRE ATT&CK T1098"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "CLD-IAM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "5.2 Break-glass access",
+      "domain": "cloud_data",
+      "severity": "CRITICAL",
+      "issue": "Wildcard IAM permissions or a broad managed admin role is granted to workloads.",
+      "recommendation": "Replace wildcard grants with least-privilege policies scoped to the specific actions and resource ARNs the workload needs, generated from observed access and reviewed quarterly.",
+      "standard_reference": "Cloud Landing Zone Standard §4.1",
+      "kb_source": "cloud_data/cloud-landing-zone-standard.md",
+      "evidence_excerpt": "...s access Break-glass access uses two IAM users, bg-admin-1 and bg-admin-2, in the management account with the AdministratorAccess policy, which lets them assume OrganizationAccountAccessRole in every member account. Their passwords are stored in...",
+      "control_mappings": [
+        "CIS AWS 1.16",
+        "NIST SP 800-53 AC-6",
+        "MITRE ATT&CK T1098"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "CLD-IAM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "5.3 Third-party access",
+      "domain": "cloud_data",
+      "severity": "CRITICAL",
+      "issue": "Wildcard IAM permissions or a broad managed admin role is granted to workloads.",
+      "recommendation": "Replace wildcard grants with least-privilege policies scoped to the specific actions and resource ARNs the workload needs, generated from observed access and reviewed quarterly.",
+      "standard_reference": "Cloud Landing Zone Standard §4.1",
+      "kb_source": "cloud_data/cloud-landing-zone-standard.md",
+      "evidence_excerpt": "...s onboarded by deploying the CostwiseAutomation role to every member account with StackSets. The role has the AdministratorAccess policy so that Costwise can apply rightsizing and scheduling recommendations automatically, and its trust policy na...",
+      "control_mappings": [
+        "CIS AWS 1.16",
+        "NIST SP 800-53 AC-6",
+        "MITRE ATT&CK T1098"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "CLD-IAM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "11. Encryption and Key Management",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Encryption keys have no defined custody, rotation or escrow model.",
+      "recommendation": "Store keys in an HSM or managed KMS with dual control, define a rotation period per key class, separate key custodians from data administrators, and document the recovery procedure.",
+      "standard_reference": "Cryptography Standard §5.2",
+      "kb_source": "security/cryptography-key-management-standard.md",
+      "evidence_excerpt": "11. Encryption and Key Management Each account has customer-managed KMS keys per data classification, with automatic annual...",
+      "control_mappings": [
+        "NIST SP 800-57",
+        "ISO 27001 A.8.24"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-CRYPTO-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "5.2 Break-glass access",
+      "domain": "security",
+      "severity": "CRITICAL",
+      "issue": "Privileged or administrative access is described without multi-factor authentication.",
+      "recommendation": "Enforce phishing-resistant MFA (FIDO2 or certificate-based) for every administrative session, brokered through PAM with session recording and just-in-time elevation.",
+      "standard_reference": "Identity & Privileged Access Standard §2.1",
+      "kb_source": "security/identity-access-standard.md",
+      "evidence_excerpt": "...d in the infrastructure team's shared vault folder, which all 25 members of the infrastructure team can open. MFA is not enabled on the break-glass users, so that access does not depend on a hardware token being available during an incide...",
+      "control_mappings": [
+        "NIST SP 800-53 IA-2(1)",
+        "ISO 27001 A.8.5",
+        "MITRE ATT&CK T1078.002"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-IAM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Harbourline Mutual - AWS Landing Zone Design Owner: Cloud Platform Team, Harbourline Mutual. Version 2.0. 1. Purpose and Scope This document defines the...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:10:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

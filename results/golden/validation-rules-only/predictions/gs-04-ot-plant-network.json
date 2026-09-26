@@ -1,0 +1,121 @@
+{
+  "doc_id": "gs-04-ot-plant-network",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "7. Wireless Scanning Network",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Shared, generic or service accounts are used by humans.",
+      "recommendation": "Bind every human action to a named identity. Convert service accounts to workload identities with no interactive logon rights and vault any that must retain a password.",
+      "standard_reference": "Identity & Privileged Access Standard §3.2",
+      "kb_source": "security/identity-access-standard.md",
+      "evidence_excerpt": "...loading bays and each line. The scanners connect to the SSID CAL-SCAN using WPA2-Personal with a single pre-shared key, and the SSID is bridged to VLAN 213 on the Level 3 core switches. The warehouse supervisor loads the key ont...",
+      "control_mappings": [
+        "NIST SP 800-53 AC-2",
+        "ISO 27001 A.5.16"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-IAM-002",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "1. Purpose and Scope",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...MZ, remote access, the warehouse scanner wireless network, and the supporting identity, patching, logging and backup services. Corporate networks are defined in the Brennock corporate network standard and appear here only wher...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "11. Backup and Recovery",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "11. Backup and Recovery Nightly backups of the site historian, OT domain controllers, engineering workstations and all P...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "2. Plant Overview and Zone Model",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...erver, patch relay, log relay | 172.20.35.0/24 | | 3 | Site historian, OT domain controllers, OT file server, backup NAS, engineering workstations | 172.20.30.0/24 | | 2 | Line HMIs and SCADA servers | VLANs 210-213 | | 1 | PL...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Calderwick Plant IT/OT Network Architecture - High-Level Design Owner: Plant Automation Engineering, Brennock Industries. Version 1.3, approved for build...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

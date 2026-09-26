@@ -1,0 +1,2193 @@
+{
+  "edbfb1dbc5d774fb5b600dd0d1ec0ae76ec6e64ff646b7c41d1d7911f7e15733": {
+    "reason": "The reported finding specifically mentions an unauthenticated internal reporting API and recommends OAuth 2.0 authentication. Candidate C2 also describes an unauthenticated component (payment webhook), which is a similar underlying weakness.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "ba70bbdc2e852ec0653e6440ac42743d59d274269f908fa0aaedeb0aea576d3a": {
+    "reason": "The reported finding specifically mentions a read replica being publicly accessible and recommends restricting access via CloudFront with an origin access identity. Candidate C5 describes the same issue: a reporting read replica with customer PII is publicly accessible on port 5432, allowing internet-wide scanning and potential exploitation.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "7310cbd7bcf9a7d50015885ba10b61d2db4eda6484d0af3e9e943d3bbd4d6d9a": {
+    "reason": "The reported finding specifically addresses API endpoints exposed without authentication, and C4 directly describes an unauthenticated payment webhook, which is a type of API endpoint. The other candidates address different security concerns (data encryption, rate limiting on login, Kubernetes control plane access, IAM roles, Kong Admin API, and database accessibility).",
+    "matches": [
+      "C4"
+    ]
+  },
+  "339d6a6e94972db76bee2a77c46587b5664b064a68f5d1480271fb55a9766666": {
+    "reason": "The reported finding specifically highlights the risk of client-side input validation for payment information, which directly relates to the handling of sensitive card data. Candidate C3 explicitly mentions 'Card data (PAN/CVC) handled or stored by the checkout platform,' making it the closest match.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "92b5c010174428dbf44592271d963a861e45afadcde3ea17e4d4b3a4decc76d5": {
+    "reason": "The reported finding specifically mentions an unauthenticated webhook route, which directly corresponds to the vulnerability described in candidate C3 regarding forged payment confirmations due to the lack of authentication.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "8f2677bd35fbf0c7e9edd75877aceea46e05b007d5231974b650a6374e9f34a1": {
+    "reason": "The reported finding specifically addresses the long lifespan of access tokens and the need for rotation, which directly relates to the issue of access tokens not being revoked on sign-out or password change (C2). This is a failure to invalidate tokens appropriately after a user action.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "bfb4e629375c7a5b8b10b0a20458e13fd937c1912284849b170abf588bfaee02": {
+    "reason": "The reported finding specifically addresses the risk of relying on a single point of token validation and the need for validation at multiple points. Candidate C1 describes a similar issue where tokens remain valid even after actions like sign-out or password changes, indicating a lack of proper token revocation and validation across the system.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d6fe7874436a1a22e9eabac7e27226704aab53ab8ce89c05c16a3c423a0a7813": {
+    "reason": "The reported finding specifically addresses the lack of a stated classification for the orders database, which inherently involves customer data. Candidate C3 also mentions the customer PII database lacking encryption, which is a related concern about the security of customer data stored in the orders database.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "109a2f8da9b37f4cb491b0a1a9336d86d2ce19c60ace5bad1c91cf9f78ec7550": {
+    "reason": "The reported finding specifically addresses the configuration of S3 bucket access controls, focusing on public access blocking. Candidate C7 also discusses S3 access controls and the potential for over-privileged access, making it the closest match.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "a788ae10d2725bb67f15b5a68797055640356dab7beb3e6f64f0634cc3b26a78": {
+    "reason": "The reported finding specifically addresses the issue of overly permissive IAM policies (AmazonS3FullAccess and AmazonSESFullAccess) attached to workloads, granting excessive access. Candidate C3 mirrors this exact concern about over-privileged access via a shared node IAM role, directly aligning with the reported finding's description of the problem and recommendation.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "d8746f7d16fd20f06b22b8729f2f33a25362056e7fee392d854ae68f7e85db37": {
+    "reason": "The reported finding specifically addresses the lack of key management practices (cryptoperiod, rotation, revocation, recovery) for an RDS instance using a customer-managed KMS key, which directly relates to the encryption of data at rest. Candidate C1, concerning the lack of encryption at rest for a customer PII database, shares this underlying weakness.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "b478b09ffef7f4ed9b53278bb0d298f673f02550c1ebad94c08314d53da4a3bb": {
+    "reason": "The reported finding specifically addresses the lack of testing for the Disaster Recovery (DR) runbook, highlighting a failure to maintain a critical operational procedure. None of the candidate issues relate to DR testing or runbook maintenance; they address different security concerns like password policies, audit trails, data handling, or API access.",
+    "matches": []
+  },
+  "6a4c7337cfb064a054e71bf126c7795505cc24da119231a8208780016c93796f": {
+    "reason": "The reported finding specifically addresses a conflict between the Recovery Point Objective (RPO) and the backup interval, indicating a potential gap in data recovery capabilities. This relates to the handling and storage of sensitive data, particularly card data, which is a core function of the checkout platform.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "52822df3e6351afe8e49366ee453f8b5b2038a27db130e02893592bb989f83f2": {
+    "reason": "The reported finding specifically addresses a mismatch between a stated Recovery Time Objective (RTO) and the lack of a corresponding restore time, indicating a gap in the availability and disaster recovery plan. None of the candidate issues directly relate to this specific availability target mismatch.",
+    "matches": []
+  },
+  "05f0034637aa2aa77da27f51c5e6c6eccac4c5e8394ec3c45f4e2567853d344d": {
+    "reason": "The reported finding specifically highlights the lack of role-based access control (RBAC) and the single permission level in the order-admin backend, allowing employees full admin rights. Candidate C6 mirrors this exact issue, describing the order-admin UI granting full admin rights to all employees and the single permission level, leading to potential insider fraud and data exfiltration.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "012c83de94c6a3f26bcd69aadc4ac26935c396a98748a6c84ca76c00f6d951c2": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data being written to application logs, and C3 directly mentions card data being handled by the checkout platform. This aligns with the finding's concern about masking or omitting sensitive data like card data from logs.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "b271375d08a9f51859eb8b3156d03d413c8bc0e3b4bb1187e770ac956b900e49": {
+    "reason": "The reported finding specifically addresses the lack of key management practices (cryptoperiod, rotation, revocation, recovery) for a KMS key used to encrypt data at rest. Candidate C2 also highlights a lack of encryption at rest for a customer PII database, which aligns with the core issue of data encryption and key management.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "98913fd831eb158c79f9601e007efa302b4c136ce0eebfc2b2c25bc7e52f7d54": {
+    "reason": "The reported finding specifically mentions a lack of network segmentation for tenant isolation and the existence of a flat network segment. Candidate C1 describes a significant network exposure issue (Kong Admin API reachable from the entire corporate network), which directly relates to the lack of proper network segmentation and isolation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "c58aa06697da087c8d84c8ee292fc3e7a9076026cd1481372002d3c44c685805": {
+    "reason": "The reported finding specifically addresses the lack of key management practices (cryptoperiod, rotation, revocation, recovery) for a customer-managed KMS key used to encrypt an RDS instance. Candidate C2 also concerns encryption, but it focuses on the encryption of a PII database, which is a different component than the KMS key used for RDS encryption.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "69c40e20399bbaf1073cb13a8192077425c59ad17b29ff18a9593e7381fea992": {
+    "reason": "The reported finding specifically addresses the issue of management and database ports being reachable from the internet, which aligns with candidate C1's description of the Kong Admin API being accessible from the corporate network without authentication.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "a57910dff5cc2127e6d433a808955e9a2a21c93fea4bb1ec35868c360192b9f7": {
+    "reason": "The reported finding focuses on the lack of network segmentation for tenant isolation, which directly relates to the potential for unauthorized access and data exposure between tenants. Candidate C1 describes a lack of encryption, which would expose PII data and is a similar security weakness related to data isolation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "0b09d124e5ea62a31fbabd51ac8c5424b0a4ee2e000fa02aa561c97a193c0952": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, highlighting a critical gap in disaster recovery preparedness. Candidate C1, concerning a publicly accessible database replica, also represents a significant data security and availability risk, as a compromised or unavailable replica would directly impact recovery efforts.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "860cdfbbd9233237d544fdca76a353fad2d676af8ff9e07c7d977569023013e1": {
+    "reason": "The reported finding specifically addresses the lack of a defined model for encryption key management, including custody, rotation, and escrow. Candidate C1 directly relates to the handling and storage of sensitive card data (PAN/CVC), which would necessitate robust encryption key management.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "0f4123b98fd5246a72c5bb37674ad2124b510adf82c780bd386f71a4ff2ddf02": {
+    "reason": "The reported finding concerns the effectiveness and maintenance of AWS managed rule groups, specifically their potential to become outdated and ineffective. Candidate C3 also addresses a lack of protection (rate limiting) which is a similar concern about the effectiveness of security controls, making it a relevant match.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "30f07c5b97a36cd21914e311ce4153349029f877088bac1999e5c8ff5d509a5d": {
+    "reason": "The reported finding specifically mentions the lack of rate limiting on externally reachable endpoints, which directly aligns with the description of candidate C4, which also highlights the absence of rate limiting on login and registration endpoints.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "277406810dee8501c4922cf1580d149dae94bd9345fe18cf4e2e233f7dc0bd42": {
+    "reason": "The reported finding specifically addresses the lack of per-principal rate limiting on API routes, which is a concern about abuse and resource exhaustion. None of the candidate issues describe this specific weakness related to API rate limiting.",
+    "matches": []
+  },
+  "c5e5fe928d333cc854e90cf178f869c4e451949804b456166154ae395ef9ac82": {
+    "reason": "The reported finding specifically addresses the lack of input validation from an external API (PayCrest) and the need for a positive schema. Candidate C6 also describes a vulnerability related to unauthenticated webhooks allowing forged confirmations, which is a similar issue of failing to validate external input.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "83e7bfcbc0e389697b3c7e37cf1dfd6c9ebf6d6faf000589fac5aa56b8455665": {
+    "reason": "The reported finding specifically addresses the lack of algorithm pinning for token validation, which relates to the security of access tokens. Candidate C4 also discusses access tokens and their validity, making it the closest match.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "c163b5898d34ae30da23be09ac9161769e17bf30ca79ee48fe5724f8c3f14f20": {
+    "reason": "The reported finding specifically addresses the lack of logging of Authorization and Cookie headers within Kong access logs, which is a configuration issue related to Kong's functionality. None of the other candidates describe a similar weakness or relate to Kong configuration.",
+    "matches": []
+  },
+  "cd79f9dcc7dcc1110b43f967d4914eb151d6571c542f79e2323109346ad58442": {
+    "reason": "The reported finding mentions a lack of specific remediation guidance and requires architect input, which aligns with candidate C1's description of a publicly accessible database replica with sensitive data and a need for architectural review to determine the appropriate security measures.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "2a0b6b4cc98bd025dcae0dcf7e5b6d13df9751777b6edd8883504051f2f924c3": {
+    "reason": "The reported finding mentions an unspecified issue in the network design requiring architect input, and C1 is the only candidate that directly relates to a network-related security concern (encryption in transit/at rest for a database). The other candidates address different issues like access control, password policy, API security, data exposure, and auditing.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "36aa3afec9442d2b85be983de4499a0ada1b1936f145b47e268a8947bdee0158": {
+    "reason": "The reported finding specifically highlights the lack of data classification, which directly impacts security controls like encryption and access logging. Candidate C1, regarding the customer PII database lacking encryption, is the only candidate that directly relates to a missing security control stemming from a lack of data classification.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "5a7d12d73a82f874922b971771ad6adc303848f05a4617ba09ca458904668d98": {
+    "reason": "The reported finding specifically addresses the lack of defined trust boundaries, which directly impacts the effectiveness of security controls like authentication, filtering, and encryption. Candidate C1, concerning the lack of rate limiting on login endpoints, highlights a failure to adequately protect a critical boundary (the login interface) and therefore aligns with the finding's concern about the absence of defined boundaries and their impact on control effectiveness.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "514fe442bf78cec686ab82f4b63dccb7d0b9b375d40cb15a63e6437793ffeac2": {
+    "reason": "The reported finding explicitly calls for a threat model and attack surface analysis, which is a high-level design consideration. Candidate C1, regarding the lack of encryption for the customer PII database, represents a specific vulnerability that should be included in a threat model and attack surface analysis.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "449bfa73e62e42977fdc4158ba2463a6af39f544d0e8ece95b7a1392a8655467": {
+    "reason": "The reported finding specifically addresses the handling of card data and whether Larkfield systems need to handle it securely. Candidate C1 directly relates to card data being handled or stored by the checkout platform, which is the core of the reported finding's discussion.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "6e88d11171ab6e920efab13e635eeeedaaa611be3436ef8b22d695db86292200": {
+    "reason": "The reported finding discusses TLS versions and compliance with a specific requirement, while the candidate issues focus on data exposure, access token management, login security, encryption, card data handling, IAM roles, and password policies. None of these issues relate to TLS versions or compliance.",
+    "matches": []
+  },
+  "fd5a4818490ed88804845e19c427fd100e007e4d942ec250ece4ed271c9712d5": {
+    "reason": "The reported finding specifically mentions IAM Identity Center and the lack of MFA enforcement for administrative access. Candidate C7 directly addresses the same issue: MFA not being enforced for workforce access through IAM Identity Center.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "7fd1c309376e94bbcc3583e1904a13454d8595ea672bf185505ac1b0cf020569": {
+    "reason": "The reported finding specifically mentions \"wildcard permissions are assigned to workloads,\" which aligns with candidate C7's description of the `datalake-etl` role trusting every principal in the organization and granting broad access to the data lake. This represents a similar weakness of overly permissive access controls.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "c669baa07ececad6ac632b6e021369e9624d8eb7c660ec59c2e9fbc6cb736a61": {
+    "reason": "The reported finding specifically addresses the issue of overly permissive IAM permissions granted to workloads. Candidate C2 also describes overly permissive IAM permissions (specifically, break-glass admin users with AdministratorAccess), making it a direct match.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "f7f0bee42a6065c63a7089167875d0569645a948ced06c35ea9027187c024bef": {
+    "reason": "The reported finding specifically addresses the issue of overly permissive IAM permissions granted to workloads, which directly aligns with candidate C5, which describes a third-party vendor holding broad AdministratorAccess across all accounts. Both findings highlight the risk of excessive privileges and the potential for compromise due to overly broad access.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "1c8284e698717c25a4521591f70b832f610c52c4ecc9507fd66036a8dc1a24f7": {
+    "reason": "The reported finding specifically addresses overly permissive IAM permissions granted to workloads, allowing broad access. Candidate C6 directly mirrors this issue by describing a third-party vendor holding standing AdministratorAccess in every member account, which constitutes a significant overgrant of permissions.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "9c34abc41ca376d751e2dbbdb9137b8b61c536e94a735ad7eec53c8c329c629e": {
+    "reason": "The reported finding specifically addresses the lack of multi-factor authentication (MFA) for privileged access, particularly in a 'break-glass' scenario. Candidate C4 directly mirrors this concern by highlighting break-glass admin IAM users lacking MFA and sharing passwords, which aligns with the finding's focus on privileged access without MFA.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "bb1d7d02d7cc5abe1a44be59e7906618fd0718ce7c1217711cfe49ebacee1570": {
+    "reason": "The reported finding specifically mentions the CostwiseAutomation role having AdministratorAccess, which is directly addressed by candidate C7, which also describes a third-party vendor having AdministratorAccess in multiple accounts.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "e9ce56543ab1bfb91b2a7ea28dc664be336a4e412c36fca8e79d0e90162c931f": {
+    "reason": "The reported finding specifically mentions unencrypted on-premises connectivity via Direct Connect and recommends an IPsec overlay. Candidate C5 directly addresses this same issue of unencrypted Direct Connect traffic.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "a99ff44f10318630c7c68bd2417e138b4e677ac3dc6f1e189b25c9bc364bde2a": {
+    "reason": "The reported finding specifically addresses the lack of inspection for spoke-to-spoke traffic and the absence of a centralized inspection VPC, which directly aligns with the description in candidate C1 regarding uninspected east-west traffic and the lack of network segmentation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "4c1f9b829125d42dacdf6e9e34f2118f8602b39ab5e24179202dc5782e845677": {
+    "reason": "The reported finding specifically mentions spoke-to-spoke traffic bypassing inspection and a violation of network topology, which aligns directly with candidate C2's description of any-to-any routing between environments without inspection.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "f2d54d6a35ac0e71bad8bf7c67f960a27be034112069041edb8ccc9c59a5cb66": {
+    "reason": "The reported finding specifically mentions the `datalake-etl` role having excessive read and write access to all data lake zones, violating the principle of least privilege. Candidate C1 directly addresses this issue by highlighting the role's broad permissions and the potential for developers to exploit them.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "77b3eaee4c966b0ba4abd3c158e68ae8cc7b4c2436551ae7b8042802628053c2": {
+    "reason": "The reported finding specifically addresses the lack of defined cryptoperiods and rotation mechanisms for key classes, which relates to encryption key management. Candidate C1, concerning unencrypted Direct Connect traffic, also involves a failure to encrypt data in transit, aligning with the core issue of inadequate encryption practices.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d02db4e84370363f8e2d1a0c4f9c44144a8a1e1c52af4cc81e09207f5891c0ca": {
+    "reason": "The reported finding specifically addresses the lack of a key recovery or escrow procedure, which is a critical aspect of encryption key management. Candidate C1, involving shared medical claim files without access control, doesn't relate to key management or recovery; it's an access control issue.",
+    "matches": []
+  },
+  "dfd559b1fb5ddc8ec4229cfbff932290f9a5daab2b194e59e2e94f4a43858251": {
+    "reason": "The reported finding specifically addresses the lack of phishing-resistant MFA for break-glass access, and candidate C1 directly describes break-glass admin IAM users lacking MFA and having shared passwords, which aligns with this weakness.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "9d64f3aa7663eaedaeaa69b555fae034265f4d254b7c5546319279f4313331c1": {
+    "reason": "The reported finding specifically addresses the risk of administrators connecting to production systems from general-purpose workstations and recommends using a privileged access management (PAM) solution. Candidate C6 also highlights a significant issue with break-glass admin users lacking MFA and having shared passwords, which directly relates to the broader concern of uncontrolled privileged access.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "03af1ebe1ad6c0ad4a0963eefe6833b6d2de79701cc6236b7ecd079e43453ecf": {
+    "reason": "The reported finding specifically addresses the configuration of Service Control Policies (SCPs), focusing on the 'DenyAll' rule and the lack of explicit logging. None of the other candidate issues relate to SCP configuration or the specific 'DenyAll' rule requirement.",
+    "matches": []
+  },
+  "3cd226fe5a76b4128a4ea55def0486b7ca2c45975aea081df9d36ec98f435241": {
+    "reason": "The reported finding specifically highlights the datalake-etl role having excessive permissions (read/write access to all zones) and violating least-privilege principles, which directly aligns with candidate C5's description of the same role trusting every principal and having broad access to the data lake zones.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "884a4dd3c12861195679396ecfc5b897d8d1ba47050171fb93c0827bd953f023": {
+    "reason": "The reported finding specifically mentions unencrypted on-premises connectivity, which directly aligns with candidate C4's description of Direct Connect traffic to on-premises being unencrypted. The finding also references a lack of inspection of spoke-to-spoke traffic, which is also a consequence of the single Transit Gateway route table described in C3.",
+    "matches": [
+      "C3",
+      "C4"
+    ]
+  },
+  "16cab4d16d046348f48fb6f588291af80d6e07b14bfbe58157cfac1ec5c36369": {
+    "reason": "The reported finding specifically addresses the lack of inspection for traffic flowing between VPCs (spoke-to-spoke traffic). Candidate C2 directly describes a scenario where traffic between different environments (sandbox, non-prod, prod, and on-premises) traverses a single Transit Gateway route table without inspection, thus bypassing any potential security controls.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "496daba10ec8b3e3baacb8b999dc645e45143052b4de63e15b84e36106309cd3": {
+    "reason": "The reported finding specifically addresses the lack of defined cryptoperiods for key classes, which relates to key management and security design. Candidate C7 also describes a security weakness related to overly permissive access and trust policies for a role that handles sensitive data, which is a key management concern.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "cc2f6a2ef7584ec660a3107af192efec75548eed75341ffb912ffa78361f0974": {
+    "reason": "The reported finding specifically addresses the lack of defined key management practices (custody, rotation, escrow) for encryption keys. Candidate C1 describes a data sharing issue without access control, which is unrelated to key management.",
+    "matches": []
+  },
+  "20ad0d63649ebc42086b5fa7d281bc9cff95ad0de0a3c585e043511a8c4c7570": {
+    "reason": "The reported finding specifically addresses the lack of alignment between S3 Object Lock retention periods and business/regulatory requirements, highlighting a data protection standard violation. Candidate C3 also describes a significant data access control issue related to the data lake ETL role, which could lead to data retention beyond necessary periods and a lack of proper governance.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "eec38f4a9ac7828e8be2cb865ede0067fa5b1b82aacc4fb5709f232a2dc7c647": {
+    "reason": "The reported finding specifically addresses the lack of explicit MFA enforcement for administrative access, mirroring the issue described in candidate C6 regarding break-glass admin IAM users lacking MFA. Both highlight a deficiency in MFA implementation for privileged accounts.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "18499c7f13a4d9e0ed647156eee31a3c609e2091e558a5ca3aca1f157b18c9c9": {
+    "reason": "The reported finding concerns the practice of assigning permissions to groups rather than individual users, which increases the risk of overly broad access. Candidate C6 also highlights a deficiency in access control within IAM Identity Center by noting that MFA is not enforced for workforce access, which is a related issue of overly permissive access.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "d3ae614e272fb84ecfc615f45861825d159c14a30ade6c4c09a6d8d8dbd6bc19": {
+    "reason": "The reported finding specifically addresses break-glass access credentials being stored in a shared vault folder with broad access and lack of dual control, which directly aligns with candidate C1's description of break-glass admin IAM users sharing passwords and lacking MFA.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "dec1b8aa30c5ee4828f4b0278f6b4871f2a66fb4b628663b3d0df2e42c263601": {
+    "reason": "The reported finding focuses on the lack of security scanning (SCA, container scanning, SBOM generation, CVE checks) within the build pipeline. Candidate C7 describes a scenario where developers in sandbox accounts can create roles that assume a data lake ETL role, potentially introducing vulnerabilities and dependencies that would benefit from the scanning practices mentioned in the reported finding.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "197aa10a88b8c58143bb9598592fe2800ad4165b3e7d9c561e363908dab1467b": {
+    "reason": "The reported finding mentions an unspecified issue requiring architect input, but the detail in candidate C1 about the Data OU lacking SCP guardrails and not being listed in the attachment table directly aligns with a critical gap in security controls and necessitates architectural review. The finding's need for architect input strongly suggests a design or configuration oversight, which C1 describes.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "e4026c96fef7efee234bff9a41c2eca76412c5ff28151380443852ef26537864": {
+    "reason": "The reported finding mentions an unspecified issue requiring architect input, and candidate C1 describes a significant trust policy issue with the datalake-etl role granting excessive permissions to a wide range of principals, which would necessitate architect review to understand the design intent and potential risks.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "69740f9fbb1ca68b145003575d5668c280d4d4479e2558d8cf1694cbe51429ba": {
+    "reason": "The reported finding highlights the lack of defined trust boundaries, which directly impacts the assessment of security controls. Candidate C1, regarding unencrypted Direct Connect traffic, represents a boundary crossing where the lack of encryption exposes a vulnerability due to the absence of a clearly defined trust relationship and its associated security requirements.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "48a01687ec2c4ed79039caadf245bfc147a738ddf971dbe55a2be25a8e95f30f": {
+    "reason": "The reported finding highlights the lack of a threat model and attack surface analysis, which directly relates to the absence of proactive security considerations and risk mitigation. Candidate C3, concerning break-glass admin users without MFA and shared passwords, exemplifies a significant security vulnerability stemming from a failure to adequately consider and mitigate potential threats.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "b8bce48555eb3c60e14c109731e8001301eab4390657f1dbfdae35b52c39d237": {
+    "reason": "The reported finding concerns the lack of stated availability targets and recovery approaches, implying a potential for single points of failure and a lack of redundancy. Candidate C2 also highlights a significant architectural flaw – a single Transit Gateway route table enabling unrestricted routing between environments, which directly creates single points of failure and a lack of segmentation.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "d97d14f47cb94c7dcd7ab5c1a24383a405b3af0c9ed733b5f249b1d18da8ef99": {
+    "reason": "The reported finding specifically mentions FHIR API endpoints lacking authentication, which directly relates to the lack of per-patient access control in the FHIR API as described in candidate C2. While C1, C3, C4, C5, C6, and C7 all describe security vulnerabilities, they do not pertain to the FHIR API's authentication issue.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "0314156930dfc234801a4386588b026875bb7c09417b7205175cfb7e9295c275": {
+    "reason": "The reported finding specifically mentions the lack of authentication for the internal reporting API and recommends OAuth 2.0 implementation. Candidate C1 describes a similar issue where the audit trail lacks proper user attribution due to the Results Viewer using client credentials instead of user tokens, effectively masking individual clinician actions.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "f1b735248f24ccf8eb1ce7180d003525ce654f2c6e83d8d3956cc7a63608601c": {
+    "reason": "The reported finding specifically addresses the access token lifetime in the My Health patient app, which directly relates to credential management and authentication. Candidate C4 also describes a weakness in the My Health patient app's account security, specifically the lack of MFA and password-only authentication, which is a related credential management issue.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "0eb1b0608666a3c8623fcbc49058f5336c65199ea384750776510b7f60c7ba62": {
+    "reason": "The reported finding focuses on the lack of attribution of clinician access due to the use of a client-credentials token, which results in all queries appearing as the Results Viewer rather than a named user. Candidate C1 directly addresses this issue of missing clinician attribution in the audit trail.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "67e1ae23b9aae0ca7a761f7e030d456989904f76101a975bfea4190b27753185": {
+    "reason": "The reported finding specifically mentions the CDR loader's write access to the PostgreSQL database and the risk of SQL injection. Candidate C4 also describes a shared account with write permissions used by multiple components, which could be exploited to inject malicious SQL queries into the database, mirroring the reported vulnerability.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "a9cc3a8232327b5dc3286e8bfc87d1f622616b44f7e4c79b94d5b4270dc99faa": {
+    "reason": "The reported finding specifically addresses the lack of a defined cryptoperiod and key rotation mechanism for data encryption keys. Candidate C6 also highlights a lack of encryption at rest for the clinical data repository, which directly relates to the management and rotation of encryption keys to protect PHI.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "a067e4ec83d320288d826f1ffa029cf2cd3934dc5127a2c36349d995c09bec3b": {
+    "reason": "The reported finding specifically addresses the lack of a key recovery or escrow procedure for unrecoverable keys, which is a critical aspect of data protection. Candidate C7 also discusses encryption and key management, specifically highlighting the absence of encryption at rest and the need for key management practices, making it the closest match.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "7a72fa9d6c9dc455fedf9cdcb0a5f84d2df472158529b3ab3f031dc32d2e9163": {
+    "reason": "The reported finding focuses on the lack of network segmentation (micro-segmentation) and the resulting uncontrolled server-to-server traffic. Candidate C4 describes a similar lack of segmentation and control, as it highlights a single shared account granting broad permissions across a messaging system, enabling unauthorized access and manipulation of PHI messages.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "f4b1817053b6f1cd46ed269e5694d177788376b03b6cd823b99c2d04e83cd02d": {
+    "reason": "The reported finding specifically addresses the lack of micro-segmentation for server-to-server traffic, which allows unrestricted communication between servers within a zone. Candidate C4 describes a shared RabbitMQ account granting broad permissions to producers and consumers, effectively enabling unrestricted communication and data access, mirroring the core issue of the finding.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "fc91cb8239ba39055d631571c2c22351552b149da62dc8a2a0ae2a6ee30f936e": {
+    "reason": "The reported finding focuses on the lack of micro-segmentation and unrestricted intra-zone traffic, which allows unauthorized server-to-server communication. Candidate C5 describes a similar weakness: a single shared account granting excessive permissions across multiple components and third parties, enabling unauthorized access and potential data manipulation.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "25d2a8f9021d4c993a020a7d061a3a68df3b8e27534db5a5dc6b825cc20f92ce": {
+    "reason": "The reported finding specifically addresses the lack of immutability or object lock on backups, which directly relates to protecting backups from ransomware and ensuring their integrity. Candidate C1 highlights unprotected PHI backups sent to a third-party provider, which is a similar concern about backup security and integrity.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "e3fd01c891c5e245b982e7508ad626f75416e3a4147eac5776c28e9115865004": {
+    "reason": "The reported finding specifically addresses the lack of network segmentation and controlled access for the integration engine, which aligns with the issue described in candidate C6 regarding the integration engine's admin console being exposed with shared credentials and lacking proper access controls.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "532e47b9ea2e68c6de2fab19202b6e740576f59dfdc563e104527a3c4b5f6963": {
+    "reason": "The reported finding concerns a network design issue - specifically a flat network architecture lacking proper segmentation and inspection of inter-zone traffic. Candidate C3 also describes a lack of proper segmentation and access control within the integration platform's messaging infrastructure, making it vulnerable to unauthorized access and manipulation of PHI.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "a3d6be82da81bbacade3253ae08e0335e34fc877be11b48de15bec888e6cc014": {
+    "reason": "The reported finding concerns unrestricted intra-zone traffic, highlighting a lack of east-west controls and a deviation from a Zero Trust Architecture. Candidate C1, regarding the lack of per-patient access control for FHIR API requests, also points to a similar weakness: a lack of granular access controls and a failure to enforce the principle of least privilege.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d28952bfbc9c0b3705b048e193fe3e2e9d355edc5f9639570de58eefd42e7246": {
+    "reason": "The reported finding highlights the lack of data classification, residency constraints, retention periods, and approved routing for sensitive data. Candidate C1 directly describes a scenario where identifiable lab results are stored on a file share with broad access, lacking any stated classification, retention period, or approved routing, thus aligning with the finding's core concern.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "22d1d7b62546588841e91c2aa8e8d40a76821442d4ab37de13d65d66f1d0adea": {
+    "reason": "The reported finding focuses on the lack of immutability, offline copies, and tested restores for backups, highlighting a weakness in data protection and recovery procedures. Candidate C3, which describes PHI backups sent to a third-party provider unprotected, directly addresses this same weakness in backup security.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "6fd94092037dc6c25f028302d982605a58ae499e54f7cabb1155eb48bf01af29": {
+    "reason": "The reported finding specifically addresses the lack of a defined key management model, particularly concerning encryption keys. Candidate C6 also highlights a critical lack of encryption at rest, directly relating to the management and protection of encryption keys used to secure PHI.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "71e9e4af62f4d2efbb2a45029bbc2f84508793ca9fe80b0ab7cc5e3e761effba": {
+    "reason": "The reported finding concerns the lack of proper user attribution during authentication, specifically highlighting that access is being recorded as the application's client ID rather than the individual user. Candidate C1 describes a similar issue where clinician access is not attributed in the audit trail due to the Results Viewer using client credentials.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "3cdfeda7914aea8c769bce6930b93f5ae7b0f79a2ef9e4698b59644feb02ba01": {
+    "reason": "The reported finding specifically addresses the issue of production data being copied into the test environment, violating environment separation. Candidate C1 describes a secondary copy of PHI being stored outside the CDR, which is a form of data duplication and a related environment separation concern.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "68048ca65ccf96b2697b7defd9160db27168d7c8c06fcc3d115dc91b4ad9b466": {
+    "reason": "The reported finding concerns the use of TLS versions and the potential benefit of using TLS 1.3. Candidate C7 also addresses encryption, specifically the lack of encryption at rest for the clinical data repository, which is a related security control.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "8d5c9fc2a2aa323e451fe96cc17850882a176e3f09375bb00e9a382613ff1aa3": {
+    "reason": "The reported finding specifically mentions the lack of logging for privilege escalation and role assignment changes, which directly relates to user access control and management. Candidate C2 also describes a deficiency in attributing clinician access to patient records, highlighting a similar weakness in the audit trail's ability to track user actions and identify responsible parties.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "b26050cf77efa3d1497646956a2b02dc3e1186912e943a2552f31f206c453026": {
+    "reason": "The reported finding specifically addresses the lack of a defined retention period for security logs, which implies indefinite storage and potential compliance issues. Candidate C7 also highlights indefinite storage of PHI message payloads, indicating a similar weakness regarding data retention and lifecycle management.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "e71535f57e3565a3e50a594edd4cbfa769670eaa1b9759a851b78e65287b7ba9": {
+    "reason": "The reported finding specifically addresses the lack of east-west controls and micro-segmentation for server-to-server traffic within a zone. Candidate C6, regarding the integration engine admin console published to the internet, highlights a similar lack of segmentation and control over access to a critical component, making it the closest match.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "05d5649d06fad898a03019e677bd1c40ae3b3d6e26ac2d0ac6dd8e5f23ce1e39": {
+    "reason": "The reported finding concerns a lack of east-west controls, specifically the absence of micro-segmentation to constrain server-to-server traffic within a zone. Candidate C7 describes a single shared account with broad permissions used by multiple producers and consumers, effectively lacking segmentation and control over message flow, which aligns with the finding's concern about uncontrolled traffic.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "1e98c8fb85e1fafd0483e01de7bedf4bdfb0f21129e9622e7489553778debaca": {
+    "reason": "The reported finding concerns the lack of network segmentation and the absence of micro-segmentation to constrain traffic between zones. Candidate C5, regarding the shared RabbitMQ account, also highlights a lack of segmentation and overly permissive access controls, creating a similar weakness regarding uncontrolled data flow and potential compromise.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "5ffb0d270555a5ec316110e7eadb2818d3a67aeb2ec00c3ea32af888bf0565f8": {
+    "reason": "The reported finding specifically highlights a security risk related to the use of RabbitMQ and the lack of proper access controls, which directly aligns with the issue described in candidate C3 regarding a single shared RabbitMQ account with excessive permissions.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "cd6da760b0972cf49e5525b2e24841a074431746c256f71d0ed3d708421220c4": {
+    "reason": "The reported finding concerns the lack of micro-segmentation to constrain server-to-server traffic, which relates to access control and data flow limitations. Candidate C3 describes a single shared account with broad permissions, effectively negating access controls and enabling unauthorized data access, mirroring the finding's concern about uncontrolled traffic and access.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "44987757b8a0e5b474e09595e79164827cae19e12692e88960b0834cd910cb40": {
+    "reason": "The reported finding concerns the lack of a defined trust relationship between network zones (DMZ and application zone), which implies a potential security boundary weakness. Candidate C6, regarding the integration engine admin console published to the internet with a shared vendor account, also highlights a similar boundary weakness and lack of proper trust/access control between zones.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "44f298e42b693a012f95c86c5beabf1727761feac91a428bf4d7bfbaa1e53971": {
+    "reason": "The reported finding focuses on the completeness of flow matrices and the ability to review and reproduce firewall policies, which relates to data flow control and access. Candidate C2 also describes a significant control weakness (shared RabbitMQ account with excessive permissions) that allows unauthorized access to PHI messages, directly impacting data flow and access control.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "28d25dc1268cab47e2d9be824c623ebbf5d346a42ef852d365ba05f44bc4ebe0": {
+    "reason": "The reported finding mentions an unspecified issue requiring architect input, which aligns with C1's description of a lack of per-patient access control in FHIR API requests. The finding's need for architect input suggests a gap in defined controls, mirroring C1's lack of access control.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "7cb6bf886059f4f314bdc425841c0928f708a44ae90511375072365c7c561d74": {
+    "reason": "The reported finding specifically highlights the lack of data classification, which directly impacts retention, residency, encryption, and access logging. Candidate C1 describes indefinite storage of full PHI message payloads without defined retention or pruning, directly relating to the missing data classification and its consequences.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "fa6154102f36615ddfa6568ddbe5951b24f8e9df97c7d960caf044d680052cde": {
+    "reason": "The reported finding specifically calls out the lack of a threat model and attack surface analysis, particularly concerning trust boundaries and mitigations. Candidate C1 describes a significant bypass of access controls and audit trails, creating a clear trust boundary vulnerability that requires threat modeling and mitigation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "18cabd178d9043c1106109d316ee2c22877e9214fcd1681b840f4d1f5609ebcc": {
+    "reason": "The reported finding states an unspecified issue requiring architect input, indicating a fundamental design flaw or missing information. Candidate C1, which describes direct connectivity between corporate users/ERP and the OT historian, represents a similar unspecified and potentially critical architectural weakness that needs clarification and remediation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "0b558dec4430b30bc2aa32be1d33ff4b488513150cf987736d84698ada284f02": {
+    "reason": "The reported finding specifically highlights the lack of a hardened jump host for RDP sessions to engineering workstations, which directly relates to the risk of unauthorized access and control. Candidate C5 also describes a lack of MFA and oversight for vendor RDP access to engineering workstations, mirroring the same underlying weakness of inadequate access controls and potential for unauthorized remote administration.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "d07e130e0f3a6aa8fa0b1ce7e8904cc0fd54482a62331ba32594eba72e04e4b3": {
+    "reason": "The reported finding specifically addresses the lack of real-time log forwarding from the remote access gateway to the central SIEM, highlighting a deficiency in centralized logging and detection capabilities. Candidate C6 also describes a lack of monitoring of industrial protocol traffic and controller changes at Levels 1-2, which is a related weakness in the overall logging and monitoring architecture.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "c38a5b38cf6569bbd32120b46dca535d9fe14c84eda4b3c634709042226c8652": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline backups, and tested restores for backups, which directly relates to the resilience of the system against compromise. Candidate C7, regarding HMI auto-logon with a shared local account, also highlights a weakness in backup and recovery practices by creating a vulnerability that could lead to data compromise and the need for recovery.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "0ca3be1b2153414279d834ba91cb45c26bacd80d4880075cc35808518b63bd2e": {
+    "reason": "The reported finding concerns the lack of segmentation between tiers (presentation, application, and data) and the absence of defined trust relationships. Candidate C1 describes a similar lack of segmentation, as the safety instrumented system (SIS) shares the process control network, which violates the principle of isolating critical safety functions from potentially compromised control systems.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d703a085d9264bc1d8084fc08ffe2b0c82ce9ba4b205ec48b9664efba0bbcf53": {
+    "reason": "The reported finding concerns a Layer 3 boundary not being at the distribution layer, which implies a flat network design lacking proper segmentation. Candidate C1 describes a flat, ACL-free network where a compromised Wi-Fi key grants access to Level 1/2, directly reflecting this lack of segmentation and boundary control.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "9d990f887f30bfb6164e7939a8ad96350babb08ff0a120ac9e9bbd03c85f24f2": {
+    "reason": "The reported finding focuses on the risk of administrators accessing production systems from general-purpose workstations, which directly relates to the issue of engineering workstations bridging the corporate LAN and OT network (C1). This allows a compromised corporate host to directly reach OT systems, bypassing security controls and creating a similar risk profile.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d1cf0a13f7340d1afb7c427522b891746c2e9971c77f58fca5aa71b5d1e95299": {
+    "reason": "The reported finding specifically mentions the OT Active Directory domain trusting the corporate domain and the implications of corporate accounts having admin rights within the OT environment. Candidate C4 mirrors this exact concern about the Active Directory trust, nested groups, and the resulting privilege escalation risk.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "b08d193c130abc623764f571bc7f41d2dd455ddebdd372ca70aabd6bcf131037": {
+    "reason": "The reported finding specifically highlights the lack of stateful inspection between Level 2 and Level 1 VLANs, allowing traffic to flow without security checks. Candidate C4 describes a similar bypass of security controls (firewalls, DMZ, MFA) that allows direct internet access to Level 1 controllers, effectively routing traffic between VLANs without inspection.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "eaebb52a35bea18bc7f408e2dc1fa989221a8f856e5fde86ab30f005a6fb0948": {
+    "reason": "The reported finding specifically addresses the use of a pre-shared key (PSK) for wireless authentication, which allows unauthorized access if the key is compromised. Candidate C7 also describes a similar vulnerability where a shared PSK on a scanner network is bridged into a network with no access controls, creating a similar risk of unauthorized access.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "d0697a22a654ae9aee8947af94d12aa40d55912710e3266291055dbc0115efd5": {
+    "reason": "The reported finding specifically addresses the security risk of using pre-shared keys for a wireless network (CAL-SCAN SSID) and the lack of client isolation and segmentation, which allows unauthorized access. Candidate C5 mirrors this exact weakness: a shared PSK scanner Wi-Fi is bridged into a flat, ACL-free network, granting unauthenticated access to critical systems.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "3c30b5ba9006ea8fad06b4443bda24b6a76ef04b85225b0e0f821409f7887ea3": {
+    "reason": "The reported finding mentions a lack of specificity and requires architect input, which aligns with C1's description of Active Directory trusts and corporate account privileges granting broad administrative access within the OT environment. This highlights a significant architectural weakness requiring further investigation and remediation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8dc92a4fd3cf437c341da3de1b388954ab197dd68102fe89192205bbcf2c8262": {
+    "reason": "The reported finding focuses on administrators connecting to production networks from general-purpose workstations, bypassing security controls and identity/access management. Candidate C4 describes a similar issue where corporate accounts with admin rights on OT hosts, due to Active Directory trusts, allow unauthorized access and control over OT systems, effectively bypassing intended security boundaries.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "e80d84062e8aa2f8ccd6313c4daf1776c58cf5fbcdb3b46410d33f85caa4347e": {
+    "reason": "The reported finding specifically addresses the lack of network segmentation, where different tiers of an application (presentation, application, and data) reside in the same zone. Candidate C5 describes a similar issue where engineering workstations bridge the corporate LAN and the OT network (Level 3), effectively bypassing the DMZ and creating a lack of segmentation between different network zones.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "64e259ee9a591f3b57019baab06515284eaf87b736d94d26283f9dda8628a071": {
+    "reason": "The reported finding concerns the lack of backup immutability, offline copies, and tested restores, highlighting a vulnerability related to data protection and recovery. Candidate C7 also describes a critical vulnerability where a compromised control network could directly impact a safety instrumented system (SIS), which is a form of data protection failure.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "b879dfd9802df389d64cdf09a3fc4024bd2eba1bdeb522377277e4bf868e6d3f": {
+    "reason": "The reported finding focuses on the lack of immutability, offline backups, and tested restores for backups, highlighting a vulnerability related to data integrity and recovery. Candidate C6, concerning OT Active Directory trusts and corporate admin rights, also describes a significant weakness related to data integrity and recovery, as a compromise could lead to unauthorized modifications and data loss.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "fd2025b279c004a0b4b425da9b9a0b69d95f4696520d27b5eca8f772f15c52eb": {
+    "reason": "The reported finding concerns backups lacking immutability, offline copies, and tested restores, highlighting a vulnerability related to data integrity and recovery. Candidate C1 describes a shared network segment between safety instrumented systems and process control networks, which could compromise the integrity of safety functions if the control network is compromised, mirroring the concern about data integrity and recovery.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "71d69d5f7b5b324b766d0d51a51fd1eba0b42a59fb3fec5e061c4ac8ef9b187b": {
+    "reason": "The reported finding focuses on the use of shared or generic accounts and the need to bind actions to named identities, eliminating interactive logon rights where possible. Candidate C3 directly describes the use of a shared local account for HMI auto-logon, which aligns with this weakness.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "14f73247d2ea86e56d6a638d236ed128079cf12241b4c9aa4151279bd08ab531": {
+    "reason": "The reported finding specifically mentions a lack of logging for data export or bulk read operations above a defined threshold, which directly relates to the absence of monitoring for industrial protocol traffic and controller changes (C4). This indicates a failure to detect potentially malicious activities like unauthorized data access or configuration modifications.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "fcb0d21504e18705df9f96d30cf746f466d19a9469ab71d55d13563e01463e8d": {
+    "reason": "The reported finding specifically addresses the lack of a described approach for patching without causing an outage. Candidate C1 discusses a potential vulnerability related to controller mode and unauthorized logic changes, which could be exacerbated by a lack of proper patching procedures and maintenance.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "fa09464270c9ac81e70993e8ad641d728f411f64b9dfeaf611797e801896a2ed": {
+    "reason": "The reported finding specifically addresses the lack of assignment of workloads to named security zones and the absence of defined trust relationships between those zones. Candidate C5, concerning dual-homed engineering workstations bridging the corporate LAN and Level 3, directly violates the principle of network segmentation and zone separation by allowing a bypass of the DMZ, which is a core aspect of security zoning.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "3138ed2402b4acff98bad584b9978f860821a9d7c901167c5ef6fbde041bda13": {
+    "reason": "The reported finding concerns the lack of MFA for non-privileged access, highlighting a potential gap in security controls. Candidate C4, regarding unused switch ports for contractor laptops, also reveals a similar weakness: a lack of enforced access controls and authentication for transient devices connecting to the OT network, bypassing security measures.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "6db005c6293293c510e58083978986ba26f827e2e80bc78543db72938f073489": {
+    "reason": "The reported finding specifically addresses the lack of segmentation within the DMZ, allowing unrestricted server-to-server traffic. Candidate C4 describes a similar issue where engineering workstations bridge the corporate LAN and Level 3, effectively bypassing the DMZ's intended segmentation and creating a direct path between networks.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "6d6bbda0f7aa494754a4b570fe341cef9fcee50cd2230474b379403431d61755": {
+    "reason": "The reported finding specifically mentions controller key switches being left in the REMOTE position, which allows unauthorized access. Candidate C4 directly addresses this same issue of controllers being permanently left in REMOTE mode, highlighting the lack of physical interlock and potential for unauthorized logic changes.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "85eae38175c4a69f2149c49df2ce151d094ef8d1fea69329bfba3a283676b06d": {
+    "reason": "The reported finding specifically mentions HMI auto-logon with a local Windows account, which directly aligns with candidate C3. While C1 describes a broader AD trust issue that *could* lead to similar unauthorized access, C3 is the more precise match for the finding's focus.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "0ca7c6461e8b340c0469ac84aaf0e02da842e04d371c7ee3e45524e8b0b63da7": {
+    "reason": "The reported finding specifically mentions unused access ports in the control VLAN allowing unauthorized access. Candidate C7 directly addresses this same issue of unused switch ports in the control VLANs being left live, enabling unauthorized access via contractor laptops.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "e5b9a703339ed48e3c34bd68f122aaf67c72652b519a935042b3dad576ac3b09": {
+    "reason": "The reported finding specifically mentions the lack of micro-segmentation for engineering workstations (EWS-01 to EWS-04) and the resulting lack of constraint on server-to-server traffic. Candidate C7 also describes a similar weakness where engineering workstations bridge the corporate LAN and Level 3, effectively bypassing network segmentation and controls, which aligns with the core issue of insufficient segmentation.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "abb89c9a67049554d1179d4e223ff72ee28128a06a81cbe42979cbffee90318c": {
+    "reason": "The reported finding highlights a contradiction between the assumed network segmentation for tenant isolation and the actual flat network design. Candidate C1 describes a similar weakness where transient devices bypass security controls due to enabled, unused switch ports, effectively creating a flat network segment and undermining intended isolation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "f4a87e1ff7880eb4fb36490d3a373b1d379265b85f3ed4fba7aefcb48a94133b": {
+    "reason": "The reported finding highlights the lack of data flow documentation, which prevents assessment of security controls like boundary controls and encryption-in-transit. Candidate C1 describes a scenario where contractor laptops bypass security controls due to unused switch ports, demonstrating a lack of defined data flow and boundary control.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "aa111af992fd137d256889cd2ae7f9ae6cbf281753d6ecdcccfd34bfa9639d96": {
+    "reason": "The reported finding highlights the lack of data classification, which directly impacts security controls like retention, residency, encryption, and access logging. Candidate C1 describes a significant trust relationship between OT and corporate domains, which inherently exposes OT data to corporate security policies (or lack thereof) and potential compromise, thus demonstrating a failure to properly classify and protect data.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "4aa2d3a770b5dd6f291e8d05a383a94e0975709a5c650c71bd2b5ff3e363b366": {
+    "reason": "The reported finding specifically calls for a threat model and attack surface analysis to identify and mitigate risks at trust boundaries. Candidate C1 highlights a significant trust boundary issue – the OT Active Directory trusting the corporate domain and granting excessive privileges, which directly aligns with the need for a threat model to assess and address this risk.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "6e59c8a5ca056f668f6a69cb99684c8ad5b408180d11517cd0769aa9cb556e47": {
+    "reason": "The reported finding specifically addresses the issue of new starters bypassing MFA during their initial login using a temporary access pass. Candidate C6 mirrors this exact weakness, describing the same scenario of new starters bypassing MFA with a temporary access pass.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "7108ca8e92b96dc8a7018c9b1e9dd9af6097f628549e669a18e0a77c77a4913a": {
+    "reason": "The reported finding specifically addresses applications maintaining their own password stores, which directly relates to the issue of applications not integrating with the enterprise identity provider. Candidate C4 explicitly describes this scenario with the expense, contract repository, and design collaboration tools using local accounts.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "665e2f10844e23c9d4c65d5e9c4efea6e3463912382dc1d8de75d53af9d02f11": {
+    "reason": "The reported finding specifically addresses the use of static API keys for service-to-service communication and recommends replacing them with short-lived credentials like workload identity or mTLS. Candidate C1, concerning the deprecated OAuth/OIDC implicit grant, also highlights a security weakness related to long-lived, easily leaked credentials (access tokens in the URL fragment), making it the closest match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "bb5d75ce35d16683ad6fa58231a6ad160662593a3eea9e0651f944e97648e4f5": {
+    "reason": "The reported finding specifically addresses service accounts having interactive logon rights and the need to migrate them to workload identities. Candidate C4 also discusses service accounts and MFA, indicating a similar concern about service account security and access controls.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "119fac19825b010c14b35db10d113c8327d1a90648f363c6b52595592ade3b02": {
+    "reason": "The reported finding specifically addresses the use of passwords for service accounts and recommends migrating to certificate credentials or workload identity. Candidate C1 describes a significant vulnerability related to password resets and MFA bypass, directly impacting the security of user accounts, which is a related but distinct issue from service account credentials.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8d4e9adb0023949a75203455375224af7bc73e7e0579b4d0207cf8cba730c85a": {
+    "reason": "The reported finding concerns the lack of explicit federation to the enterprise identity provider, indicating a potential gap in how applications authenticate and access resources. Candidate C5 also highlights a similar issue where applications (the 11 locally managed ones) are not integrated with the central identity provider, leading to access control inconsistencies and potential security risks.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "2a6624f39f8c79c18b994e3247b2ee89a518fb7439c8c177550e8c240b49b793": {
+    "reason": "The reported finding specifically highlights the excessive permissions granted to the AD connector account (IDSYNC01) for password hash synchronization and password writeback, which poses a significant risk of domain compromise. Candidate C2 mirrors this exact concern, detailing the same IDSYNC01 account's broad AD permissions and its placement in a low-security tier, leading to a similar potential for domain takeover.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "5863a1e6a51769e93f394ca79a1f027d8b2a1da74ef07fc400ae1a8a46fcfcba": {
+    "reason": "The reported finding specifically addresses the risk of system unavailability and the need for recovery mechanisms independent of the identity provider. Candidate C4 highlights a similar risk: the directory sync server's capabilities (replication rights and password writeback) combined with its Tier 1 management status create a single point of failure where compromise could impact the entire domain, including recovery.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "5e6e76bf4d60c227402b9675180d1a9b4c6696a301dd3148fd16ba81b4b3c7e4": {
+    "reason": "The reported finding specifically addresses the issue of basic authentication (IMAP, POP3, SMTP AUTH) bypassing MFA and exposing mailboxes to credential stuffing attacks. Candidate C1 directly mirrors this concern by highlighting the same weakness related to legacy authentication protocols and their failure to enforce MFA.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "32d73e1190288421325a3e7bda96238b1d4b55df460af892cc1a0b0fc4521181": {
+    "reason": "The reported finding specifically addresses emergency access accounts being exempt from phishing-resistant MFA, which directly aligns with candidate C1's description of emergency access accounts being excluded from conditional access and MFA.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "e8ede78647d5ff3f5473f99548dd39a39cde43b90f87a6cf7be602c17da54e1a": {
+    "reason": "The reported finding specifically addresses the issue of permanently assigned privileged roles and the need for just-in-time elevation, which aligns with candidate C1's description of emergency access accounts being excluded from conditional access and MFA, effectively granting them permanent, elevated privileges.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "679c987a392a7ba290d67e093f36c138e9bf4702b13f4962dbc104b3f99c681c": {
+    "reason": "The reported finding focuses on the lack of phishing-resistant MFA for Tier 0 administrators, highlighting a critical security gap in privileged access controls. Candidate C6 also addresses a similar issue by mentioning emergency access accounts being excluded from conditional access and MFA, indicating a weakness in privileged access controls.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "3838707f38d180ec6233d8c41443fb4eb68fd00e01be5f8bdafdbac8e6ae6709": {
+    "reason": "The reported finding specifically highlights the risk of users not being able to self-serve for password and MFA resets, which relies on the helpdesk. Candidate C6 describes a similar weakness where the helpdesk can reset passwords and remove MFA based on weak verification, essentially bypassing the intended MFA controls and creating a significant vulnerability.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "5711f0b7ed6b21944ea06bb4e54ed82bddcce36690daa8fbe2e185b5a551a686": {
+    "reason": "The reported finding specifically addresses the lack of cloud control-plane audit logs and their delivery to a secure location, which isn't directly related to any of the candidate issues. Therefore, none of the candidates describe the same underlying weakness.",
+    "matches": []
+  },
+  "abc799f980a5acd787de4e6cb3222b5d5fd076185fd20ff37943b5c16122c600": {
+    "reason": "The reported finding specifically mentions emergency access accounts being excluded from MFA, which directly corresponds to candidate C4. While C3 also mentions service accounts excluded from MFA, the reported finding's focus is solely on emergency access.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "9c5084ca0d6d60610d4a2baa9966165df64590d20276e8ee73f44c307897ede4": {
+    "reason": "The reported finding focuses on the issue of sensitive data being written to application logs and the need to mask or omit PII and tokens. Candidate C7, which describes service accounts excluded from MFA, also highlights a weakness related to sensitive data exposure (credentials) and inadequate controls, aligning with the finding's concern about sensitive information being improperly handled.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "9d276d1ef55b5531f1c40e8162e81812e2903ba901fb21c25a6799935eef2b36": {
+    "reason": "The reported finding specifically addresses the lack of network segmentation for tenant isolation, which directly relates to the isolation of different tenants' data and resources. Candidate C3 describes a similar lack of isolation, as leavers retain access to applications, indicating a failure to properly isolate their data and privileges.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "07b65e2dd0aab68587ff559ea783a22a145ba9e55d7d26457631ecf38bdd3aae": {
+    "reason": "The reported finding highlights the use of a static API key without encryption, indicating a lack of secure communication. Candidate C6 also describes a cleartext communication channel (LDAP simple binds) without encryption, representing a similar underlying weakness.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "67dd9238a8cf4b912740b32844053fea9fceff04dd71d597278e622deb97fd44": {
+    "reason": "The reported finding specifically addresses the use of the OAuth implicit grant flow in in-house web applications and its security implications, which aligns directly with candidate C3's description of the same issue. C3 explicitly mentions the deprecated OAuth/OIDC implicit grant and its vulnerabilities.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "94483f84e18b82b5e5d6ce3b747f9dec05585bde22ab4c9d4c8b7e4cb584c907": {
+    "reason": "The reported finding specifically addresses the lack of named owners for service accounts, which directly relates to identity and access management. Candidate C1, concerning service accounts excluded from MFA, also highlights a deficiency in service account security controls, making it the closest match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8a8e7c6af1483de9370c9aca9c43ffbf99dc2707bf5bddc0269398fd4d194205": {
+    "reason": "The reported finding specifically mentions LDAP signing and channel binding not being enforced for legacy applications, which directly corresponds to the issue described in candidate C4 regarding LDAP simple binds in cleartext and the lack of signing/channel binding. C4 details the same vulnerability and the same component (LDAP communication with domain controllers).",
+    "matches": [
+      "C4"
+    ]
+  },
+  "85881065ecec2c1a681d23a56a62a4c60605b65695765ca011e1054622acb89b": {
+    "reason": "The reported finding focuses on the lack of phishing-resistant MFA for privileged accounts, specifically highlighting a deficiency in the MFA implementation. Candidate C1 describes a significant vulnerability in the helpdesk password reset process, which effectively bypasses MFA and allows unauthorized access to privileged accounts, directly addressing the same underlying weakness of inadequate MFA protection.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "adb9f809951a2c46d538b7d3551261908e1e5aeed607cc9680fdf96860a7cc5f": {
+    "reason": "The reported finding concerns the lack of a stated reason for approving Global Administrator role activation, highlighting a control weakness related to privileged access management. Candidate C1 describes a severe vulnerability in the helpdesk process where attackers can easily gain privileged access (including cloud admin accounts) without justification or audit trails, directly mirroring the finding's concern about inadequate privileged access controls.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "68ced76b0e01e6e5f8799a0fc3c0c7440b4503a902bf024c1eb35f3f06efd910": {
+    "reason": "The reported finding concerns privileged access sessions and the lack of recording, specifically for Tier 0 administrators. Candidate C1 highlights a significant weakness in privileged account management – the ability for unauthorized individuals to reset passwords and disable MFA for admin accounts, effectively bypassing privileged access controls.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "41c06c43c11b2f8ad21312c0376c64e5128672ad5aa21dc34d9e086163863887": {
+    "reason": "The reported finding specifically highlights the risk of helpdesk agents resetting passwords and removing MFA without proper authorization, which directly aligns with the vulnerability described in candidate C1 regarding weak caller verification and the potential for account takeover.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "1be8085d9efadfa4956745a46ae14104108f2597a519f025a62ab79e5600ceb3": {
+    "reason": "The reported finding specifically highlights the risk of account takeover due to weak caller verification in the helpdesk process, allowing unauthorized password resets and MFA removal based on easily obtainable information. Candidate C7 mirrors this exact vulnerability, describing the same scenario of helpdesk agents resetting passwords and removing MFA with minimal verification.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "3cb134bc4f84ab2b7ace8a809e600cf4984bd64fa9131497f961ea7849e6fd4c": {
+    "reason": "The reported finding concerns log retention exceeding the minimum required by a standard, specifically mentioning a need to reduce retention and ensure searchability. None of the candidate issues address log retention or monitoring practices.",
+    "matches": []
+  },
+  "ba82b8f87e84c37fd2382fa9b49f6c37c1989c58d4cfdad9e15c7588394b88c5": {
+    "reason": "The reported finding concerns the omission of configuration and policy changes from the mandatory event set, indicating a lack of logging for these critical actions. Candidate C6, regarding the internet-facing HRIS provisioning webhook, also highlights a missing logging/monitoring component (lack of authentication and signature verification for events), making it the closest match.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "5cb0139ef31331f9e4207b62599b6643aa7a55d4c12751628a0469aee4b67e8b": {
+    "reason": "The reported finding concerns access persistence without re-evaluation, specifically highlighting a 12-hour window where access remains valid. Candidate C1, regarding temporary access passes bypassing MFA, directly addresses a similar issue of access being granted and persisting beyond a desired timeframe, albeit in a specific onboarding scenario.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8886e9eac17dc7e54089040fbe93099627bbc0a4b11b78a43c9ec22ad700e306": {
+    "reason": "The reported finding specifically mentions service accounts being exempted from MFA without compensating controls. Candidate C5 directly addresses this same issue, stating that service accounts are excluded from MFA.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "c67de81452ab9cf03ab6369ee6f89c0633945a8edfc90bf3cb07ee6bd07b2098": {
+    "reason": "The reported finding mentions an unspecified issue requiring architect input, and the only candidate that aligns with this is C1, which also highlights an unspecified issue related to guest access and requires architect input for remediation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "b858465b9491b36ff9fe79ec30efd11e19c3f85ce60a35ffc9d020eb6db6e56c": {
+    "reason": "The reported finding highlights the lack of data flow description, which prevents assessment of encryption-in-transit, boundary controls, and data residency. Candidate C1 describes a specific data flow (new starter sign-in) that bypasses MFA, directly illustrating the issue of missing data flow documentation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "07518b0d9f75c5af9c9b7633cb6ce44078c8694eb783d6beea9597d8d34c880a": {
+    "reason": "The reported finding mentions an unspecified issue requiring architect input, and candidate C1 specifically highlights a gap in the leaver process related to local accounts not being deprovisioned, which aligns with the finding's focus on a missing remediation step and architect involvement.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "4178d7e026d79879d888a34e64a103722ed0a8e12f50634438f98dadac2f2b07": {
+    "reason": "The reported finding focuses on the lack of clarity regarding trust boundaries and data movement between components. Candidate C1 highlights a data flow issue where leavers retain access to applications, indicating a failure in the deprovisioning process and a lack of defined trust boundaries around those applications.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "41f51f92db9e4434732d9e676ffda02479f3a9d189308d704fd72c8ea1ae4b10": {
+    "reason": "The reported finding focuses on the lack of data classification within the network design and how data moves between components. Candidate C4 also highlights a data flow issue (credentials crossing the network in cleartext) and the absence of appropriate security controls (LDAP signing and channel binding), aligning with the finding's concern about data handling and network security.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "c4ae77f08096967bb3887f3c9a45e9f9da53c2813cea86c65237263fba7d5df9": {
+    "reason": "The reported finding specifically highlights the use of a static, non-expiring API key for service-to-service communication, which represents a lack of proper authentication and authorization. Candidate C1, regarding service accounts excluded from MFA, shares this underlying weakness of inadequate authentication for internal services.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "0fe90c09baa8a25b6adff6c459733a284c1118295d20a70ebab6e739048f7e15": {
+    "reason": "The reported finding specifically highlights the lack of data classification and its impact on security controls like retention, residency, encryption, and access logging. Candidate C1, regarding service accounts excluded from MFA, is related because MFA requirements are often dictated by data classification levels.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "3646eda854a291f5063411d0ba69b88ddcec0a498d7e7c494b283e8eabbadda9": {
+    "reason": "The reported finding focuses on the risk of using static API keys within a flat network segment, highlighting the lack of network isolation. Candidate C6 describes a similar issue where leavers retain access to applications due to a lack of deprovisioning, which is a consequence of inadequate network and access controls.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "ddba11967f532c065dedde6852caa2f46b6d4ecba35c7763f32f93b8a1327667": {
+    "reason": "The reported finding specifically mentions the lack of encryption in transit or at rest, which directly relates to the security of data moving between components. Candidate C4 describes the use of LDAP simple binds in cleartext, exposing credentials in transit, thus representing the same underlying weakness.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "ec440eae50cd1610c382e5f0a6041667cce0727eb643ebff0d505d8c9c8bb79d": {
+    "reason": "The reported finding specifically addresses the lack of encryption in transit and at rest, and key management, which is a fundamental security control. Candidate C6, regarding the directory sync server, also highlights a critical security weakness related to data protection and key management (replication rights and password writeback), making it the closest match.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "733380ee65cffc233b08690639a3981f04b20d1b00359c2410b750caac804dd7": {
+    "reason": "The reported finding focuses on the lack of defined trust boundaries, which directly impacts the effectiveness of security controls like authentication, filtering, and encryption. Candidate C1, regarding emergency access bypassing conditional access and MFA, highlights a failure to properly define and enforce boundaries around privileged access.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8ce3565280e333ee5ed9f60d9b2079fac3da197edaf4bd158040b21220048c22": {
+    "reason": "The reported finding highlights the lack of a threat model and attack surface analysis, indicating a general absence of proactive security considerations across the design. Candidate C1, regarding service accounts excluded from MFA, represents a specific failure to implement a basic security control, directly reflecting this lack of proactive threat mitigation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "1586ed2da6825895289e63f16d1a9085c1db0c4ee0182f5114a2c934b0934368": {
+    "reason": "The reported finding specifically mentions the lack of stated availability targets, recovery approaches, and identification of single points of failure. Candidate C3 describes a critical single point of failure (the directory sync server) and its potential impact, aligning with the finding's concern about unaddressed single points of failure.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "503a1bd1513980c4b3ecff563ea919d68208621fcb992d51beb9ed4a4ab8a125": {
+    "reason": "The reported finding specifically highlights the insecure storage of AWS access keys (secrets) within CI variables, which is akin to storing them in source code. Candidate C4 also describes insecure storage of credentials (database master passwords) in Terraform state, which is readable by all engineers, representing a similar weakness of storing secrets in accessible files.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "87f7b2a1d6c9818cddfb8db33e63f212ca66cf6921deb17b20f6e12020bbe50e": {
+    "reason": "The reported finding focuses on the lack of network segmentation for tenant isolation, which directly relates to the potential for cross-tenant access and data leakage. Candidate C5 describes a similar lack of isolation, as staging and production environments share the same AWS account, VPC, and KMS keys, creating a significant blast radius vulnerability.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "bad3c5169166efa17e4b98bc28c65775fbe95d12e9647a3aa052bec719edeb6f": {
+    "reason": "The reported finding highlights the risk of broad write access to service repositories potentially leading to security breaches or single points of failure. Candidate C1 directly addresses this by revealing that all engineers can access Terraform state containing production database passwords, effectively demonstrating a severe consequence of overly permissive access.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "a87f729424f0d97d26a79aa66172a281a3f8dee1f653f6d034790457bc1905de": {
+    "reason": "The reported finding specifically addresses the lack of authorization controls for the ChatOps deployment command, allowing unauthorized users (including contractors) to trigger rollbacks and redeployments. Candidate C5 mirrors this exact issue of unrestricted access to production deployment commands via Slack.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "47978ac7d8dfa9fcf85b54152e9024a3bb080748d64759717a55b61692cac8ec": {
+    "reason": "The reported finding specifically highlights the security risk of sharing AWS account, VPC, and KMS keys between staging and production environments, which directly corresponds to the issue described in candidate C6. C6 details the shared resources and the potential for a staging compromise to impact production data.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "9eb259c68102ca717c779480bbde98985c557c738efc8a6f696add3490dda50c": {
+    "reason": "The reported finding specifically mentions the use of long-lived cloud access keys on shared self-hosted runners, which allows unauthorized access and potential compromise. Candidate C5 also highlights the same issue: public fork pull requests running on shared runners with registry-push and CI-secret access, creating a similar risk of credential compromise and unauthorized actions.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "0842dfe419d2e74726f633bb101d017f8203fa0e6589dbde1e516b87c3808e53": {
+    "reason": "The reported finding concerns encryption of data in transit, which isn't explicitly mentioned in the network design. Candidate C4 also highlights a lack of isolation and shared resources (KMS keys) between environments, which could lead to unintended data exposure and a failure to enforce encryption policies consistently.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "02ca2f5381f65681c60094b4808da239b629a9df5755a5cb0d4f0a45fcc942c5": {
+    "reason": "The reported finding specifically mentions Terraform state files being stored without proper access control, which directly aligns with candidate C3's description of Terraform state containing production database master passwords being readable by all engineers.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "3b50f630e5f7508a696087ce03affc6b9110d47c883676b289c47a7bec3c7dc1": {
+    "reason": "The reported finding concerns encryption of data in transit within the VPC, and candidate C1 highlights a lack of isolation between staging and production environments, which could lead to unauthorized access to production data, including potentially unencrypted data in transit. The core issue is the absence of proper network segmentation and security boundaries.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "1d00996fa71943c1aea86dcc1c80ed1152657aee52da83bbed7dc98d69ee2084": {
+    "reason": "The reported finding focuses on the lack of network segmentation for tenant isolation, which directly relates to the potential for unauthorized access and data leakage between tenants. Candidate C6 highlights a similar lack of isolation by sharing AWS accounts, VPCs, and KMS keys between staging and production, creating a significant blast radius vulnerability.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "f3bc184def8cdbd5eb0a950b75536188b094ccc10bae6cc9f5f4445ca8b4354b": {
+    "reason": "The reported finding concerns the lack of encryption for data in transit, specifically highlighting the absence of TLS 1.2 or higher. Candidate C1 describes a lack of isolation between staging and production environments, which inherently increases the risk of data exposure and compromises the security posture, including data in transit, making it a relevant match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "3a363a1603bbdc5a796428abbaa4366b3bec2e2727f0a6948c32db43c31215a6": {
+    "reason": "The reported finding specifically mentions public repositories and the risk of intellectual property theft or vulnerabilities due to uncontrolled contributions. Candidate C5 directly addresses this concern by highlighting that public fork pull requests execute code on runners with registry push and CI secret access, enabling potential code theft and malicious actions.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "9b4779d4e5a719343c88e0d3d5e5a2a8b7a2e1d29b158a10f58c5e4418ebe695": {
+    "reason": "The reported finding specifically mentions a deploy job using OIDC federation and a trust policy restricting tokens to specific release branches. Candidate C5 also discusses release branches deploying directly to production without code review, and the trust policy being a restriction on deployments, directly aligning with the reported finding's concern about the scope of allowed tokens.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "bbba9295ed1afced68d5a237fd6fe0e9af681a75f23a417eda65425011c37c9b": {
+    "reason": "The reported finding specifically addresses the lack of branch protection and mandatory code review, allowing direct commits to the main branch. Candidate C3 mirrors this exact issue by describing unprotected release branches deploying directly to production without code review, which is a direct violation of the stated requirement.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "37a9e03d3f103b304908daddffda3ab82911448375f91a16a85684f9485aecdc": {
+    "reason": "The reported finding specifically mentions the CI/CD pipeline not blocking security gates, implying a lack of control and potential for unauthorized code execution. Candidate C1 describes a scenario where public fork pull requests can execute code on runners with sensitive access, directly relating to the pipeline's lack of blocking gates and potential for malicious code execution.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "79775a10cf9f2f257e5535be7da980754a7ec5157736381a5da20a427f438b9f": {
+    "reason": "The reported finding specifically mentions the use of sensitive data (recipient names, addresses, phone numbers) in integration tests, which aligns directly with candidate C3's description of customer PII being used in CI integration tests.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "a113023a77bd910936f29891658481b403553901e0ece21e898d30e652749a6e": {
+    "reason": "The reported finding focuses on the risk of using mutable `:latest` tags in base images, which can lead to unpredictable and potentially insecure builds. Candidate C7 also highlights the dangers of mutable image tags and the lack of verification, making it the closest match.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "b93a15d2d5cbfc0f01b36e965ab5f425556e76af685d3956c92754912c2ed64c": {
+    "reason": "The reported finding concerns the lack of assurance that dependencies are actively maintained, which directly relates to the risk of using outdated or vulnerable dependencies. Candidate C6 describes a dependency confusion vulnerability stemming from the use of an internal package index alongside public PyPI, which highlights the potential for using compromised or outdated dependencies.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "f8c3f35fc61c8933ef1cc97c954daf57b876a1adb988c99bfff61290fb81eb90": {
+    "reason": "The reported finding specifically addresses the risk of dependency confusion and typosquatting due to direct dependency pulling from the public npm registry, which aligns with the weakness described in candidate C4 regarding Python dependency confusion via `--extra-index-url` and unscoped internal package names.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "3bbf621c1928d1e91097a8e3881c917d083474f789b0493a4e8d5db348736191": {
+    "reason": "The reported finding specifically addresses the security risk of Dockerfiles running build stages as root, which directly relates to containers running with elevated privileges. Candidate C2 explicitly mentions 'Containers run as root,' making it the only matching issue.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "a013f366d0adc16cfbdfe9b1d308a9fb0eacd3d3eb4c73fc40957fef768a790b": {
+    "reason": "The reported finding specifically addresses the lack of policy scanning within the Infrastructure as Code (IaC) pipeline, highlighting a violation of a standard requiring policy-as-code checks before applying changes. Candidate C1 describes a similar weakness: unreviewed code being deployed to production, bypassing essential checks and controls, which aligns with the finding's concern about missing security validation steps.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "98bb151c76cebbbca48fa92a6d13401730bf3653e9537deebf37c3974740835a": {
+    "reason": "The reported finding concerns the lack of version-controlled IaC for provisioning cloud resources, specifically highlighting a manual console change bypassing IaC principles. Candidate C1, regarding insecurely stored application secrets, doesn't address the IaC aspect or the manual console change issue.",
+    "matches": []
+  },
+  "9d70969d0c202ab631b2517532f5a9c822d28da2e95c1d6853e261e77ab6083c": {
+    "reason": "The reported finding concerns the lack of a defined recovery time objective (RTO) and potential for extended downtime and data loss following a compromise. Candidate C1 highlights a significant vulnerability – the ability for unreviewed code to be deployed to production, which directly increases the likelihood of a compromise and subsequent downtime.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d7e8bfb2369e95e2b81f122dc4732b2f466e4b46d25ee2430a77867c84e62087": {
+    "reason": "The reported finding concerns a discrepancy between a logging retention policy and searchability requirements, specifically highlighting a deviation from a standard. None of the other candidates address this specific issue of policy adherence and data accessibility within a logging context.",
+    "matches": []
+  },
+  "469ac6ec77549b0f28a52d8379763bcd2f11f2d7ac61fef182b8084c05aaad61": {
+    "reason": "The reported finding focuses on the lack of policy enforcement and drift detection in infrastructure provisioning, which directly relates to the absence of review and control over code deployments described in candidate C2. C2 highlights the risk of unreviewed code being pushed directly to production, mirroring the finding's concern about uncontrolled infrastructure changes.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "7ec13af73b4c2d90f04f7e9d0335bce4596af6d466ea6b9fa86960d463437356": {
+    "reason": "The reported finding specifically highlights the lack of data classification, which directly impacts security controls like retention, residency, encryption, and access logging. Candidate C1, concerning Customer PII used in CI integration tests, directly relates to the handling of sensitive data and its classification (or lack thereof).",
+    "matches": [
+      "C1"
+    ]
+  },
+  "3187824a4db9033c91399b82cc78eeec43ba367a316a5830987a4a64a474d191": {
+    "reason": "The reported finding focuses on the lack of defined trust boundaries, which directly relates to the ability to judge security controls. Candidate C3 highlights a similar issue: mutable image tags allow unauthorized image replacement without verification, effectively bypassing trust boundaries and controls.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "d7daf9842a2b92367db6ea7b85e82b160b21fffc62463510b4e44f1a2d8dcf2e": {
+    "reason": "The reported finding specifically mentions the lack of a threat model and attack surface analysis, particularly concerning trust boundaries and mitigations. Candidate C1 directly highlights a critical trust boundary issue: mutable image tags allowing unauthorized image replacement without verification, which is a key area a threat model should address.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "fdda06fb39eaccb444d9bbbc540872da1301ffe1279caadb6b069ea888e49ec8": {
+    "reason": "The reported finding mentions an unspecified issue in the 'Environments' section and requires architect input, which aligns with C1's description of a tenant-wide 'Publish to web' configuration creating unauthenticated public links for reports containing customer data. This highlights a significant security risk within the environment that necessitates architectural review.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "7993e625dc454d365ee497e08021472d6c44dcc36bdaddbd83318e6bb99c8910": {
+    "reason": "The reported finding mentions a lack of specified remediation and requires architect input, which aligns with candidate C1's description of missing data-plane access logging and a need for further investigation into appropriate remediation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "92dc7e6456cd73a4de632547dab1d98209cef65eec2a4efb5f38268c733253a8": {
+    "reason": "The reported finding concerns the lack of egress inspection or filtering for traffic between components (spoke-to-spoke). Candidate C7 also describes a public access issue where data can be downloaded without inspection or filtering, which aligns with the finding's concern about uncontrolled egress.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "27d9c263539f3bef5e8cddffa2af7d381259c856ee3d53f4a7f3966d08a60185": {
+    "reason": "The reported finding specifically mentions the exposure of the Synapse serverless SQL endpoint to external attacks due to Power BI Service accessing it from outside the bank's network. Candidate C6 directly addresses this same issue of Synapse being exposed to the internet for Power BI Service refreshes.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "be77cdd757549c4f0b828a7416599cc12eec232015b390860fc244575762ad7b": {
+    "reason": "The reported finding specifically highlights the issue of platform engineers having Contributor access to the production TAP subscription for disaster recovery purposes, which is a shared component. Candidate C3 directly addresses this same issue of standing Contributor access for platform engineers on production.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "c9f435d28a8dcde7dd0f83da8174725cbb005f94b80109d943344dbb75126d1c": {
+    "reason": "The reported finding focuses on the lack of network segmentation and the absence of defined trust relationships between different workloads within the same VNet. Candidate C2 also highlights a security misconfiguration related to access control and permissions within the Databricks environment, specifically concerning the ability of data scientists to access raw PII data through a shared service principal, which is a similar underlying weakness related to access control and network boundaries.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "f92771bffb63c01067ce13e7db938a435e7ac77bf07a5aa44be0ba7425e5def8": {
+    "reason": "The reported finding mentions a lack of data-plane access logging and a short retention period, which directly aligns with the issue described in candidate C1 regarding the absence of StorageRead/StorageWrite/StorageDelete logs and the 30-day retention for lake and export storage.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "319242a46a19b58391a8fe98053d3715bf95043c945bbf15674319bf348e9adb": {
+    "reason": "The reported finding highlights the risk of relying on external authorization (client/gateway) and trusting inbound identity claims, advocating for service-level object-level authorization. Candidate C1 describes a similar issue where the service (shared cluster) trusts the identity claims of a service principal, allowing unauthorized access to raw PII data.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "45370aa588075caf538ebb9c1ad81a7db040688c2deb36bfca26161b74971bcd": {
+    "reason": "The reported finding specifically mentions network segmentation and a flat network segment, which directly relates to the lack of tenant isolation. Candidate C1, regarding standing contributor access, doesn't address network segmentation or tenant isolation, and therefore doesn't match the reported finding.",
+    "matches": []
+  },
+  "c00b12f4b12a0eb9bd7b7dc7c6d40437ba4db8822c855b07cd9254f742516a62": {
+    "reason": "The reported finding concerns the lack of egress inspection or filtering for spoke-to-spoke network traffic. Candidate C6 also describes a public access issue related to data being exposed, which aligns with the finding's concern about uncontrolled data flow, although it focuses on a different specific component.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "9d626f0b0ee9662fb89637e371c72020af2606d2c3551e5342726797920f5588": {
+    "reason": "The reported finding specifically addresses the issue of shared or generic accounts being used by humans and the recommendation to bind actions to named identities and secure service accounts. Candidate C5 directly describes a password for an account stored in source control, which is a clear violation of this principle.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "59684ab85ae8b6d205624029823381b6163ed5f33e0df8c35b6c91953aa658c7": {
+    "reason": "The reported finding specifically highlights the issue of production data not being isolated from non-production environments, which directly aligns with candidate C4's description of unmasked production PII being copied to a non-production environment with broad access.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "4a24231ca564b4437ecbb8509587769ea77aff80f580546a81b61538ccafc90f": {
+    "reason": "The reported finding specifically addresses the lack of secret rotation for secrets stored in Azure Key Vault. Candidate C2 also mentions storing a password in a Git repository, which is a similar issue of insecure credential management, although it doesn't explicitly involve Key Vault.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "aabce9fe83674255cdb019f09148c5ba5704228fe8ebabf3c1b9ca62ce825c12": {
+    "reason": "The reported finding specifically addresses the insecure storage and management of secrets (client secrets and Event Hub credentials) and the need to use an enterprise secret manager for runtime injection. Candidate C3 also describes a password stored insecurely (in source control) and recommends moving it to a Key Vault linked-service, which aligns with the finding's concern about secret management.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "94dec90e960f8765aa802e439d6c7579093283a4f7071098a64d94a0968511fa": {
+    "reason": "The reported finding concerns privileged access and the lack of phishing-resistant MFA. Candidate C1 describes a credential (a password) being stored insecurely in source control, which is a form of privileged access compromise, making it the closest match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "561f26400b21c55a35faeab8bc7ac8dd7df80a6570741376a10610436d66d7df": {
+    "reason": "The reported finding specifically addresses the lack of monitoring for log flow loss, which directly relates to the absence of data-plane access logging described in candidate C5. Both findings highlight a critical gap in auditing and detecting unauthorized data access or loss.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "384f0b32853fbb08b8457bc7f703e8b346485cb43b90e05219e6e7c7ca346623": {
+    "reason": "The reported finding specifically addresses the insufficient retention period of diagnostic settings logs, which directly relates to the lack of data-plane access logging and short retention (30 days) for storage logs described in candidate C2. Both findings highlight a deficiency in logging and monitoring practices.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "bef4219a99a2f92239ce3ef255c70df5d3867ffb2f87e81abb882114e4bd762d": {
+    "reason": "The reported finding concerns the lack of explicit definition of trust relationships between security zones within the Databricks environment. Candidate C4 also describes a weakness related to access control and zone boundaries, specifically how a shared service principal grants data scientists access to zones they shouldn't have, violating the intended segmentation.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "303ede4954ca1eda92c5179e7272a5b34443300ba4a5ef2ad032f3340a00f298": {
+    "reason": "The reported finding concerns the lack of logging for data access within the Databricks environment, specifically mentioning data read, write, and deletion. Candidate C1 also highlights the absence of data-plane access logging on storage, mirroring the core issue of insufficient audit trails for data operations.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "9f44656ac36811b78bf930e8b3fb85b044f71263713fe1cb72407187d3f19eb3": {
+    "reason": "The reported finding specifically highlights the lack of isolation between production and non-production environments, and candidate C6 directly addresses this by describing how unmasked production PII is copied to a non-production environment with broad access.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "7fbc3b1dccdd0dd3dedfe6b100b579d0232e1bf352cb58dba3452b5ae69ba2d9": {
+    "reason": "The reported finding specifically highlights the lack of a data flow description, which prevents assessment of encryption-in-transit, boundary controls, and data residency. Candidate C1 directly relates to this by exposing unencrypted data (PII) accessible publicly, demonstrating a failure in boundary controls and data residency due to the missing data flow context.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "7eefed2ee456c956b5c7c367047048a0647f64d5799aa5352d2ade0cc57ed104": {
+    "reason": "The reported finding concerns the lack of security scanning within the build pipeline, specifically focusing on dependencies, containers, and the software supply chain. None of the candidate issues directly address this aspect of the architecture; they focus on access control, credential management, data handling, and logging, which are separate concerns.",
+    "matches": []
+  },
+  "0295cca2e236ab2c60b08c38a467d379d5b81702ce690d152e3ef88af4e34dc8": {
+    "reason": "The reported finding concerns the lack of rate limiting on externally reachable interfaces, which directly relates to the anonymous public read access to the customer PII export container (C1). This allows unauthorized access and potential data exfiltration, a direct consequence of missing rate limiting and access controls.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "595e1b978fc72ce76f78dc522a935df53a439fb5d4fc969e27ea76f77a09957c": {
+    "reason": "The reported finding highlights a conflict between the claimed isolation of the Databricks front end (through front doors) and the Conditional Access policy requiring phishing-resistant MFA and Intune-compliant devices. Candidate C2 also describes a scenario where remote data scientists have access to transaction data without MFA or device controls, mirroring the core issue of access controls bypassing intended isolation.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "a8f6784d30e18597474012c8ba2cfe931bd54b4f5f5d12bd442ed6675ceb38ba": {
+    "reason": "The reported finding specifically calls out the lack of a threat model and attack surface analysis, which would identify potential vulnerabilities and associated mitigations across the entire architecture. Candidate C1 highlights a specific vulnerability (remote data scientist access without MFA) that a threat model should have identified and addressed.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "5791c196115187f5af5487634a00c1eeff1157158f6cf4a0d3682eed077c5438": {
+    "reason": "The reported finding specifically addresses the use of SNMPv2c and its associated security risks, particularly the cleartext transmission of the community string and its accessibility from a broad VPN pool. Candidate C3 mirrors this exact concern regarding SNMPv2c, the read-write community string, and its exposure from the VPN pool.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "eef4496a683837cc97c50aced72965618c21471b48f96b2eb3fcdeac8974fc76": {
+    "reason": "The reported finding concerns the lack of redundancy in WAN circuits, specifically requiring two circuits from different carriers for Tier 1 and Tier 2 sites. Candidate C1, regarding SD-WAN edge management interfaces exposed to the internet, does not address WAN circuit redundancy or carrier diversity; it focuses on a different security concern related to management access.",
+    "matches": []
+  },
+  "a788e06b33063f9e402dafe4acdb72fc5b30fe2aa1acda8a14bf5a4f77fbe547": {
+    "reason": "The reported finding specifically addresses the lack of redundancy in the WAN design, highlighting a single circuit as a violation of routing standards. None of the candidate issues relate to WAN circuit redundancy or physical diversity; therefore, none of them match.",
+    "matches": []
+  },
+  "3a7d26571d9f4b14911c938e661a0bb19989f8a4e7105dae010df7c88233de7b": {
+    "reason": "The reported finding specifically addresses a single point of failure in the WAN/Internet breakout path, which aligns with the issue described in candidate C1 regarding SD-WAN edge management interfaces exposed to the internet and potentially creating a single point of failure.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "15b05470d25f7340ff6d0ec3d14e0b0bb4824e7bf808e8c60123531ffb99cb88": {
+    "reason": "The reported finding specifically mentions a local identity store for employees and recommends SAML federation with a corporate identity provider. Candidate C2 directly addresses this issue by highlighting the use of local accounts on the cloud controller and recommending federation.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "73aec3676b717f2a0b3cabec0c2a23dde2ec41376786c2f5334a34a529d4012e": {
+    "reason": "The reported finding specifically addresses the use of local dashboard accounts for administration of the cloud controller, highlighting a lack of centralized authentication. Candidate C7 mirrors this exact issue by also describing a cloud controller with local accounts and broad organizational rights, creating a similar centralized authentication vulnerability.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "de848fbc7fe8df25637e9ff243e0981d5f61abecce2952741d8b55e936be68eb": {
+    "reason": "The reported finding specifically highlights the use of a shared administrator account (noc@brightwell-msp.example) for the cloud controller, which grants organization-wide rights and lacks SSO or MFA. Candidate C1 mirrors this exact issue, describing a shared cloud controller admin account with organization-wide rights and no SSO.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "da25e757f06ad0835274fd9a8b6f4072b9b01430be6b9143d24b98d37f830a5d": {
+    "reason": "The reported finding specifically highlights the lack of MFA for VPN users authenticating with Active Directory credentials, which directly aligns with the issue described in candidate C1 regarding password-only authentication for the internet-facing remote-access VPN.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "bed4596fbe56c399bbbaa64a588401640c88667edfb132a6a51c8fe62940990c": {
+    "reason": "The reported finding specifically addresses the issue of third-party staff receiving internal directory accounts without expiry and the recommendation to federate identities and scope access. Candidate C5 directly mirrors this concern by highlighting that third-party suppliers share the staff VPN pool without supplier-specific controls, leading to a lack of access restrictions and MFA, which aligns with the finding's focus on inadequate third-party account management.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "2254b82ccb929a6f5b19425466c1249d118e8035d7654d0f0edfc9ed6e536060": {
+    "reason": "The reported finding specifically addresses the issue of audit logs being stored in the same account as the workloads they record, which directly relates to log retention and access controls. Candidate C5 also highlights a similar issue of insufficient log retention and lack of forwarding to a central system (SIEM), indicating a shared weakness in log management practices.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "77976e06e7285fe2d2e4c50a86d05b09dc5fa71cdeb9a6970b5ca16deeab5933": {
+    "reason": "The reported finding specifically addresses the use of local accounts for administrative access on switches and recommends replacing them with TACACS+ or RADIUS. Candidate C7 also highlights a problem with local accounts (identical fallback passwords) on store switches, directly relating to the finding's concern about local account usage.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "c1bf83317ee1ddfacea98c44fec3f555a4fd41b50eebc8faf482bc71df1704ea": {
+    "reason": "The reported finding specifically addresses the issue of management traffic sharing a VLAN with other traffic, which aligns with candidate C5's description of switch management plane accessibility from a shared VPN pool.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "d415836db2bd184d935b5bcdf9b5d69fae1f20977914a85374044f57b673e4dc": {
+    "reason": "The reported finding specifically addresses WAN redundancy requirements and the reliance on a single carrier with a backup from the same carrier, which isn't a core issue present in any of the other candidate issues. C1 discusses log retention and SIEM forwarding, which is a different security concern.",
+    "matches": []
+  },
+  "50f4758964520acb30a8091cb71e110974d57bb923836c3ac088bb55e8b05eeb": {
+    "reason": "The reported finding specifically addresses the lack of encryption for inter-site traffic traversing the public internet. Candidate C7 also highlights traffic being sent unencrypted over broadband internet, which aligns with this concern about data in transit.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "d6e1b8c746cad0fd9b9539d69e780bbc1595bd9d6694896036aa3121ee26bf34": {
+    "reason": "The reported finding specifically addresses the lack of a redundant firewall pair, IPS, and outbound proxy/secure web gateway at the internet edge. Candidate C4 also describes a weakness related to internet breakout and the absence of web filtering/IPS for store PCs, which aligns with the finding's focus on internet access controls.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "bf072a4b039f46bbccde0d8f2f32e58c344889bd4ed02055b29c4381355c4033": {
+    "reason": "The reported finding specifically addresses the lack of client isolation and segmentation for the guest SSID, which directly relates to the risk of guest Wi-Fi reaching internal store networks as described in candidate C1. The other candidates address different security concerns (logging, port security, SD-WAN exposure, VLAN segmentation, cloud controller access, switch management access).",
+    "matches": [
+      "C1"
+    ]
+  },
+  "688319e0a4c2c4fffc45ce394455e53d03459e8c83ef83efa3773408a040693c": {
+    "reason": "The reported finding specifically highlights the lack of MFA for VPN users, which directly corresponds to the issue described in candidate C3 regarding the SSL VPN using only username and password authentication for 2,500 staff and supplier accounts.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "b8b0e922b056f00af3713ee4e716fd99a10602de96ecaebe363ec9b809c7f5b1": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, which directly relates to data protection and recovery capabilities. Candidate C2 also discusses backups and log retention, aligning with the finding's focus on inadequate backup practices.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "d6493f49403ac149bd6abca10e9b240f67968691c33f1a758653025436c05b90": {
+    "reason": "The reported finding concerns backups lacking immutability, offline copies, and tested restores, highlighting a data protection deficiency. Candidate C5 also addresses a data protection deficiency, specifically concerning inadequate log retention and forwarding to a SIEM, which is a form of data protection.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "59200d972953b2c564f7af13aa0ece9a83ad164d83cae34c036c1a9a80004fb6": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, highlighting a critical vulnerability related to data protection and recovery. Candidate C1 discusses inadequate log retention, which is a related but distinct issue concerning monitoring and incident response, not backup integrity itself.",
+    "matches": []
+  },
+  "8e182c47cfca16327b05a7ca3c7fe4441708a8c94383493dce03235b07442e42": {
+    "reason": "The reported finding focuses on the use of shared or generic accounts and the need to bind actions to named identities, restricting interactive logon rights, and vaulting passwords. Candidate C7 directly addresses this issue by highlighting a shared cloud controller admin account with organization-wide rights and no SSO, which aligns with the finding's concern about shared credentials and lack of accountability.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "a1faa303618f495e64415537f8a830d01d389ec47218ec4b1de1b955111c35cd": {
+    "reason": "The reported finding specifically addresses the issue of store edge firewall logs being retained for only seven days in the cloud controller and not being sent to the SIEM, which is directly mirrored in candidate C6. Both findings highlight the inadequate log retention and lack of SIEM integration for store firewalls.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "992a5a039cf37430164678e50647d35c6ca5e7bdd9ff58e4ad92d489bac3f9d9": {
+    "reason": "The reported finding specifically addresses the lack of micro-segmentation and the permissive traffic flow (any-to-any) between VLANs within the store's internal zone, which directly aligns with the issue described in candidate C4 regarding the POS/cardholder data VLAN sharing a zone with other devices and allowing unrestricted traffic.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "3363f042ccc74454f788d92ac6546480fe4f7e36d480990e864d65e95c466fc4": {
+    "reason": "The reported finding specifically mentions unrestricted east-west traffic between the POS server and any source address, violating micro-segmentation. Candidate C1 directly describes the POS VLAN sharing a zone with other devices and allowing any-to-any traffic, which is the same underlying issue.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "5c62b7cd6b9e346b06eaaf21f8560658534f3e4188f1298f003c533e278ea529": {
+    "reason": "The reported finding specifically addresses the lack of encryption for traffic traversing the LTE backup connection. Candidate C1 also describes unencrypted traffic traversing a public network (broadband internet), which aligns with the core concern of the finding regarding encryption in transit.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "f23d3f0cbe9382e0d4daf8c4cc45b10748b6bca64ef15ab93fa361cd957febb6": {
+    "reason": "The reported finding specifically addresses the wireless security protocol (WPA2-Enterprise vs. WPA3-Enterprise) and its implementation with 802.1X and EAP-TLS. Candidate C5 also mentions a lack of 802.1X authentication on switch ports, which is related to the overall wireless access control and authentication mechanism.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "dade4b7a8c303d175a1b4ed57022646d2e405d0d4969f58aebe5913bbe801e2b": {
+    "reason": "The reported finding highlights the lack of data classification, which directly impacts security controls like segmentation, encryption, and logging. Candidate C1 describes a lack of segmentation (POS VLAN not isolated), which is a direct consequence of not classifying data and understanding its sensitivity.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "68f06be9b9b6028d6be1f72e0413c7887f5f9c532fcda2f02d9d8e338ffa52fc": {
+    "reason": "The reported finding highlights a disconnect between the network design's reliance on the cloud controller for store device management and the lack of corresponding specifications within the cloud design itself. Candidate C1, concerning the shared cloud controller admin account, directly addresses this issue by pointing out the lack of proper identity federation and MFA for the cloud controller, which is essential for managing store devices.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "5d7efe6f649284f434ee41069964ba1fb272c84e31f968e1c909a96b8b512fe6": {
+    "reason": "The reported finding specifically mentions encryption for inter-site traffic and the LTE backup, highlighting a lack of encryption in a backup connectivity scenario. Candidate C2 also addresses unencrypted traffic over broadband internet, which aligns with the concern about the LTE backup.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "dd4e3e452d7cf136053fff748b68ec373f91abd9e7f83a9f354a7b9c860e94c4": {
+    "reason": "The reported finding specifically calls out the lack of a threat model and attack surface analysis, which would identify potential vulnerabilities and associated mitigations. Candidate C1, regarding unencrypted traffic, represents a potential vulnerability that a threat model should identify and address.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "af80dc455e41bdb2a1aeb476426eecda2e68774f4e310ecccc7e4cfe062698e0": {
+    "reason": "The reported finding concerns the lack of a specified failover time for WAN redundancy, which relates to the resilience of the network. None of the candidate issues directly address this aspect of WAN failover or redundancy; therefore, no candidate matches.",
+    "matches": []
+  },
+  "21e36a7945587eea68fc6f41d61ea2e69eace403f3b019db68a1a00dd20fc7c3": {
+    "reason": "The reported finding specifically highlights a lack of authentication on an internal API, which exposes it to potential unauthorized access. Candidate C1, regarding the Detokenization API exposing full PANs, also points to a vulnerability related to unauthorized access and data exposure, making it the closest match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "aa3fc77b3b2856aaf916f99ecb3898565c89e6c3ab6874be3e3e82840646f21a": {
+    "reason": "The reported finding focuses on input validation and the risk of bypassing controls, specifically highlighting a potential weakness in the tokenization API's validation process. Candidate C1 mirrors this concern by pointing out a bypass of PAM and FIDO2 controls via the break-glass IAM user, which similarly represents a failure in access control and validation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "5f2b1c578fcb0d0218c0fdc482fc5a8944ea1afa81945cad47c546c8d867d9e6": {
+    "reason": "The reported finding specifically addresses the lack of token validation, focusing on the security implications of not verifying tokens on each request. Candidate C3, 'Tokens leak PAN digits / tokens are reversible,' directly relates to the security of tokens and their potential for compromise, aligning with the reported finding's concern about inadequate token handling.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "9561448a0dbb0b5bdf1ead82495b7a7673a8a8f1e638c0a70ebb65bcea381436": {
+    "reason": "The reported finding concerns the lack of token validation, specifically mentioning signature, issuer, audience, expiry, and not-before checks. Candidate C2 directly addresses the reversibility of tokens, implying a lack of proper validation and security controls around token integrity, which aligns with the reported finding's concern.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "663f6487de9a6ac42c931d9495699de6361f84010cb6c226d3d3f76ffd4ed805": {
+    "reason": "The reported finding specifically mentions a single point of failure related to the detokenize operation and authentication, which aligns directly with candidate C4's description of the detokenization API exposing full PANs. This exposure creates a single point of failure as it relies on the security of the callers and their ability to handle sensitive data responsibly.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "bae8646d3f026852f29fadb75d5939e273dbc5734f64ee3fd7363933577d061f": {
+    "reason": "The reported finding specifically highlights the risk of long-lived client certificates and the lack of a rotation mechanism, which directly aligns with the issue described in candidate C2 regarding manually renewed mTLS workload certificates and the associated risks of prolonged validity and potential outages.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "eda59d5318e5cfe7bed609c7880fedd797fa25d8c8b1fa8dbd0b844112fcb869": {
+    "reason": "The reported finding specifically addresses the lack of secure key custody, mentioning the requirement for an HSM or managed KMS with FIPS 140-2 Level 2 or higher. Candidate C4 also discusses encryption keys and their exposure during replication to a DR region, which directly relates to key custody and security.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "cf3ea7be070b4f1519a1185ba33257cd18b987a543e80af0a6fa948c2aa175c8": {
+    "reason": "The reported finding specifically highlights the contradiction between plaintext data exposure and the stated key management policy of keys never leaving the HSM in plaintext. Candidate C4 also describes a key exposure scenario (encryption keys duplicated to the DR region), directly aligning with this concern about plaintext key handling and data protection.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "9d4b601270e2a3329bf3a2082fdc0d3c723e935d3009576cf980400882d33a9b": {
+    "reason": "The reported finding specifically highlights the contradiction between storing sensitive data in plaintext and the stated policy of keys never leaving the HSM in plaintext. Candidate C4 also describes a situation where backups (containing sensitive data) are copied outside the CDE and not adequately protected, which aligns with the core issue of sensitive data exposure.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "681d46f93fa290b40958167baf4a745037a4a10e92675fedcdbb3ad72d14ec42": {
+    "reason": "The reported finding highlights the lack of data governance controls (classification, residency, retention) for sensitive data. Candidate C1 directly exposes PANs, a type of sensitive cardholder data, without any stated controls or governance, aligning with the finding's concern about handling sensitive data without proper classification or controls.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "0cd9de054281b23882ff1a901ae1dfb2b36648c411935299de71b864bbb36f5e": {
+    "reason": "The reported finding specifically highlights the contradiction between storing sensitive data in plaintext and the stated policy of keys never leaving the HSM in plaintext. Candidate C4 also describes a key exposure issue related to encryption keys, directly aligning with this concern about plaintext key handling and potential data compromise.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "7be1372f1d8f50e0844c5023afe930b99c919ff37af65473ab32f5cee4ec7281": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, which directly aligns with candidate C2's description of backups being copied outside the CDE without adequate protection.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "6043b6bfa49215b601562a7e6aad7d49173445aa87373706535ed69950bd79ff": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, which directly relates to the security and protection of backups. Candidate C4 mirrors this concern by stating that 'Vault backups are copied outside the CDE / backups not protected', indicating a similar deficiency in backup security practices.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "b29ee6dae87674893c14e8b5f962b4e2df79f99eb0c65645c366d7b2538feff1": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, which directly relates to the security and protection of vault backups. Candidate C3 mirrors this concern by highlighting that vault backups are copied outside the CDE and are not adequately protected.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "512756105b3272817e578c4cb547cca7413ee8e7ee7bfba8ed7d0466f7ed5f59": {
+    "reason": "The reported finding specifically mentions the Detokenization API returning full PANs, which directly aligns with candidate C4's description of the Detokenization API exposing full PANs. C1 discusses break-glass account use and is unrelated to token handling or the Detokenization API.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "a25777647644eee36470cc6a339e8e96b04f953f40c02492f315872ec935cdaa": {
+    "reason": "The reported finding concerns the validation of JWT access tokens, specifically highlighting a lack of comprehensive checks (signature, issuer, audience, expiry, not-before) on every request. Candidate C1, which mentions tokens being reversible and potentially leaking PAN digits, directly relates to the security of the tokens themselves and their potential compromise, aligning with the finding's focus on token validation and integrity.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "4549102266268cdbf59c7785cc32f3e8195191e96145a8435cb695b21646591b": {
+    "reason": "The reported finding concerns the absence of a security control (container image scanning) within the CI/CD pipeline, which is a build and platform hardening issue. Candidate C1, regarding unprotected backups, also represents a failure to implement a necessary security control, albeit in a different area of the system.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "ebeaca412f108f2a3f80abff23c3fb7d86e82d2adc83b7dadf625b9d08992304": {
+    "reason": "The reported finding specifically highlights the risk associated with manual certificate renewal processes and the potential for outages due to certificate expiry. Candidate C2 mirrors this concern by explicitly mentioning manually renewed mTLS workload certificates and the risks of outages and inconsistent handling.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "5465f2084ccf5791ad24d82590a763adc1ca212ecefa3becd9a228e55e61d9ae": {
+    "reason": "The reported finding specifically addresses the issue of key rotation requiring re-encryption and downtime, violating a standard. Candidate C3 also concerns key management and the potential for key exposure during replication, which is directly related to the key rotation process and its impact.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "63b2e94e8d424a454d83f144ee85e1eeb5a1204255935b3e28eab1833d6d062e": {
+    "reason": "The reported finding focuses on the lack of recertification for break-glass accounts, highlighting a potential weakness in access control and privilege management. Candidate C4 also addresses the break-glass account and its potential for unnoticed misuse, indicating a similar underlying concern about privileged access.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "70594564a40a3d81ea3ab6830d2b50a16d599e21a55c1d8c087da15e0deed06c": {
+    "reason": "The reported finding concerns privileged access management (PAM) and the lack of controls around role elevation, specifically mentioning a need for just-in-time elevation with approvals and time limits. Candidate C3 also addresses a lack of real-time alerting and oversight of privileged access (break-glass account), which is a related weakness in PAM controls.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "5ed7a3d7d7f01a2f44e5d3a9b4dd23f14b077aa8e7c9fbf4e72a7db991671bc8": {
+    "reason": "The reported finding specifically highlights the lack of logging for administrative and break-glass access events, which directly relates to the potential for undetected misuse of privileged access – a weakness described in candidate C4. C1 is about data leakage, which is a different issue.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "16903823794d111f0802f6c544e68955d78b32e440143579e169c4902927dc15": {
+    "reason": "The reported finding concerns the lack of explicit logging for authentication events, which could indicate a broader issue of insufficient monitoring and potential data exposure. Candidate C2 also highlights a monitoring gap related to privileged access and potential misuse, aligning with the finding's concern about inadequate logging and alerting.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "67f6df07cb66941bb072fe0eeb92fc6b4ef74a70a048b715aa44cf2ea072f853": {
+    "reason": "The reported finding concerns data retention policies and searchability, specifically highlighting a deviation from a standard 12-month retention requirement. None of the candidate issues address data retention or searchability; they focus on encryption, certificate management, data leakage, and alerting, respectively.",
+    "matches": []
+  },
+  "f4ec14e26fd939485570b488db5af066c61e92a9a331fbd58c01ef8cb279e1b6": {
+    "reason": "The reported finding concerns the lack of network segmentation for tenant isolation, which directly relates to the security boundary between tenants. Candidate C1 describes a long-lived certificate issue, which could be exploited if a compromised workload gains access across the flat network segment, thus exposing tenants to each other.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "f1c41d8f2ea2713bc76ecca02f9998728bf90f9139efb546742a18734d5d55e6": {
+    "reason": "The reported finding highlights the lack of data flow description, which directly impacts the ability to assess encryption-in-transit and data residency. Candidate C1 describes key replication between regions, which inherently involves data movement and therefore is affected by the absence of a defined data flow.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "c02d7b2b5b4dc8ecafc82e3c2894478352c724781df2a03ee092d79971308414": {
+    "reason": "The reported finding concerns the lack of security scanning practices (SCA, container scanning, SBOM generation, CVE monitoring) within the build pipeline, which directly relates to the security posture of the KTV system and its dependencies. This aligns with the potential for data leakage (C1) if vulnerable dependencies are exploited.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "433a636a32e05c19cd3d160f6a9d08e42b66b082fb4d046336a53fdf2313757c": {
+    "reason": "The reported finding concerns a discrepancy between stated data retention requirements and actual logging/monitoring retention periods. This aligns with candidate C4, which describes cardholder data leaking to the SIEM outside the CDE, indicating a potential failure to properly retain and monitor data as required.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "8b59dd4ecd57571d9694f576a3441bd4083125aa09119bd54f446620709d2164": {
+    "reason": "The reported finding highlights a lack of real-time alerting for the break-glass account, specifically mentioning its bypass of security controls and infrequent review, which directly aligns with the concern raised in candidate C1 about the lack of alerting for break-glass account usage.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "0aeb743469c9e55df57410e6bc1b430941e5b9057a681d83a4910f9934b706f3": {
+    "reason": "The reported finding specifically highlights the lack of a threat model and attack surface analysis, which is a fundamental design deficiency. Candidate C1, concerning long-lived, manually renewed certificates, directly relates to this as it exposes a significant attack surface and lacks a proactive threat mitigation strategy (a proper certificate lifecycle management plan derived from a threat model).",
+    "matches": [
+      "C1"
+    ]
+  },
+  "42dbbe086819712b56eef4cb3d845abff1013979bd33ab4e5219b3ccd3ef3a7f": {
+    "reason": "The reported finding specifically highlights the lack of documentation regarding external dependencies and data flows, which directly relates to the potential for data leakage to external systems like the SIEM (C1). The finding's concern about data leaving the CDE aligns with the risk described in C1.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "2d684ef0c2a0f47ee3eab17469e602295c249b9b948e19ac96c7ab241faca7a4": {
+    "reason": "The reported finding is vague and doesn't specify a particular weakness, indicating it requires architect input to determine the issue. Because of this generality, it doesn't align with any of the specific vulnerabilities described in the candidate issues.",
+    "matches": []
+  },
+  "559178be1555c0dfa8a8077446c6a1397b85b3a7eafdb1ceddee0869d07604cc": {
+    "reason": "The reported finding specifically mentions the lack of content-type verification and malware scanning for uploaded files, which directly corresponds to the issue described in candidate C3 regarding unrestricted and unscanned document uploads.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "4add6cc07629d0ca62b215f49337fbd55edc29ccd9168c189d2bfcb8a3f41299": {
+    "reason": "The reported finding specifically addresses missing logging categories within the SIEM, and candidate C4 also concerns record-level HR data access logs not being sent to the SIEM, indicating a similar deficiency in logging practices.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "03d9531a333c00655fa1cf2b316d840c138edd4a085d95e67f435944be177252": {
+    "reason": "The reported finding specifically addresses the lack of logging of cloud control-plane audit logs and their delivery to a secure, separate logging account. Candidate C1 also concerns a logging deficiency – specifically, the short retention period and lack of SIEM integration for critical HR data access logs.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "fe85b5c6b343494e16c3f5bef3db41cfedb877d5672eb27095d2e64428ee145d": {
+    "reason": "The reported finding specifically addresses the need for backups to be immutable or offline, held outside the production environment, to protect against data loss or corruption. This aligns with the concern about unrestricted uploads (C1) as a potential source of data compromise that would necessitate robust backup and recovery measures.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "dc9c5ee7f926b9bae9c3f6a302262087dae3691c50cf3b1465f7ec7b8234b7a7": {
+    "reason": "The reported finding concerns the alignment of Recovery Time Objective (RTO) with restore testing frequency, specifically for the Azure SQL database. None of the candidate issues address database recovery or testing procedures; therefore, none match.",
+    "matches": []
+  },
+  "6aa819456a9642b625495556cca87d129b861105d72e069193114ee002250079": {
+    "reason": "The reported finding specifically addresses a lack of logging of cloud control-plane audit logs and their protection, which aligns with candidate C4's description of record-level HR data access logs not being sent to the SIEM and having a limited retention period. Both findings highlight a deficiency in security logging and its forwarding to a central security monitoring system.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "c45d8bec32803b3e5460f8ea720cc03f8cd0fc233a62cddf8630b209c1b76536": {
+    "reason": "The reported finding specifically highlights the lack of server-side input validation for integrations, focusing on the risk of accepting untrusted data. Candidate C1 addresses a similar risk of unauthorized actions (payroll changes) due to a lack of key rotation, which is a form of validation/control failure.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "ca392bea12045352fbbfcc6e5cdd34ec42a224f9f5b931a6480c28dc3d7ee04d": {
+    "reason": "The reported finding concerns the application's authentication mechanism and its deviation from the required enterprise identity provider integration. Candidate C1, regarding the lack of key rotation, also represents a failure to adhere to a defined security standard and best practice, albeit in a different area (key management rather than authentication).",
+    "matches": [
+      "C1"
+    ]
+  },
+  "570ee82f8b5903722a0b61edc763f9f8c2074a6197360e6974c51d4c6d3cb348": {
+    "reason": "The reported finding specifically addresses the requirement for using private endpoints for platform data services like Azure SQL, storage account, and Key Vault. Candidate C1, regarding SFTP and PGP keys, also involves a critical data service (Payfield) and a lack of proper rotation, which is a similar failure to adhere to a security standard.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "9d868cbd5eb70f68136729ed3a65cec4fee078c20a3af98c0b657fbdea047dbc": {
+    "reason": "The reported finding specifically mentions the encryption of the payroll change file using a third-party's PGP public key, which aligns with the concern in candidate C1 regarding bank details being sent unprotected to the payroll provider. The core issue is the lack of control over the encryption key, which C1 highlights as a vulnerability.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8acadf28a9a9c1137d9fe5c17030d27db101a8b942c41127c87cbd056d40f4a2": {
+    "reason": "The reported finding specifically addresses the insufficient retention period (90 days) for record-level access events in Log Analytics, which directly corresponds to candidate C3's description of the same issue: record-level HR data access logs kept only 90 days and not sent to the SIEM.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "dbe9358863185809f761bf8bfb472f7ba9dc322e4e50c0d53fbca9712d5f314b": {
+    "reason": "The reported finding specifically addresses missing logging categories within the SIEM, particularly concerning account lifecycle events, configuration changes, and data export operations. Candidate C4 mirrors this concern by highlighting the limited retention and lack of SIEM integration for record-level HR data access logs, which are crucial for investigations and security monitoring.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "15830581a31b409627a2f744b8b7aa0d919a266cc3091e14f2bf743f8026c142": {
+    "reason": "The reported finding concerns the searchability of security logs within the SIEM, specifically the ability to quickly access recent logs. Candidate C3 also addresses log retention and forwarding to the SIEM, highlighting a similar issue of limited log visibility and a mismatch in retention periods between different logging systems.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "9422e783aa928d93b25bbc033230550fee00110174b22b2731a9c44b81520f18": {
+    "reason": "The reported finding focuses on the lack of recoverability of configuration and infrastructure definitions, specifically related to the Azure SQL database. Candidate C1 addresses a similar lack of defined rotation and replacement procedures for critical keys, which are essential configuration elements, making it the closest match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "9164fb8dccd86a7ffd025c1686d4ee816f6ff903e3e4f89fe1beb03d174bb4d2": {
+    "reason": "The reported finding mentions an unspecified issue related to payroll export, and candidate C1 directly addresses the lack of key rotation for the SFTP and PGP signing keys used in the payroll export process to Payfield, which aligns with the core concern of the finding.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "08f10a75a5781acda17b62fbf65657581bb30639313d1219fdd5cc3dc48ce30e": {
+    "reason": "The reported finding specifically addresses the lack of network segmentation for tenant isolation, which directly relates to the security of the network architecture. Candidate C1 highlights a broader exposure issue, but doesn't specifically mention the lack of network segmentation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d6c1bebbf88c40bb08e27926b2062c143776019b4611e9c7cc1a7c9e79572906": {
+    "reason": "The reported finding specifically addresses the authentication mechanism (authorization code flow with PKCE) and its deviation from the required enterprise identity provider integration (OIDC or SAML). Candidate C1, concerning access from personal devices without MFA, directly relates to authentication and access control, aligning with the finding's focus on authentication weaknesses.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "6b8c067de1ece053a0334b64ad0d5386c11e75028e299d1d5b1efd877cfd6e96": {
+    "reason": "The reported finding specifically addresses the use of a non-customer-managed key for encryption, which directly relates to the broader concern of sensitive employee PII not being adequately encrypted at rest (C1). The other candidates address different issues like log retention, key rotation, and transmission security.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "b854ce18afe64e856f9aa39d121053cd015ce20c455df138d51732643b12bce8": {
+    "reason": "The reported finding specifically mentions missing logging of mandatory event categories, particularly those related to account lifecycle, configuration changes, and data access. Candidate C2 directly addresses this issue by highlighting the insufficient retention and SIEM forwarding of record-level HR data access logs, which are crucial for security investigations.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "01e6898d4eb2f14c7b43e26b17961d2428d75aca72686bf5f4bab3a894af62b7": {
+    "reason": "The reported finding concerns the retention and searchability of security logs within the SIEM, specifically highlighting a potential gap in timely investigation capabilities. Candidate C4 also addresses a limitation in log retention and forwarding to the SIEM, directly mirroring the concern about the availability of critical security data for investigations.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "8aff847ae9fbdfa8f39190103829af76d0b20c3bef92776729d6e9e87483a782": {
+    "reason": "The reported finding explicitly states that data classification is missing, which directly impacts the ability to define appropriate security controls like retention, residency, encryption, and access logging. Candidate C2 highlights the lack of encryption for sensitive PII, a direct consequence of missing data classification.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "8a2153fbc8cbca527ed45f6426f3c02e44c8575ca72bfb393a741141243774f8": {
+    "reason": "The reported finding focuses on the lack of defined trust boundaries, which directly impacts the effectiveness of security controls like authentication and filtering. Candidate C1, regarding the payroll SFTP and PGP keys, highlights a critical boundary crossing (PeopleHub to Payfield) where authentication and filtering are inadequate due to the lack of key rotation and defined lifecycle.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "9524a0725ac28858abd31b90ddc2804a2f2d971d88510b7628d2317ee0a294a7": {
+    "reason": "The reported finding highlights the lack of a threat model and attack surface analysis, indicating a general absence of proactive security considerations. Candidate C1, concerning unprotected bank details transmitted over the internet, represents a specific vulnerability stemming from a lack of security controls and a potential attack surface.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "639f15a4f2e1851a861c4c5545b290970abefbb684cea755cc6f6067e8e3b619": {
+    "reason": "The reported finding specifically highlights the lack of visibility into external dependencies and data flows, which directly relates to the key management practices described in candidate C1. C1 details a critical dependency (Payfield) and the lack of key rotation, mirroring the finding's concern about unassessed external interactions.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "46b5f181a49c9f185bc62a64eb93e14705f155d10a3e1209c5a3e2e3a79d090d": {
+    "reason": "The reported finding specifically addresses the exposure of API specifications and interactive documentation on a public gateway, which is exactly what candidate C7 describes. Both findings highlight the risk of exposing internal API details to unauthorized access.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "ae941e0ff4612d3d45b38f73f13221ebd29ebdff3138a55f705c075bac3f4f68": {
+    "reason": "The reported finding specifically mentions a lack of authentication on an internal API, and candidate C3 also describes a security issue related to publicly accessible API specifications, which inherently lack authentication controls. Both findings highlight the exposure of internal APIs and their functionalities.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "06a2b6aa0de1e1dd868f98797833aabfd3d73ddc6ed64f1b061ab1996655de0a": {
+    "reason": "The reported finding specifically addresses the lack of server-side input validation, which is a weakness in request handling. Candidate C1, regarding weak authentication with a six-digit PIN, also relates to a weakness in request handling and authentication, making it a relevant match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "c017946c825eb09f65cf41f47613323442d1647d74271ec5fb0dc518bb79660b": {
+    "reason": "The reported finding specifically highlights the lack of authentication between the Notification Service and the Core-Banking Connector, which directly relates to the issue of unencrypted service-to-service traffic described in candidate C2. Both findings point to a critical vulnerability where sensitive data is transmitted without proper authentication or encryption.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "9a3942a75ff0197249cbe1a45a7d69da2a125473c0e4aa9e0bf6a2f2aa8f7211": {
+    "reason": "The reported finding concerns the lack of lockout mechanisms for authentication endpoints, which directly relates to the weakness of authentication itself. Candidate C7, which also addresses a weak authentication method (a six-digit PIN), shares this underlying concern.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "12346e5033ff2c4042b28f0fb44bc8f1b2908fd30bc38f46b7f56ab33c9432c9": {
+    "reason": "The reported finding concerns the lack of progressive delay for authentication endpoints, which relates to the security of the authentication process itself. Candidate C7, which mentions a weak six-digit PIN, also addresses a weakness in authentication, making it a relevant match.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "23fb650076c76ca90aca60afd49eb18881e9283abf08ac2c7fdd05955cf35bf1": {
+    "reason": "The reported finding specifically mentions a six-digit PIN being used for user authentication, which is the exact issue described in candidate C6. The finding highlights a weak authentication mechanism, and C6 mirrors this concern.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "b50c303128a40506d6c7f0c66ae8e2242b4d81d8085166d240647b0191d0d3f1": {
+    "reason": "The reported finding specifically addresses the use of static API keys for service-to-service authentication, which directly relates to the issue of production secrets (specifically, the core-banking password) being stored in Git (C2). Both highlight a failure to properly manage and protect credentials.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "f6b457795b7ac29aff14983eb91f9d55b69baa3cc88fdbe5ba9497bf440ab969": {
+    "reason": "The reported finding specifically addresses the issue of refresh token lifetimes and the need for rotation, which directly aligns with candidate C5's description of excessively long-lived refresh tokens.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "0c8be3f450e3aaac26a9844117d9789d5c9fa026de5c29cca7fa2921754e436d": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, and the risk of data loss if an attacker gains production admin rights. Candidate C6 mirrors this concern by highlighting that backups reside in the production account without proper safeguards, making them vulnerable to deletion by an attacker with production admin privileges.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "186f9c2c01055a28f9a7512bb550fdee9a069bdbe55af8f6a8e25a0d504f1a1f": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data (PII, card data, tokens, request bodies) being written to application logs and the need for redaction or omission. Candidate C5 mirrors this exact concern, highlighting the logging of bearer tokens and sensitive headers in access logs, which requires redaction.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "acdf5438a5605e82c11554a911b03b1eb0c045d481b27e8235a97cb2be35dafd": {
+    "reason": "The reported finding specifically addresses the issue of sensitive data (PII, card data, tokens, request bodies) being written to application logs and the need for redaction or omission. Candidate C7 mirrors this exact concern, highlighting bearer tokens and sensitive headers being logged and accessible, thus representing the same underlying weakness.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "3dd2a4d7943cd72ca0fb67f68be19cf67504017f00f2d5880c58d23504e9a6e9": {
+    "reason": "The reported finding specifically mentions client-side input validation and the need for server-side validation. Candidate C1, regarding published API specifications, reveals internal operations and parameters, which would inherently expose input validation mechanisms and their potential weaknesses, making it a related concern.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "8803d218c62515d97f46a9a3334306d7c235df6309b8a4bfbb88e6bab36475b5": {
+    "reason": "The reported finding specifically addresses the lack of network segmentation for tenant isolation, which means different tenants' data should be isolated from each other. Candidate C1, regarding account data disclosure through push services, also highlights a lack of isolation and potential data leakage, making it the closest match.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "ac08c7c9a1d08553c897da26440608b196747df690da5ff6cd35da8d1886d78c": {
+    "reason": "The reported finding specifically mentions a weak authentication mechanism using a six-digit PIN and recommends implementing OIDC or SAML. Candidate C3 directly addresses this same weakness in the authentication process.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "4235d57a3e126c70f12ac16efd019af205e4020635db3b66bcfa9a9ed5c803ab": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline storage, and tested restore procedures for backups, and the risk associated with backups residing within the production account. Candidate C4 mirrors this exact concern regarding backups not being immutable and held in the production account, highlighting the potential for data deletion and cross-region replication of destructive changes.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "32e81847eef8da2114b6f7f6a3ea3b0d7251ab21595add149b3093560b2b5dfb": {
+    "reason": "The reported finding specifically mentions a six-digit PIN being used for user authentication, which directly aligns with the weakness described in candidate C1 regarding weak authentication with a PIN. The finding's recommendation to implement OIDC or SAML addresses the same underlying issue of inadequate authentication mechanisms.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "7f674e227588dcc3027e8b679ca2956b5f26e50a46dad89ec69ab989bb0b9075": {
+    "reason": "The reported finding focuses on the lack of network segmentation for tenant isolation, which directly relates to the risk of unauthorized access between tenants. Candidate C1, concerning IDOR, highlights a similar weakness: the application trusts client-supplied account identifiers without proper authorization, enabling unauthorized access to other users' data, which is a direct consequence of insufficient isolation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "c8587d86040dc11a87647b575c42088c7842839e919a489f13dfb26254b9a2d1": {
+    "reason": "The reported finding specifically addresses the lack of immutability, offline copies, and tested restores for backups, which directly aligns with candidate C4's description of backups residing in the production account without cross-account copies or Vault Lock.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "75d27a7d1e54d41c67a3c4eac44673363700f01532fd4735b1ac35626a955b5d": {
+    "reason": "The reported finding concerns the lack of rate limiting on public APIs, which exposes the system to denial-of-service attacks and potential abuse. Candidate C1 discusses sensitive data (bearer tokens) being logged, which could be exploited if an attacker can repeatedly call the API, making rate limiting a relevant mitigation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "f90c5a1ccb13066701642c64e949d604a39debb10ddb3e2bfcc48ff2902b2140": {
+    "reason": "The reported finding concerns the security of nonces used in authentication, specifically highlighting the risk of predictability or reuse. Candidate C5, which mentions 'Weak authentication with a six-digit PIN', also addresses a weakness in authentication mechanisms, making it a relevant match.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "e29a424f89bbb35eb58eaf069fe324b48749c52e76bfd06bba84c59df83b184b": {
+    "reason": "The reported finding specifically highlights a lack of input validation on data received by the Fraud Engine from other services (Transfer and Auth). Candidate C5 also describes a similar bypass of fraud scoring for P2P payments, indicating a lack of input validation or risk checks on data received by the core system from the Payments Service.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "6b6e24630f03b32797771ab01e4ccc83d39236fcb9519a02cb11388584085252": {
+    "reason": "The reported finding specifically mentions the logging cluster being accessible to a large group of users, which directly relates to the issue of sensitive data (bearer tokens) being written to widely readable access logs (C2). This highlights the risk of unauthorized access and data breaches due to overly permissive access controls.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "79fd38c2c1296d3a140a4a9b0c8ade19fbcd37d1a615b9ce429e5441601111fa": {
+    "reason": "The reported finding specifically addresses the retention period of logs and its conflict with a standard, highlighting a data handling issue. Candidate C4 also discusses logging practices and the exposure of sensitive data (bearer tokens) within access logs, directly relating to the finding's concern about inappropriate data handling and potential security risks.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "ea883afc103d2affe95a6e425854af3d966518637ee75f457d2339c6c45026eb": {
+    "reason": "The reported finding specifically mentions the use of AWS Secrets Manager and the need to verify its compliance with logging and monitoring standards. Candidate C3 also discusses production secrets (including passwords) being stored in a repository, which is a related issue of improper secret management, aligning with the finding's concern about secure storage and adherence to standards.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "fb54f3b14588ce88a8c8b04dc973e689a4fde34969c6ee397bd668afc0cf32e1": {
+    "reason": "The reported finding focuses on the lack of security scanning within the software development pipeline, specifically mentioning SCA, container image scanning, SBOM generation, and CVE management. Candidate C4 also describes a critical security flaw related to secrets management within the CI/CD pipeline, which aligns with the finding's concern about supply chain security and build integrity.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "93378027fe9974660e5267335fee12a154cebc97aa417a2c4b5e004ae71c2541": {
+    "reason": "The reported finding focuses on the lack of data classification, which directly impacts security controls like retention, residency, and encryption. Candidate C7, regarding sensitive headers (including bearer tokens) being logged, highlights a consequence of not properly classifying data and understanding its sensitivity.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "0707558bdef331e0ba409d527d3356698918c0504a7c46b8638b3282c5895409": {
+    "reason": "The reported finding specifically highlights the lack of defined trust boundaries, which directly relates to the absence of object-level authorization (C1) where services trust client-supplied account identifiers without proper validation. This demonstrates a failure to enforce boundaries and a lack of control over what data is accessed, mirroring the core concern of the reported finding.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "52e56b298497d9a151d0722c357c139b232ac7c8724105fffa88daa524da32d0": {
+    "reason": "The reported finding specifically calls out the lack of a threat model and attack surface analysis, which directly relates to the absence of proactive security considerations and risk mitigation planning. Candidate C1 highlights a significant security vulnerability (shared admin IAM user) that would be identified and addressed through a proper threat modeling exercise.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "37b4f901fe2db272f72d18ec049f36e547609e9853b0718393cc369a576028bd": {
+    "reason": "The reported finding specifically mentions an unauthenticated API, which aligns with candidate C7, where an unauthenticated endpoint leaks rider locations. Both findings highlight a lack of authentication leading to unauthorized access and data exposure.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "592d70c21e566e86c29dbf122aa303a61b525fa7497db19f253f4933e10874e7": {
+    "reason": "The reported finding specifically highlights an unauthenticated endpoint (GET /v1/rides/{rideId}/trail) exposing sensitive GPS trail data, which directly aligns with candidate C1's description of an unauthenticated endpoint leaking rider locations.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "339694240c130d9b38e8cab893a92512b07d88735cf14c0a0bc53ddfe9f66031": {
+    "reason": "The reported finding specifically highlights the lack of authentication for the `/v1/scooters/nearby` endpoint, which directly exposes rider locations. Candidate C2 mirrors this exact vulnerability: an unauthenticated endpoint leaking rider locations.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "9335239da8a1dc13d12d4a1d655a1e87290880aea5204bf7768a7ab5f71d1d6a": {
+    "reason": "The reported finding specifically highlights the lack of authentication on the `/v1/scooters/nearby` endpoint, which directly exposes rider locations. Candidate C2 mirrors this exact issue, describing how the unauthenticated endpoint leaks rider locations.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "cf25f9ec64216c7ee71fdafcbd1fb08220cbcc5060b4d93a7ab67f9bfd909f8a": {
+    "reason": "The reported finding specifically addresses the issue of backend services failing to validate JWT tokens, relying solely on the API Gateway's validation. Candidate C4 mirrors this exact weakness: backend services trusting the gateway's JWT validation without performing their own authorization checks, leading to IDOR.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "8e7232711f400796c40f7c7beea99fe54cda31dba0d44057558f3d7b4639f34d": {
+    "reason": "The reported finding concerns the validity period of an unlock token, specifically highlighting that it exceeds a defined limit. Candidate C1 addresses a lack of audit trails for operator commands, including unlocking actions, which is directly related to the management and tracking of token usage and authorization.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "619cbd9b3f02d2681bd87f1bfc049d4553796356f8f1fb168f7feb458f6adce3": {
+    "reason": "The reported finding specifically addresses the security risk of using a long-lived credential (OIDC workload identity) for firmware signing, highlighting the potential for compromise. Candidate C6 mirrors this concern by also identifying the firmware signing key as being exposed to all CI jobs, including merge request pipelines, creating a similar risk of unauthorized access and potential key compromise.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "92762bf29c3ae148922008c98cab4d4a49affcef5dce705f411ca6d6b37eb244": {
+    "reason": "The reported finding highlights the lack of a specified retention period for confidential rider data and the absence of network segmentation for tenant isolation. Candidate C1 directly addresses the issue of rider-linkable GPS telemetry being retained indefinitely and misclassified as non-personal, which aligns with the data retention concern.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "a09fc661e9faaa9b2c1acf91b55fc88ee5c9f742af5996c7e1fc8685dab94650": {
+    "reason": "The reported finding specifically addresses the lack of a defined retention period and automated disposal mechanism for sensitive rider account data. Candidate C5 also highlights a data classification and retention issue related to rider telemetry, specifically noting indefinite retention and misclassification of personal data.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "88e97d95b2bc8563b62eced5a313216a0e89662acfa4a688897b09af921579e9": {
+    "reason": "The reported finding highlights a lack of audit trails for operator commands and location trail lookups, mirroring the concern in candidate C1 regarding the absence of durable audit records for user actions and trail replays.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d19faf2a262ded493c641ee8f4f5adcc680b9ec8079c902730a2305138237553": {
+    "reason": "The reported finding specifically highlights the risk of firmware tampering due to the use of plain HTTP for downloads. Candidate C4 directly addresses this same vulnerability: firmware downloaded over plain HTTP can be tampered with in transit.",
+    "matches": [
+      "C4"
+    ]
+  },
+  "2ba93c4990427352beced5ae6cf35e441bee8cbd946b5b6d65b4a1eaddac4837": {
+    "reason": "The reported finding concerns a lack of redundancy for a VLAN gateway, specifically mentioning HSRP or VRRP. Candidate C1 describes a debug console left enabled on production devices, which is a different security concern related to device access and not network redundancy.",
+    "matches": []
+  },
+  "9bec9771f8e638ff98312887736cf22e0e5c45a682e57f84d3533fccc0da6c51": {
+    "reason": "The reported finding specifically highlights the issue of trusting inbound identity claims and the lack of object-level authorization, which directly relates to the authorization weakness described in candidate C7 regarding MQTT ACLs allowing any device certificate to publish commands to every scooter.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "8c9019d3d352a7465b7f129a9c8c8707aadd6775d6b267fd7b3d87cd7e023972": {
+    "reason": "The reported finding specifically addresses the lack of a defined key management model (custody, rotation, escrow) for encryption keys. Candidate C2 directly mirrors this concern by highlighting the insecure storage of the device issuing CA private key as a password-protected file, which is a critical key management failure.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "991472eafdae1ae5de999bfb35164d687026a3e3741c15b42133166e309a18d7": {
+    "reason": "The reported finding specifically addresses the lack of proper key management (custody, rotation, escrow) and the recommendation to use an HSM or KMS with dual control. Candidate C1 directly highlights a critical key management issue - the fleet firmware signing key being exposed in CI/CD pipelines, which aligns with the finding's concern about key custody and security.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "713aaf5537f040abacaf87be8053a5727052ebfec615685dd8b3bfd94777c948": {
+    "reason": "The reported finding mentions a lack of specified remediation and requires architect input, which aligns with candidate C1's description of missing audit trails for operator commands and location trail lookups, highlighting a critical gap in accountability and security.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "026eb1fe85fc3d5cec49b3446634b394daf2662050690bbc54f1eac2c2606ead": {
+    "reason": "The reported finding specifically addresses the lack of proper key management (custody, rotation, and escrow) for encryption keys. Candidate C7 mirrors this concern by highlighting the exposure of the firmware signing key within the CI/CD pipeline, which represents a critical key management vulnerability.",
+    "matches": [
+      "C7"
+    ]
+  },
+  "8b8f18c91d559cfb3f5190de41a4f69d69b1bd558a1f91f6c1e710875b7bb84f": {
+    "reason": "The reported finding highlights a lack of network segmentation for tenant isolation, which directly relates to the lack of scoping and authorization for high-impact commands like immobilization, as described in candidate C1. Both findings point to a deficiency in access control and the potential for unauthorized actions due to insufficient isolation.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "ddc4e1cdb89882c720fcb90be3b67e2b9b00a770532be3ed7ea1388e9cec8679": {
+    "reason": "The reported finding specifically mentions the risk of brute-force attacks due to sequential ride IDs and the exposure of rider GPS history via the ride trail endpoint. Candidate C5 directly addresses the IDOR vulnerability on the ride trail endpoint, where sequential ride IDs allow unauthorized access to other riders' GPS data.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "db8d317efa2084559c7e6ed436ef1fb6bff92b17cd53ae9a89a76ecdd27124dd": {
+    "reason": "The reported finding specifically addresses the risk of certificate expiry and the need for automation and monitoring. Candidate C6 also discusses certificate expiry and revocation, aligning with the core issue of certificate lifecycle management.",
+    "matches": [
+      "C6"
+    ]
+  },
+  "a467e68c666c0036a822ad46c3b8f30e46f14e84fce3ffd150277f85c941becf": {
+    "reason": "The reported finding concerns privileged access and the use of phishing-resistant factors. Candidate C2 also highlights a lack of auditing for privileged actions (immobilizing/unlocking scooters) performed through the operator dashboard, which is directly related to the security of privileged access.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "76f8d0c2d8cbf4d6dbc1b2fb5ed7520dca7ced2b83a8165433ac6815c6f1efe4": {
+    "reason": "The reported finding specifically addresses the inadequate retention period for security logs and the lack of a durable audit trail for operator commands and location trail lookups, which directly relates to the absence of proper auditing and accountability. Candidate C3 mirrors this concern by highlighting the lack of audit trails for operator commands and trail replays, alongside the insufficient retention of general application logs.",
+    "matches": [
+      "C3"
+    ]
+  },
+  "38cc3ac09bb11ffd37cf3aea0da83195c127ad1ecc0a2ff32926e19a5dffdeff": {
+    "reason": "The reported finding concerns the lack of encryption for commands transmitted to scooters, specifically highlighting the Command Service and its use of MQTT topics. Candidate C2 also addresses a lack of encryption in transit, specifically for firmware downloads, which aligns with the reported finding's concern about unencrypted communication.",
+    "matches": [
+      "C2"
+    ]
+  },
+  "f3e09fe2fd0cec8735f2940ced05d047c34c16170a62f572465325e0c12e921a": {
+    "reason": "The reported finding mentions a lack of scoping and authorization for high-impact commands, specifically the ability for any dashboard user to immobilize any scooter. Candidate C1 directly describes this exact scenario, highlighting the risk of unauthorized immobilization by city contractors.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "59757642bcbd73dc9dce07c70c4a20646ef5d9a2b962d889b3ffde505d2399ef": {
+    "reason": "The reported finding focuses on the lack of security scanning in the pipeline, specifically related to dependencies, containers, and the software supply chain. Candidate C5, regarding the firmware signing key exposed to CI jobs, directly relates to a weakness in the software supply chain and build process, aligning with the finding's concern about security scanning and potential compromise of critical components.",
+    "matches": [
+      "C5"
+    ]
+  },
+  "47f1949804f17bd8f30e3e496d1cb210d34b1e12fc429a0abed4f1a26588d3e3": {
+    "reason": "The reported finding specifically highlights the lack of defined trust boundaries, which directly impacts the assessment of security controls like authentication, filtering, and encryption. Candidate C1 describes a data flow (firmware download) that lacks a clear trust boundary, making it vulnerable to tampering, and thus aligns with the finding's concern about the absence of defined boundaries.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "ee25f941893dff3b7cce9473f2a994b15239c9283c1161b7b3fb13e3c27dbdc1": {
+    "reason": "The reported finding highlights the lack of a threat model and attack surface analysis, specifically mentioning trust boundaries and mitigations. Candidate C1 directly describes a critical trust boundary issue – the CA private key's insecure storage at a contract manufacturer – which is a key element of a threat model's focus.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "2a1b1bfd9a5982635ef22214f70c2f113e9024fc6bb6087357dd4dfa7ad88c80": {
+    "reason": "The reported finding concerns the potential use of outdated TLS versions on the MQTT broker, which could allow unauthorized access or data compromise. Candidate C1 describes a scenario where a compromised device can publish commands to other scooters via MQTT, highlighting a vulnerability related to authentication and authorization on the broker.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "d09fa86455c38eb02ab1a7d19ea571618d587d17a19a9ced3abf0809ced972b4": {
+    "reason": "The reported finding concerns the lack of stated convergence times for failures, indicating a gap in the design's resilience planning. Candidate C1 describes a critical vulnerability where a compromised device can affect the entire fleet, highlighting a significant lack of resilience and control, which aligns with the finding's focus on system recovery and stability.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "6790845f88f1158c14f657248779b10e75df3e6e994eec4e0f534c803ece3d63": {
+    "reason": "The reported finding specifically highlights the lack of visibility into external dependencies and data flows, particularly concerning data leaving the system and the agreements governing it. Candidate C1 describes data being downloaded over plain HTTP, which is an external dependency with a clear data flow and a lack of secure transport, aligning with the finding's concern.",
+    "matches": [
+      "C1"
+    ]
+  },
+  "df2a73c249b614f755bd9f30ad05c6ae4ad5b15b7fdfbbd2a273a0ee0272d32b": {
+    "reason": "The reported finding concerns the lack of availability targets, recovery approaches, and identification of single points of failure within the design. This relates to the overall system resilience and operational readiness, which is not addressed in any of the candidate issues.",
+    "matches": []
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "doc_id": "gs-09-payments-tokenization",
+  "status": "OK",
+  "findings": [
+    {
+      "section": "Whole document",
+      "domain": "application",
+      "severity": "MEDIUM",
+      "issue": "No dependency, container or supply-chain scanning is described in the pipeline.",
+      "recommendation": "Add SCA and container image scanning as blocking pipeline gates, publish an SBOM per release, and fail the build on new critical CVEs in direct dependencies.",
+      "standard_reference": "Secure SDLC Standard §4.2",
+      "kb_source": "application/secure-sdlc-standard.md",
+      "evidence_excerpt": "...WS CloudHSM (FIPS 140-2 Level 3), three HSMs | Holds keys; performs encryption, decryption and HMAC | | Audit pipeline | Fluent Bit sidecars, Amazon Kinesis | Ships audit events to the SIEM | Callers in the merchant gateway acc...",
+      "control_mappings": [
+        "NIST SSDF PW.4",
+        "ISO 27001 A.8.28",
+        "MITRE ATT&CK T1195.002"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "APP-SDLC-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "1. Purpose and Scope",
+      "domain": "cloud_data",
+      "severity": "HIGH",
+      "issue": "Sensitive or regulated data is handled without a stated classification, residency constraint or retention period.",
+      "recommendation": "Record the classification of every data set the system holds, the jurisdictions it may reside in, the lawful retention period, and the disposal method. Route regulated data only through services approved for that classification.",
+      "standard_reference": "Data Classification Standard §2.1",
+      "kb_source": "cloud_data/cloud-data-protection-standard.md",
+      "evidence_excerpt": "...so that downstream systems such as reporting, fraud analytics and billing handle only tokens and stay out of PCI DSS scope. Release 2 moves the vault from an on-premises appliance to AWS. This document covers the APIs, da...",
+      "control_mappings": [
+        "ISO 27001 A.5.12",
+        "NIST SP 800-53 RA-2",
+        "GDPR Art.5"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "CLD-DATA-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "2. Architecture Overview",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...hich is hosted in the shared security tooling account outside the cardholder data environment. A nightly AWS Backup job copies vault database snapshots to a separate AWS account, ktv-backup, for long-term retention.",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "6. Data Protection and Key Management",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "...lues within 90 days of each rotation. Key material is copied between HSM clusters only as encrypted CloudHSM backups; keys are never exported in plaintext outside an HSM boundary.",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "9. Backup and Disaster Recovery",
+      "domain": "security",
+      "severity": "HIGH",
+      "issue": "Backups are described without immutability, offline copy, or a tested restore.",
+      "recommendation": "Hold at least one immutable or air-gapped copy outside the production identity domain, and test restore at defined intervals with the result recorded against the stated RTO/RPO.",
+      "standard_reference": "Resilience & Recovery Standard §4.3",
+      "kb_source": "security/vulnerability-resilience-standard.md",
+      "evidence_excerpt": "9. Backup and Disaster Recovery Aurora point-in-time recovery covers 35 days. The ktv-backup account stores the nightly...",
+      "control_mappings": [
+        "NIST SP 800-53 CP-9",
+        "ISO 27001 A.8.13",
+        "MITRE ATT&CK T1490"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-RES-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    },
+    {
+      "section": "Whole document",
+      "domain": "security",
+      "severity": "MEDIUM",
+      "issue": "No threat model or documented attack-surface analysis accompanies the design.",
+      "recommendation": "Produce a STRIDE or equivalent threat model covering every trust boundary in the design, with mitigations traced to specific controls and residual risks accepted by a named owner.",
+      "standard_reference": "Secure Design Standard §1.4",
+      "kb_source": "security/zero-trust-standard.md",
+      "evidence_excerpt": "Kestrel Token Vault (KTV) Release 2 — High-Level Design Payments Platform Engineering, Kestrel Merchant Services. Version 2.1. 1. Purpose and Scope Kestrel Merchant...",
+      "control_mappings": [
+        "NIST SSDF PW.1",
+        "ISO 27001 A.8.27"
+      ],
+      "origin": "rules_engine",
+      "rule_id": "SEC-TM-001",
+      "confidence": 1.0,
+      "evidence_chunk_ids": [],
+      "created_at": "2026-09-25T23:24:45+00:00",
+      "acknowledged_by": "",
+      "acknowledged_at": "",
+      "acknowledgment_reason": ""
+    }
+  ],
+  "result_extra": {},
+  "seconds": 0.0
+}

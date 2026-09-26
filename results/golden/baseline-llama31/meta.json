@@ -1,0 +1,28 @@
+{
+  "run_name": "baseline-llama31",
+  "label": "llama3.1:8b baseline",
+  "rules_only": false,
+  "config_models": [
+    [
+      "llm",
+      "llama3.1:8b"
+    ],
+    [
+      "embedding",
+      "nomic-embed-text"
+    ]
+  ],
+  "started": "2026-09-26 03:14:29",
+  "python": "3.14.6",
+  "gpu_split": [
+    {
+      "model": "llama3.1:8b",
+      "gpu_share": 1.0
+    },
+    {
+      "model": "nomic-embed-text:latest",
+      "gpu_share": 1.0
+    }
+  ],
+  "finished": "2026-09-26 04:08:04"
+}

@@ -1,0 +1,166 @@
+# add_ground_truth.ps1
+# Adds ground truth annotations to sample files
+
+param(
+    [string]$ProjectRoot = (Get-Location)
+)
+
+Write-Host "Adding ground truth annotations to samples..."
+
+# Sample 1: campus LAN
+$file1 = Join-Path $ProjectRoot "samples\sample-campus-lan-lld.md"
+if (Test-Path $file1) {
+    $content = Get-Content $file1 -Raw
+    if ($content -notmatch "EXPECTED CRITICAL") {
+        $insert = @"
+<!-- EXPECTED CRITICAL: -->
+- Section "5. Distribution and Core": single point of failure uplink device
+- Section "7. WAN Edge and Internet": single circuit uplink failure
+- Section "3. Access Layer Design": uplinks terminate same upstream device
+- Section "10. Management Plane": SNMPv2c community cleartext
+- Section "10. Management Plane": community string public private guessable
+- Section "8. Firewall and Segmentation": permit-any-any firewall ACL rule
+- Section "10. Management Plane": admin access without MFA authentication
+
+<!-- EXPECTED HIGH: -->
+- Section "10. Management Plane": telnet TFTP cleartext device management
+- Section "10. Management Plane": local accounts shared credentials enable password
+- Section "6. Routing Design": OSPF neighbour authentication dynamic routing
+- Section "4. VLAN and Addressing Design": flat VLAN single broadcast domain
+- Section "7. WAN Edge and Internet": WAN traffic untrusted transport encryption
+- Section "9. Wireless": wireless pre-shared key deprecated security mode
+- Section "9. Wireless": passphrase shared service desk generic account
+- Section "Whole document": central log aggregation SIEM forwarding
+- Section "10. Management Plane": backups immutability offline tested restore
+- Section "11. Availability and Convergence": backups immutability offline tested
+
+<!-- EXPECTED MEDIUM: -->
+- Section "Whole document": threat model attack surface analysis STRIDE
+
+"@
+        $lines = @(Get-Content $file1)
+        $insertIdx = 0
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "Site tier:") {
+                $insertIdx = $i + 1
+                break
+            }
+        }
+        
+        if ($insertIdx -gt 0) {
+            $newLines = $lines[0..$insertIdx] + $insert.Split("`n") + $lines[($insertIdx+1)..($lines.Count-1)]
+            $newLines | Out-File -FilePath $file1 -Encoding UTF8
+            Write-Host "[OK] Added ground truth to sample-campus-lan-lld.md"
+        }
+    } else {
+        Write-Host "[SKIP] Ground truth already in sample-campus-lan-lld.md"
+    }
+}
+
+# Sample 2: payments app
+$file2 = Join-Path $ProjectRoot "samples\sample-payments-app-hld.md"
+if (Test-Path $file2) {
+    $content = Get-Content $file2 -Raw
+    if ($content -notmatch "EXPECTED CRITICAL") {
+        $insert = @"
+<!-- EXPECTED CRITICAL: -->
+- Section "4. API Design": unauthenticated endpoint webhook internal routes
+- Section "6. Data Handling": string-concatenated SQL injection
+- Section "6. Data Handling": encryption key database password ConfigMap secret
+- Section "7. Transport Security": SFTP password credentials job definition
+- Section "9. Build and Deployment": long-lived cloud key pipeline secret
+- Section "7. Transport Security": TLS version plaintext internal HTTP
+- Section "5. Authentication": admin support console without MFA
+
+<!-- EXPECTED HIGH: -->
+- Section "5. Authentication": JWT token unverified decode validation
+- Section "4. API Design": services trust header credentials authorization
+- Section "5. Authentication": validation gateway centralized
+- Section "6. Data Handling": client-side validation input
+- Section "5. Authentication": bearer tokens logged credentials
+- Section "8. Logging": request bodies logged sensitive
+- Section "6. Data Handling": card data PII classification
+- Section "10. Environments": production data copied UAT
+- Section "11. Resilience": single subscription environments
+- Section "5. Authentication": shared credential handling account
+- Section "Whole document": SIEM forwarding log aggregation
+- Section "11. Resilience": backups immutability tested restore
+- Section "9. Build and Deployment": docker image version outdated vulnerability
+- Section "4. API Design": internal trusted security boundary
+- Section "7. Transport Security": network cluster trusted assumption
+
+<!-- EXPECTED MEDIUM: -->
+- Section "Whole document": rate limiting throttling
+- Section "Whole document": SCA scanning image SBOM components
+- Section "8. Logging": retention requirement days months
+- Section "Whole document": threat model design security
+
+"@
+        $lines = @(Get-Content $file2)
+        $insertIdx = 0
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "Classification of data handled:") {
+                $insertIdx = $i + 1
+                break
+            }
+        }
+        
+        if ($insertIdx -gt 0) {
+            $newLines = $lines[0..$insertIdx] + $insert.Split("`n") + $lines[($insertIdx+1)..($lines.Count-1)]
+            $newLines | Out-File -FilePath $file2 -Encoding UTF8
+            Write-Host "[OK] Added ground truth to sample-payments-app-hld.md"
+        }
+    } else {
+        Write-Host "[SKIP] Ground truth already in sample-payments-app-hld.md"
+    }
+}
+
+# Sample 3: cloud landing zone
+$file3 = Join-Path $ProjectRoot "samples\sample-cloud-landing-zone-hld.md"
+if (Test-Path $file3) {
+    $content = Get-Content $file3 -Raw
+    if ($content -notmatch "EXPECTED CRITICAL") {
+        $insert = @"
+<!-- EXPECTED CRITICAL: -->
+- Section "5.1 Ingestion": access key embedded export script credentials
+- Section "3. Identity and Access": AdministratorAccess policy permissions role
+- Section "5.2 Storage": public read principal policy block-public-access
+- Section "2. Account Structure": root user routine use access key
+- Section "3. Identity and Access": MFA optional engineers authentication
+
+<!-- EXPECTED HIGH: -->
+- Section "5.3 Data content": data classification retention indefinite recorded
+- Section "10. Compliance Position": regulated data compliance assessment
+- Section "2. Account Structure": single account environments production
+- Section "4. Network Topology": unrestricted ingress TCP source CIDR
+- Section "6. Analytics Workloads": shared token credentials chat team
+- Section "Whole document": SIEM forwarding log aggregation centralized
+- Section "5.2 Storage": immutability versioning backup copy
+- Section "6. Analytics Workloads": hardened AMI vulnerability baselinebase
+
+<!-- EXPECTED MEDIUM: -->
+- Section "Whole document": IaC policy scanning infrastructure terraform
+- Section "Whole document": threat model privacy assessment impact
+
+"@
+        $lines = @(Get-Content $file3)
+        $insertIdx = 0
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^Status:") {
+                $insertIdx = $i + 1
+                break
+            }
+        }
+        
+        if ($insertIdx -gt 0) {
+            $newLines = $lines[0..$insertIdx] + $insert.Split("`n") + $lines[($insertIdx+1)..($lines.Count-1)]
+            $newLines | Out-File -FilePath $file3 -Encoding UTF8
+            Write-Host "[OK] Added ground truth to sample-cloud-landing-zone-hld.md"
+        }
+    } else {
+        Write-Host "[SKIP] Ground truth already in sample-cloud-landing-zone-hld.md"
+    }
+}
+
+Write-Host ""
+Write-Host "Done! Run: python scripts/eval.py --rules-only"

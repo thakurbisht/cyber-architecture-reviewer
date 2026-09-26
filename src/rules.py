@@ -156,14 +156,26 @@ NETWORK_RULES: List[Rule] = [
         id="NET-MGMT-001",
         domain="network",
         severity="CRITICAL",
-        issue="SNMP v1/v2c is in use, transmitting community strings in cleartext.",
+        issue="SNMP v1/v2c is actively configured or permitted in use.",
         recommendation=(
             "Migrate all managed devices to SNMPv3 with authPriv "
             "(SHA authentication, AES-128 or stronger privacy). Remove v1/v2c "
             "configuration entirely rather than leaving it as a fallback."
         ),
-        trigger=[r"snmp\s*-?\s*v?[12]c?\b", r"community\s+string"],
-        suppressors=[r"snmpv3", r"snmp\s*v\s*3"],
+        trigger=[
+            r"snmp\s+(?:is\s+)?(v?[12]c?|v1|v2c)[^\n]{0,40}(?:in use|enabled|configured|deployed|active)",
+            r"(?:enable|configure|use|deploy)[^\n]{0,40}(?:snmp\s+)?v?[12]c",
+            r"snmp\s*-?\s*v?[12]c?\s+(?:is\s+)?(enabled|configured|active|in\s+use)",
+            r"community\s+string[^\n]{0,40}(?:required|used|enabled|configured)",
+        ],
+        suppressors=[
+            r"snmpv3",
+            r"snmp\s*v\s*3",
+            r"snmp[^\n]{0,40}(?:migrate|upgrade|plan|transition|will\s+use)",
+            r"(?:will|planned?|scheduled)\s+(?:to\s+)?(?:migrate|upgrade)\s+(?:to\s+)?(?:snmpv3|snmp\s*v3)",
+            r"v?[12]c[^\n]{0,40}(?:deprecated|legacy|not\s+used|disabled|removed)",
+        ],
+        suppressor_guard=True,
         standard_reference="Secure Management Plane Standard §2.1",
         kb_source="network/network-management-standard.md",
         control_mappings=["NIST SP 800-53 SC-8", "ISO 27001 A.8.20", "CIS 4.x"],
@@ -190,16 +202,33 @@ NETWORK_RULES: List[Rule] = [
         id="NET-MGMT-003",
         domain="network",
         severity="HIGH",
-        issue="Cleartext device management protocols (Telnet/HTTP/FTP/TFTP) are permitted.",
+        issue="Cleartext device management protocols (Telnet/TFTP) are actively configured or permitted.",
         recommendation=(
             "Permit SSHv2 and HTTPS only. Disable telnet, HTTP, FTP and TFTP "
             "transport on every managed device and block those ports at the "
             "management ACL."
         ),
-        trigger=[r"\btelnet\b", r"\btftp\b",
-                 r"\bhttp\b(?!s)[^\n]{0,30}(management|device access|gui)"],
-        suppressors=[r"telnet\s+(is\s+)?(disabled|denied|blocked|prohibited)",
-                     r"no\s+telnet"],
+        trigger=[
+            r"telnet\s+(is\s+)?(enabled|permitted|allowed|configured|used|deployed)",
+            r"permit\s+telnet",
+            r"allow.*telnet",
+            r"tftp\s+(is\s+)?(enabled|permitted|allowed|configured|used|deployed)",
+            r"permit\s+tftp",
+            r"allow.*tftp",
+        ],
+        suppressors=[
+            r"telnet\s+(is\s+)?(disabled|denied|blocked|prohibited|not\s+used)",
+            r"no\s+telnet",
+            r"disable.*telnet",
+            r"telnet.*(?:will|planned)\s+(?:be\s+)?(?:removed|disabled|migrated?)",
+            r"migrat.*(?:from|to).*(?:telnet|ssh)",
+            r"consider(?:ed)?.*telnet.*(?:but|however|rejected|instead)",
+            r"legacy.*telnet.*(?:removed|retired|decommissioned)",
+            r"tftp\s+(is\s+)?(disabled|denied|blocked|prohibited|not\s+used)",
+            r"no\s+tftp",
+            r"disable.*tftp",
+        ],
+        suppressor_guard=True,
         standard_reference="Secure Management Plane Standard §2.3",
         kb_source="network/network-management-standard.md",
         control_mappings=["NIST SP 800-53 AC-17", "ISO 27001 A.8.20"],
@@ -209,7 +238,7 @@ NETWORK_RULES: List[Rule] = [
         domain="network",
         severity="HIGH",
         issue=(
-            "Device administration uses local accounts or shared credentials "
+            "Device administration actively uses local accounts or shared credentials "
             "rather than centralised AAA."
         ),
         recommendation=(
@@ -218,11 +247,21 @@ NETWORK_RULES: List[Rule] = [
             "command authorisation and per-user accounting. Retain exactly one "
             "break-glass local account with a vaulted, rotated password."
         ),
-        trigger=[r"local\s+(admin\w*\s+|user\s+)?accounts?\b",
-                 r"shared\s+(admin|administrator|enable|root)\s+password",
-                 r"same\s+(\w+\s+){0,2}password[^\n]{0,40}\b(on|across|for)\s+all",
-                 r"same\s+password\s+(on|across|for)\s+all"],
-        suppressors=[r"tacacs", r"\bradius\b.{0,40}(aaa|authentication)"],
+        trigger=[
+            r"(?:use|deploy|configure)[^\n]{0,40}local\s+(?:admin|user)\s+accounts?\b",
+            r"local\s+accounts?\s+(?:is\s+)?(?:used|required|enabled|configured)",
+            r"shared\s+(?:admin|administrator|enable|root)\s+password(?:\s+is\s+)?(?:used|required)",
+            r"same\s+(?:password|credentials?)\s+(?:on|across|for)\s+(?:all|multiple|every)",
+        ],
+        suppressors=[
+            r"tacacs",
+            r"\bradius\b[^\n]{0,60}(?:aaa|authentication)",
+            r"local\s+accounts?\s+(?:only|are|will\s+be)\s+(?:for\s+)?(?:break-?glass|emergency|out-of-band)",
+            r"(?:all\s+)?(?:regular\s+)?(?:admin|user)\s+accounts?\s+(?:will\s+)?(?:be\s+)?(?:centrali[sz]ed|managed\s+by)",
+            r"(?:will|plan[s]?|scheduled)\s+(?:to\s+)?(?:integrat|switch)\s+(?:to\s+)?(?:tacacs|radius|aaa)",
+            r"break-?glass.*only",
+            r"legacy.*local.*(?:will\s+)?(?:be\s+)?(?:removed|migrated)",
+        ],
         suppressor_guard=True,
         standard_reference="Secure Management Plane Standard §3.1",
         kb_source="network/network-management-standard.md",
@@ -241,16 +280,24 @@ NETWORK_RULES: List[Rule] = [
             "entries derived from the application flow matrix, terminated by an "
             "explicit deny-all with logging enabled."
         ),
-        trigger=[r"permit\s+ip\s+any\s+any", r"\bany\s*/\s*any\b",
-                 r"allow\s+(all|any)\s+(traffic|to|from)\s",
-                 r"0\.0\.0\.0/0[^\n]{0,40}(allow|permit|any)",
-                 r"source[:\s]+any[^\n]{0,40}destination[:\s]+any",
-                 # markdown rule tables: | Any | Any | Any | Allow |
-                 r"\|\s*any\s*\|\s*any\s*\|",
-                 r"\|\s*any\s*\|[^\n|]{0,30}\|\s*any\s*\|\s*allow",
-                 r"no\s+terminating\s+deny",
-                 r"(firewall|policy)\s+default\s+is\s+permit",
-                 r"default\s+(action\s+)?is\s+permit"],
+        trigger=[
+            r"permit\s+ip\s+any\s+any",
+            r"allow\s+(?:all|any)\s+(?:traffic|to|from)\s",
+            r"0\.0\.0\.0/0[^\n]{0,40}(?:allow|permit)",
+            r"source[:\s]+any[^\n]{0,40}destination[:\s]+any[^\n]{0,40}(?:allow|permit)",
+            r"\|\s*any\s*\|\s*any\s*\|\s*(?:allow|permit)",
+            r"\|\s*any\s*\|\s*any\s*\|[^\n]*(?:allow|permit)",
+            r"(?:firewall|policy)\s+default\s+is\s+permit",
+            r"default\s+(?:action\s+)?is\s+permit",
+        ],
+        suppressors=[
+            r"(?:deny|drop|reject|block)\s+any\s+any",
+            r"\|\s*any\s*\|\s*any\s*\|\s*(?:deny|drop|reject|block)",
+            r"any\s+any\s+(?:is\s+)?(?:denied|blocked|prohibited|dropped)",
+            r"any-to-any\s+(?:denied|blocked|prohibited)",
+            r"(?:no\s+)?permit.*any.*any",
+        ],
+        suppressor_guard=True,
         standard_reference="Network Segmentation Standard §4.1",
         kb_source="network/segmentation-standard.md",
         control_mappings=["NIST SP 800-53 SC-7", "ISO 27001 A.8.22",
@@ -413,10 +460,8 @@ APPLICATION_RULES: List[Rule] = [
                  r"properties|appsettings|\.env|environment\s+variable|"
                  r"pipeline\s+(secret|variable)|script|job\s+definition|"
                  r"design\s+document)\b",
-                 r"\bconfigmap\b[^\n]{0,80}(password|secret|key|credential)",
-                 r"(password|secret|key|credential)[^\n]{0,80}\bconfigmap\b",
                  r"connection\s+string[^\n]{0,60}(password|pwd)\s*=",
-                 r"static\s+password\s+stored"],
+                 r"(?:static|long-lived)\s+(?:password|access\s+key)[^\n]{0,40}(?:stored|configured|used)"],
         suppressors=[r"(vault|secrets?\s+manager|key\s*vault|secrets?\s+store|"
                      r"parameter\s+store|managed\s+identity)"],
         standard_reference="Application Security Architecture Standard §6.1",
@@ -434,14 +479,17 @@ APPLICATION_RULES: List[Rule] = [
             "endpoint must be anonymous (health probe, well-known metadata), "
             "document it explicitly, keep it free of business data, and rate-limit it."
         ),
-        trigger=[r"(no|without|disabl\w+|not\s+required)[^\n]{0,30}authentication",
-                 r"\bunauthenticated\b",
-                 r"anonymous\s+(access|endpoint|api|post|get)",
-                 r"open\s+(api|endpoint)[^\n]{0,40}(no auth|public)",
-                 r"explicitly disables authentication",
-                 r"declares no authentication",
-                 r"authentication[^\n]{0,30}\b(none|not applied|absent)\b",
-                 r"internal\s+(api|service)[^\n]{0,60}(trusted|no\s+auth)"],
+        trigger=[r"(?:public|external|exposed|internet-?facing)[^\n]{0,80}(?:no|without|disabl\w+|not\s+required)[^\n]{0,30}authentication",
+                 r"(?:unauthenticated|anonymous)[^\n]{0,40}(?:webhook|endpoint|api|post|get)[^\n]{0,40}(?:public|exposed|external|internet)",
+                 r"\b(?:unauthenticated|anonymous)\s+(?:webhook|endpoint|api|post|get|request)\b",
+                 r"(?:webhook|endpoint|api)[^\n]{0,80}(?:unauthenticated|anonymous|no\s+auth)",
+                 r"(?:post|get)\s+/[^\n]{0,60}(?:unauthenticated|no\s+auth|anonymous)",
+                 r"openly\s+(?:accepts|receives)[^\n]{0,40}unauthenticated"],
+        suppressors=[r"(?:internal|private|trusted|behind\s+(?:firewall|vpn|api\s+gateway))[^\n]{0,40}(?:no\s+auth|unauthenticated|does\s+not\s+require)",
+                     r"(?:health|heartbeat|liveness|readiness|probe)[^\n]{0,30}(?:no\s+auth|unauthenticated)",
+                     r"(?:internal\s+only|not\s+exposed|private\s+network|cluster\s+internal)[^\n]{0,40}(?:do(?:es)?n['\"]?t|don['\"]?t)\s+require\s+auth",
+                     r"(?:well-?known|metadata|openid-?configuration)[^\n]{0,30}(?:no\s+auth|unauthenticated)"],
+        suppressor_guard=True,
         standard_reference="Application Security Architecture Standard §3.1",
         kb_source="application/application-security-standard.md",
         control_mappings=["OWASP ASVS V2", "OWASP API Top 10 API2",
@@ -649,8 +697,11 @@ SECURITY_RULES: List[Rule] = [
             "every administrative session, brokered through PAM with session "
             "recording and just-in-time elevation."
         ),
-        trigger=[r"(admin|privileged|root|domain admin|superuser)[^\n]{0,80}"
-                 r"(access|account|login|session)"],
+        trigger=[r"(?:mfa|multi-?factor|2fa)\s+(?:is\s+)?(?:optional|not\s+required|disabled)[^\n]{0,80}(?:engineer|admin|user|developer|staff)",
+                 r"(?:engineer|admin|user)[^\n]{0,80}(?:mfa|multi-?factor|2fa)\s+(?:is\s+)?(?:optional|not\s+required|disabled)",
+                 r"(?:root|admin|privileged)\s+(?:user|account|access)[^\n]{0,80}(?:access\s+key|automated|used\s+for)",
+                 r"(?:admin|root|privileged)[^\n]{0,60}(?:password|access\s+key|credential)[^\n]{0,60}(?:used|stored|for\s+automation)",
+                 r"(?:administratoraccess|admin\s+(?:role|policy))[^\n]{0,80}(?:applied|attached|deployed)"],
         hard_trigger=[
             r"(mfa|multi-?factor|2fa)[^\n]{0,60}"
             r"(optional|not\s+(required|enforced|enabled|mandatory)|exempt|"
@@ -912,12 +963,15 @@ CLOUD_DATA_RULES: List[Rule] = [
         trigger=[r"(public(ly)?\s+(accessible|readable|available|exposed))"
                  r"[^\n]{0,60}(bucket|storage|blob|s3|database|db)",
                  r"(bucket|s3|blob|storage)[^\n]{0,60}public(ly)?\s+"
-                 r"(accessible|readable|read)",
-                 r"principal\s*[\"':=]{0,3}\s*[\"']?\*",
-                 r"\bpublic\s+read\b",
-                 r"block\s+public\s+access\s+(is\s+)?disabled",
-                 r"(bucket|blob|storage)[^\n]{0,60}(shared|available)\s+by\s+link",
-                 r"0\.0\.0\.0/0[^\n]{0,40}(database|sql|rds|3306|5432|1433)"],
+                 r"(accessible|readable|read)[^\n]{0,40}(?:policy|permission|grant)",
+                 r"principal\s*[\"':=]{0,3}\s*[\"']?\*[^\n]{0,40}(?:s3|bucket|object|action)",
+                 r"(?:s3\s+)?block\s+public\s+access\s+(?:is\s+)?disabled",
+                 r"(?:bucket|blob|storage)[^\n]{0,40}(?:publicly|without\s+auth|unauthenticated)[^\n]{0,40}(?:policy|permission|grant)",
+                 r"0\.0\.0\.0/0[^\n]{0,40}(?:database|sql|rds|3306|5432|1433)"],
+        suppressors=[r"(?:signed\s+)?url", r"cloudfront|cdn", r"temporary\s+access",
+                     r"(?:partner|external|regional\s+office|customer)[^\n]{0,60}(?:shared|access|read)(?:by\s+link)?",
+                     r"shared\s+by\s+link[^\n]{0,40}(?:instead|not|block)"],
+        suppressor_guard=True,
         standard_reference="Cloud Data Protection Standard §2.3",
         kb_source="cloud_data/cloud-data-protection-standard.md",
         control_mappings=["CIS AWS 2.1.5", "NIST SP 800-53 AC-3",
