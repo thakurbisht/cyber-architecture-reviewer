@@ -58,7 +58,7 @@ def render(result, *, section_header: Callable, empty_state: Callable, esc: Call
               "Source": SOURCE_LABEL[i.source], "Status": STATUS_LABEL.get(i.status, i.status),
               "Merged": f"+{len(i.merged)}" if i.merged else ""} for i in shown],
             hide_index=True, width="stretch", height=520, on_select="rerun",
-            selection_mode="multi-row", key="q_table",
+            selection_mode="multi-row", key=f"q_table_{st.session_state.get('q_gen', 0)}",
             column_config={"Title": st.column_config.TextColumn(width="large"),
                            "Severity": st.column_config.TextColumn(width="small"),
                            "Merged": st.column_config.TextColumn(width="small")})
@@ -106,5 +106,8 @@ def render(result, *, section_header: Callable, empty_state: Callable, esc: Call
                                              record=record_decision, save_run=TA.save_run)
                             for it in selected)
                     st.toast(f"{decision.title()}: {n} record(s)")
+                    # New table key = fresh selection. Decided rows usually drop out of
+                    # the filtered list, so old row indexes would point at other items.
+                    st.session_state.q_gen = st.session_state.get("q_gen", 0) + 1
                     st.rerun()
     render_questions(result)

@@ -87,3 +87,37 @@ def test_dispute_requires_nothing_else_and_mitigated_maps_to_accepted_for_findin
                      runs_by_version={}, review_key="k",
                      record=lambda *a, **k: recorded.append((a, k)))
     assert recorded[0][0][2] == "accepted" and "[mitigated]" in recorded[0][1]["note"]
+
+
+def _t(title, category, where="DFD v1: Kong", rec=""):
+    return Q.QueueItem(key="T:1/x", kind="threat", severity="HIGH", domain="security",
+                       title=f"{title} [STRIDE · {category}]", where=where, source="threat-model",
+                       status="open", recommendation=rec)
+
+
+def _fi(title, rec="", where="API"):
+    return Q.QueueItem(key="F:x", kind="finding", severity="HIGH", domain="application",
+                       title=title, where=where, source="model", status="open",
+                       recommendation=rec)
+
+
+def test_merges_same_weakness_in_different_words_and_domains():
+    f = _fi("MFA is not required for staff and supplier VPN access.",
+            "Enforce MFA for all staff and supplier VPN access")
+    t = _t("Remote staff impersonation", "Spoofing", "DFD v1: Remote staff → VPN",
+           "Require MFA for staff VPN access")
+    assert Q._same_problem(f, t)
+
+
+def test_does_not_merge_different_weakness_sharing_words():
+    f = _fi("Authorisation is delegated to the API Gateway only",
+            "Enforce authorisation in backend services behind the API Gateway")
+    t = _t("API Gateway flood", "Denial of service", "DFD v1: API Gateway",
+           "Rate limit the API Gateway")
+    assert not Q._same_problem(f, t)
+
+
+def test_mitigated_finding_shows_as_mitigated_in_the_queue():
+    f = _f("Some finding with several words to compare")
+    items = Q.build_queue([f], {f.fingerprint: {"decision": "accepted", "note": "x [mitigated]"}})
+    assert items[0].status == "mitigated" and Q.summary(items)["mitigated"] == 1
