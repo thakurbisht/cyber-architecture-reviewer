@@ -285,6 +285,6 @@ def _approval(dfd: D.DFD, ckey: str) -> None:
     if versions:
         a3.caption("Versions: " + ", ".join(f"v{v}" for v, _ in versions))
     if dfd.status == "approved":
-        st.success(f"Approved v{dfd.version} by {dfd.approved_by}. The threat model agent "
+        st.success(f"Approved v{dfd.version} by {dfd.approved_by}. The threat model "
                    f"({st.session_state.get(f'threat_framework::{dfd.document}', framework)}) "
-                   "is the next build step.")
+                   "is ready — open the **Threats** page to run it.")

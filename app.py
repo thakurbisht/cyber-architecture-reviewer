@@ -1756,6 +1756,27 @@ def page_dfd() -> None:
                     get_config=get_config)
 
 
+def merge_threat_findings(new_findings) -> int:
+    """Add confirmed threat-model findings to the current result and re-score."""
+    from src.models import sort_findings
+    result = current_result()
+    have = {(f.rule_id, f.section) for f in result.findings}
+    fresh = [f for f in new_findings if (f.rule_id, f.section) not in have]
+    if fresh:
+        result.findings = sort_findings(list(result.findings) + fresh)
+        result.risk_score, result.rag_status, _ = compute_risk(result.findings, get_config())
+    return len(fresh)
+
+
+def page_threats() -> None:
+    """Threat model agent (STRIDE / MAESTRO) over the approved DFD (threats_page.py)."""
+    import threats_page
+    threats_page.render(current_result(), section_header=section_header,
+                        empty_state=empty_state, esc=esc, get_config=get_config,
+                        switch_to_dfd=lambda: st.switch_page(PAGES["dfd"]),
+                        merge_findings=merge_threat_findings)
+
+
 def page_graph() -> None:
     result = current_result()
     if not result:
@@ -2410,6 +2431,8 @@ PAGES = {
                         url_path="findings"),
     "dfd":      st.Page(page_dfd, title="DFD editor", icon=":material/hub:",
                         url_path="dfd"),
+    "threats":  st.Page(page_threats, title="Threats", icon=":material/gpp_maybe:",
+                        url_path="threats"),
     "copilot":  st.Page(page_copilot, title="Copilot", icon=":material/forum:", url_path="copilot"),
     "report":   st.Page(page_report, title="Report", icon=":material/description:",
                         url_path="report"),
