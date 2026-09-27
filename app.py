@@ -1525,7 +1525,7 @@ def render_result(
     render_overview_charts(findings + refuted)
 
     st.caption("Open **Findings** in the sidebar for the full list with evidence, "
-               "**Architecture graph** for the trust-zone view, or ask **Copilot**.")
+               "**DFD editor** to review trust zones and flows, or ask **Copilot**.")
 
 
 # ============================================================================
@@ -1746,6 +1746,14 @@ def get_threat_model(result) -> dict:
     from src.threat_model import build_threat_model
     return build_threat_model(result.document_name, result.sections, result.findings,
                               result.domains_reviewed).to_dict()
+
+
+def page_dfd() -> None:
+    """Editable data flow diagram with trust zones (dfd_page.py)."""
+    import dfd_page
+    dfd_page.render(current_result(), section_header=section_header,
+                    empty_state=empty_state, html_block=html_block, esc=esc,
+                    get_config=get_config)
 
 
 def page_graph() -> None:
@@ -2400,8 +2408,8 @@ PAGES = {
     "review":   st.Page(page_review, title="Review", icon=":material/upload_file:", default=True),
     "findings": st.Page(page_findings, title="Findings", icon=":material/fact_check:",
                         url_path="findings"),
-    "graph":    st.Page(page_graph, title="Architecture graph", icon=":material/hub:",
-                        url_path="graph"),
+    "dfd":      st.Page(page_dfd, title="DFD editor", icon=":material/hub:",
+                        url_path="dfd"),
     "copilot":  st.Page(page_copilot, title="Copilot", icon=":material/forum:", url_path="copilot"),
     "report":   st.Page(page_report, title="Report", icon=":material/description:",
                         url_path="report"),
@@ -2428,6 +2436,7 @@ def load_saved_prediction() -> None:
                           domains_reviewed=list(get_config().enabled_domains))
     result.findings, result.questions = triage(result.findings, sections)
     result.risk_score, result.rag_status, _ = compute_risk(result.findings, get_config())
+    result.system_model = rec.get("system_model")
     st.session_state.result = result
 
 

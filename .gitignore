@@ -18,3 +18,4 @@ cyber-architecture-reviewer/
 .claude/
 results/golden/*/judge_cache.json
 data/feedback/
+data/dfd/
