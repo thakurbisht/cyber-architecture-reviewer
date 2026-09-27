@@ -23,7 +23,7 @@ from __future__ import annotations
 import re
 from typing import Iterable, List, Tuple
 
-from .models import Finding, ORIGIN_RULES, Section
+from .models import Finding, ORIGIN_RULES, SEVERITIES, Section, _STOPWORDS, _stem
 
 DOC_LEVEL_SECTIONS = ("whole document", "document (completeness)")
 
@@ -97,3 +97,59 @@ def triage(findings: List[Finding], sections: Iterable[Section]
         else:
             kept.append(f)
     return kept, questions
+
+
+# --------------------------------------------------------------------------
+# Cross-section deduplication
+# --------------------------------------------------------------------------
+# The section reviewer sees one section at a time, so one problem ("no MFA
+# for admins") comes back once per section that mentions admins. The
+# fingerprint dedup in models.py is per-section by design. This merges
+# across sections: model findings in the same domain with near-identical
+# issue wording. The survivor lists the other sections in ``also_in``.
+DUPLICATE_SIMILARITY = 0.4   # golden set: best precision with no hit lost
+
+
+def _issue_tokens(issue: str) -> frozenset:
+    words = re.findall(r"[a-z0-9]+", (issue or "").lower())
+    return frozenset(_stem(w) for w in words if w not in _STOPWORDS and len(w) > 2)
+
+
+def _similar(a: frozenset, b: frozenset, threshold: float) -> bool:
+    if not a or not b:
+        return False
+    return len(a & b) / len(a | b) >= threshold
+
+
+def _rank(f: Finding) -> tuple:
+    return (not is_confirmed(f), SEVERITIES.index(f.severity),
+            not f.evidence_grounded, -len(f.evidence_excerpt or ""))
+
+
+def merge_duplicates(findings: List[Finding],
+                     threshold: float = DUPLICATE_SIMILARITY) -> List[Finding]:
+    """Collapse the same problem reported in several sections into one."""
+    groups: List[List[Finding]] = []
+    tokens: List[frozenset] = []
+    for f in findings:
+        t = _issue_tokens(f.issue)
+        for i, g in enumerate(groups):
+            head = g[0]
+            # Rule findings are never merged: one rule firing in two sections
+            # is often two distinct defects (two hard-coded secrets), and
+            # merging them lost a real issue on the golden set.
+            if (not f.rule_id and not head.rule_id and f.domain == head.domain
+                    and _similar(t, tokens[i], threshold)):
+                g.append(f)
+                break
+        else:
+            groups.append([f])
+            tokens.append(t)
+
+    merged: List[Finding] = []
+    for g in groups:
+        best = min(g, key=_rank)
+        others = sorted({x.section for x in g if x.section != best.section})
+        best.also_in = sorted(set(best.also_in) | set(others))
+        merged.append(best)
+    return merged

@@ -53,6 +53,9 @@ agent:
   # Off until its effect is measured on the golden set
   # (scripts/eval_golden.py verify --run-name <run>).
   enable_verifier: false
+  # System-model extraction + deterministic model rules (src/system_model.py).
+  # Off until measured on the golden set.
+  enable_system_model: false
   verifier_batch_size: 6
 
 domains:

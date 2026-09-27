@@ -290,3 +290,34 @@ def test_priority_actions_backfill_when_too_few_problems():
            origin=ORIGIN_RULES),
     ]
     assert len(priority_actions(sort_findings(findings), 3)) == 2
+
+
+# -- cross-section dedup (src/triage.py) -----------------------------------
+def test_same_problem_in_two_sections_is_merged():
+    from src.triage import merge_duplicates
+    a = _f(section="Edge", issue="Administrative access to the portal does not require MFA.")
+    b = _f(section="Identity", issue="Administrative portal access does not require MFA at all.")
+    merged = merge_duplicates([a, b])
+    assert len(merged) == 1
+    assert merged[0].also_in == ["Identity"] or merged[0].also_in == ["Edge"]
+
+
+def test_different_problems_are_not_merged():
+    from src.triage import merge_duplicates
+    a = _f(section="Edge", issue="Administrative access to the portal does not require MFA.")
+    b = _f(section="Data", issue="Backups are stored in the same account as production.")
+    assert len(merge_duplicates([a, b])) == 2
+
+
+def test_rule_findings_are_never_merged_across_sections():
+    from src.triage import merge_duplicates
+    a = _f(section="Pipelines", origin=ORIGIN_RULES, rule_id="APP-SEC-001")
+    b = _f(section="Helm", origin=ORIGIN_RULES, rule_id="APP-SEC-001")
+    assert len(merge_duplicates([a, b])) == 2
+
+
+def test_merge_keeps_the_best_evidenced_finding():
+    from src.triage import merge_duplicates
+    weak = _f(severity="LOW", section="A", issue="Admin portal access does not require MFA.")
+    strong = _f(severity="HIGH", section="B", issue="Admin portal access does not require MFA.")
+    assert merge_duplicates([weak, strong])[0].severity == "HIGH"

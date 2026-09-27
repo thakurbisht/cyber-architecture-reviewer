@@ -394,6 +394,7 @@ def cmd_run(args):
     meta.update({"run_name": args.run_name,
                  "label": args.label or meta.get("label") or args.run_name,
                  "rules_only": args.rules_only,
+                 "system_model": args.system_model,
                  "config_models": models_in_config(cfg_path),
                  "started": meta.get("started") or time.strftime("%Y-%m-%d %H:%M:%S"),
                  "python": sys.version.split()[0]})
@@ -417,7 +418,14 @@ def cmd_run(args):
             sections = parse_document(str(path))
             if args.rules_only:
                 from src.triage import triage
-                findings, questions = triage(run_rules(sections, config.enabled_domains), sections)
+                raw = run_rules(sections, config.enabled_domains)
+                if args.system_model:
+                    from src.model_rules import run_model_rules
+                    from src.system_model import build_extractor_llm, extract_system_model
+                    model = extract_system_model(sections, build_extractor_llm(config), path.name)
+                    raw += run_model_rules(model)
+                    rec["system_model"] = model.to_dict()
+                findings, questions = triage(raw, sections)
                 rec["questions"] = [to_dict(q) for q in questions]
             else:
                 agent = ReviewAgent(config=config, kb=kb)
@@ -942,6 +950,9 @@ def main():
     r.add_argument("--label", help="readable name shown in reports, e.g. 'llama3.1:8b baseline'")
     r.add_argument("--docs", nargs="*", help="only these doc ids or prefixes, e.g. gs-01 gs-02")
     r.add_argument("--rules-only", action="store_true", help="rules engine only (fast, no LLM)")
+    r.add_argument("--system-model", action="store_true",
+                   help="with --rules-only: add system-model extraction + model rules "
+                        "(no section reviewer)")
     r.add_argument("--force", action="store_true", help="redo docs that already have predictions")
 
     s = sub.add_parser("score", help="score a run against the answer keys")

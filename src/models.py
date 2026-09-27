@@ -131,6 +131,8 @@ class Finding:
     kind: str = "finding"
     # True when evidence_excerpt is found verbatim in the design document.
     evidence_grounded: bool = False
+    # Other sections reporting the same problem (triage.merge_duplicates).
+    also_in: List[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.severity = normalise_severity(self.severity)
@@ -243,6 +245,8 @@ class ReviewResult:
     refuted_findings: List[Finding] = field(default_factory=list)
     # Questions for the author (src/triage.py): not defects, never scored.
     questions: List[Finding] = field(default_factory=list)
+    # src/system_model.py SystemModel.to_dict(), when enable_system_model.
+    system_model: Optional[Dict[str, Any]] = None
     # Populated by threat_model_node (see agent.py) when
     # config.agent.enable_threat_modeling is true. A plain dict (already
     # ThreatModel.to_dict()'s shape), not the dataclass, so it serialises
@@ -271,6 +275,7 @@ class ReviewResult:
             "sections": [s.to_dict() for s in self.sections],
             "audit": [a.to_dict() for a in self.audit],
             "threat_model": self.threat_model,
+            "system_model": self.system_model,
         }
 
 

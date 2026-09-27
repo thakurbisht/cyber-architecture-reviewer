@@ -36,6 +36,7 @@ leaving a wide margin on both sides; see tests/test_guardrail.py.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
@@ -45,6 +46,36 @@ from .models import Section
 MIN_TOTAL_WORDS = 25
 MIN_ARCHITECTURE_SCORE = 8.0
 MIN_DISTINCT_TOPICS = 3
+
+# Genre check. Keyword counting alone accepts security-flavoured text that is
+# not a design: vendor marketing ("military-grade encryption, built-in MFA")
+# and security meeting minutes score as high as a real HLD. What they lack is
+# structure - named components connected by ports, protocols and zones. So a
+# document whose sales/minutes phrasing outweighs its design structure is
+# rejected, however many security keywords it contains.
+_NON_DESIGN_MARKERS = [re.compile(p, re.I) for p in (
+    r"trusted\s+by", r"industry[- ]leading", r"best[- ]in[- ]class", r"world[- ]class",
+    r"military[- ]grade", r"contact\s+(sales|us)", r"free\s+trial", r"\bwhy\s+\w+\s+is\b",
+    r"customers\s+worldwide", r"next[- ]generation", r"ai[- ]powered", r"number\s+one",
+    r"sleep\s+soundly", r"\bleaders?\s+who\b", r"\bchoose\s+[A-Z]?\w+",
+    r"\battendees\b", r"\bapologies\b", r"\baction:\s", r"\bminutes\b", r"\baob\b",
+    r"next\s+meeting", r"\bagenda\b",
+)]
+_DESIGN_STRUCTURE = [re.compile(p, re.I) for p in (
+    r"\bport\s+\d+", r"\bvlan\s*\d+", r"\bsubnets?\b", r"\b\d{1,3}(\.\d{1,3}){3}/\d{1,2}\b",
+    r"\b(connects?|sends?|calls?|routes?|forwards?|replicates?|polls?)\s+(to|through|over|via|the|a|an)\b",
+    r"->|→", r"^\s*\|.*\|\s*$", r"\b(uplinks?|trunks?|peering|endpoint|load\s+balancer|"
+    r"gateway|broker|cluster|replica)\b", r"\bfrom\s+the\s+[\w-]+\s+(to|into)\s+the\b",
+)]
+MIN_NON_DESIGN_MARKERS = 3
+
+
+def _genre_signals(text: str) -> tuple[int, int]:
+    non_design = sum(len(p.findall(text)) for p in _NON_DESIGN_MARKERS)
+    structure = sum(len(p.findall(text)) for p in _DESIGN_STRUCTURE[:6])
+    structure += sum(len(re.findall(p.pattern, text, re.I | re.M))
+                     for p in _DESIGN_STRUCTURE[6:])
+    return non_design, structure
 
 
 @dataclass
@@ -121,6 +152,26 @@ def assess_scope(sections: List[Section]) -> ScopeAssessment:
                 "bar. Otherwise, use --force / the override checkbox only "
                 "if you're intentionally testing the tool against an "
                 "off-scope input."
+            ),
+            total_words=total_words,
+            architecture_score=architecture_score,
+            distinct_topics=distinct_topics,
+            matched_topics=matched_topics,
+        )
+
+    non_design, structure = _genre_signals(full_text)
+    if non_design >= MIN_NON_DESIGN_MARKERS and non_design > structure:
+        return ScopeAssessment(
+            in_scope=False,
+            reason=(
+                "This reads as marketing copy or meeting notes rather than a "
+                f"design: {non_design} sales/minutes phrase(s) against "
+                f"{structure} sign(s) of design structure (components, "
+                "ports, subnets, flows)."
+            ),
+            suggestion=(
+                "Upload the HLD/LLD itself - the document that names the "
+                "components and how they connect."
             ),
             total_words=total_words,
             architecture_score=architecture_score,

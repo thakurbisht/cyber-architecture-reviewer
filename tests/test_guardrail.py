@@ -105,3 +105,50 @@ def test_matched_topics_are_reported_for_a_passing_document():
     result = assess_scope(sections)
     assert result.matched_topics
     assert len(result.matched_topics) <= 6
+
+
+# -- genre: security-flavoured text that is not a design (2026-09-27) ------
+GOLDEN = Path(__file__).resolve().parent.parent / "golden" / "docs"
+
+
+@pytest.mark.parametrize("path", sorted(GOLDEN.glob("*.md")), ids=lambda p: p.stem[:5])
+def test_golden_designs_pass(path):
+    assert assess_scope(parse_document(path)).in_scope
+
+
+def test_vendor_marketing_copy_is_rejected():
+    text = """# Why AcmeCloud Is the Most Secure Platform
+
+AcmeCloud is trusted by over 5,000 customers worldwide. Our industry-leading
+zero trust architecture protects your data with military-grade AES-256
+encryption at rest and TLS 1.3 in transit. With built-in MFA, single sign-on,
+role-based access control and a next-generation firewall, your security team
+can sleep soundly.
+
+## Best-in-class compliance
+
+We are SOC 2 Type II, ISO 27001 and PCI DSS certified. Our 24/7 SOC monitors
+every event with AI-powered SIEM analytics, and our immutable backups keep you
+safe from ransomware. Choose AcmeCloud and join the leaders who trust us.
+Contact sales today for a free trial and see why analysts rank us number one.
+"""
+    result = assess_scope(parse_text(text, "marketing"))
+    assert not result.in_scope, result.to_dict()
+
+
+def test_security_meeting_minutes_are_rejected():
+    text = """# Security Working Group - Minutes
+
+Date: 14 March. Attendees: Priya (CISO office), Tom (network), Ana (cloud).
+Apologies: Raj.
+
+1. Firewall rule review: Tom reported the quarterly firewall review is 60%
+   complete. Action: Tom to finish by end of month.
+2. MFA rollout: Ana said MFA enrolment for admins reached 92%. Conditional
+   access policies go live next sprint. Action: Ana to send comms.
+3. SIEM: the log forwarding backlog was discussed; Priya to chase the vendor.
+4. Encryption: KMS key rotation audit passed. No actions.
+5. AOB: pen test scheduled for April. Next meeting 28 March.
+"""
+    result = assess_scope(parse_text(text, "minutes"))
+    assert not result.in_scope, result.to_dict()

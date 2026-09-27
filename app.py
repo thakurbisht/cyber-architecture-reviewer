@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import os
 import re
 import sys
 import textwrap
@@ -55,6 +56,7 @@ from src.parser import (
     parse_text,
     summarise_sections,
 )
+from src.feedback import DISPUTE_REASONS, latest_decisions, record_decision
 from src.report import compute_risk, save_outputs
 from src.retriever import KnowledgeBase
 from src.rules import rules_summary
@@ -1636,10 +1638,13 @@ def page_findings() -> None:
              and (status_key is None or verifier_status(f) == status_key)
              and (not q or q in f"{f.issue} {f.section} {f.recommendation} {f.evidence_excerpt}".lower())]
 
+    decisions = latest_decisions(result.document_name)
     left, right = st.columns([1.35, 1])
     with left:
-        st.caption(f"{len(shown)} of {len(findings)} findings")
+        reviewed = sum(1 for f in findings if f.fingerprint in decisions)
+        st.caption(f"{len(shown)} of {len(findings)} findings · {reviewed} reviewed by you")
         table = [{"Severity": f.severity, "Issue": f.issue, "Section": f.section,
+                  "Review": REVIEW_LABEL.get(decisions.get(f.fingerprint, {}).get("decision"), "—"),
                   "Verifier": verifier_status(f).replace("_", " ").title(),
                   "Conf.": round(f.confidence, 2)} for f in shown]
         event = st.dataframe(
@@ -1669,8 +1674,40 @@ def page_findings() -> None:
                      else getattr(f, "model", "") or configured_model("llm"))
             st.caption(f"Origin {f.origin}" + (f" · rule {f.rule_id}" if f.rule_id else "")
                        + f" · model {model} · id {f.fingerprint}")
+            render_review_controls(f, result.document_name, decisions.get(f.fingerprint))
 
     render_questions(result)
+
+
+REVIEW_LABEL = {"accepted": "✓ Accepted", "disputed": "✗ Disputed"}
+
+
+def render_review_controls(f, document: str, previous: dict | None) -> None:
+    """Accept or dispute one finding; decisions go to data/feedback (src/feedback.py)."""
+    st.markdown("**Your review**")
+    if previous:
+        verdict = REVIEW_LABEL[previous["decision"]]
+        extra = f" — {previous['reason']}" if previous.get("reason") else ""
+        st.caption(f"{verdict}{extra} · {previous['at'][:16].replace('T', ' ')} UTC. "
+                   "Record a new decision below to change it.")
+    with st.form(key=f"review_{f.fingerprint}", clear_on_submit=True, border=False):
+        reason = st.selectbox("If disputing, why?", ("",) + DISPUTE_REASONS,
+                              format_func=lambda r: r or "Choose a reason")
+        note = st.text_input("Note (optional)", placeholder="e.g. mitigated by the WAF in §4.2")
+        reviewer = st.text_input("Reviewer", value=st.session_state.get("reviewer_name", ""),
+                                 placeholder="Your name")
+        c1, c2 = st.columns(2)
+        accept = c1.form_submit_button("Accept", type="primary", width="stretch")
+        dispute = c2.form_submit_button("Dispute", width="stretch")
+    if not (accept or dispute):
+        return
+    if dispute and not reason:
+        st.error("Choose a reason to dispute this finding.")
+        return
+    st.session_state.reviewer_name = reviewer
+    record_decision(f, document, "accepted" if accept else "disputed",
+                    reason="" if accept else reason, note=note, reviewer=reviewer)
+    st.rerun()
 
 
 def render_questions(result) -> None:
@@ -1721,6 +1758,11 @@ def page_graph() -> None:
                    "Each node is a part of the design, placed in its inferred trust zone. "
                    "Colour is the worst finding, size is the number of findings. "
                    "Click a node to see its findings.")
+    st.warning("**Experimental.** Trust zones here are inferred from section "
+               "keywords, not from the design's actual topology: most sections "
+               "fall back to their topic name, and \"boundary crossings\" are "
+               "topic changes between neighbouring sections. Use it to navigate "
+               "findings, not as a threat model.", icon="⚠️")
 
     by_section: dict = {}
     for f in result.findings:
@@ -2366,8 +2408,32 @@ PAGES = {
 }
 
 
+def load_saved_prediction() -> None:
+    """Dev hook: ARCHEO_LOAD_PREDICTION=<golden predictions .json> opens that
+    saved result without running a review (UI checks while the GPU is busy)."""
+    path = os.environ.get("ARCHEO_LOAD_PREDICTION")
+    if not path or st.session_state.get("result") is not None:
+        return
+    import dataclasses
+    from src.models import Finding, ReviewResult
+    from src.parser import parse_document
+    from src.triage import triage
+    rec = json.loads(Path(path).read_text(encoding="utf-8"))
+    names = {f.name for f in dataclasses.fields(Finding)}
+    findings = [Finding(**{k: v for k, v in d.items() if k in names}) for d in rec["findings"]]
+    doc = Path(__file__).parent / "golden" / "docs" / f"{rec['doc_id']}.md"
+    sections = parse_document(str(doc)) if doc.exists() else []
+    result = ReviewResult(document_name=f"{rec['doc_id']}.md", findings=findings,
+                          sections=sections, audit=[],
+                          domains_reviewed=list(get_config().enabled_domains))
+    result.findings, result.questions = triage(result.findings, sections)
+    result.risk_score, result.rag_status, _ = compute_risk(result.findings, get_config())
+    st.session_state.result = result
+
+
 def main() -> None:
     initialise_session_state()
+    load_saved_prediction()
     load_custom_css()
     nav = st.navigation({"Console": list(PAGES.values())}, position="sidebar")
     st.session_state.domains = render_sidebar()
