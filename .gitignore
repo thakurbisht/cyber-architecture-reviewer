@@ -9,3 +9,15 @@ data/uploads/
 data/regression/
 .pytest_cache/
 .DS_Store
+
+# Local scratch / run output (2026-09-27)
+*.log
+.approved*.json
+FILES_TO_COPY_TO_D_DRIVE.txt
+cyber-architecture-reviewer/
+.claude/
+results/golden/*/judge_cache.json
+data/feedback/
+data/dfd/
+data/prelim/
+data/projects/

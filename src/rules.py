@@ -120,6 +120,15 @@ class Rule:
     scope: str = "section"              # "section" or "document"
     mode: str = "presence"              # "presence" or "absence"
     suppressor_guard: bool = False      # negation context cancels suppression
+    # "finding": evidence of a defect. "question": a prompt for the author
+    # (e.g. "backups mentioned, immutability not stated") - reported
+    # separately and never scored, because silence is not a defect.
+    kind: str = "finding"
+    # Kind used when only a soft trigger fired. For rules whose soft trigger
+    # is just the topic ("key", "PII", "admin access") and whose suppressors
+    # are the control, a soft hit means "topic mentioned, control not
+    # stated" - a question. Only a hard trigger is evidence of a defect.
+    soft_kind: str = "finding"
 
     def compiled_trigger(self) -> List[Pattern]:
         return [re.compile(p, FLAGS) for p in self.trigger]
@@ -167,6 +176,8 @@ NETWORK_RULES: List[Rule] = [
             r"(?:enable|configure|use|deploy)[^\n]{0,40}(?:snmp\s+)?v?[12]c",
             r"snmp\s*-?\s*v?[12]c?\s+(?:is\s+)?(enabled|configured|active|in\s+use)",
             r"community\s+string[^\n]{0,40}(?:required|used|enabled|configured)",
+            r"\bsnmp\s*-?\s*v?(?:1|2c?)\b",
+            r"read-?write\s+community",
         ],
         suppressors=[
             r"snmpv3",
@@ -185,15 +196,17 @@ NETWORK_RULES: List[Rule] = [
         domain="network",
         severity="CRITICAL",
         issue=(
-            "A default or guessable SNMP community string (public/private) "
-            "is specified in the design."
+            "A default, shared or read-write SNMP community string is "
+            "specified in the design."
         ),
         recommendation=(
             "Remove default community strings. Under SNMPv3 use per-device "
             "credentials issued from the credential vault with scheduled rotation."
         ),
         trigger=[r"community\s+string[^\n]{0,40}\b(public|private)\b",
-                 r"\bsnmp[^\n]{0,40}\b(public|private)\b"],
+                 r"\bsnmp[^\n]{0,40}\b(public|private)\b",
+                 r"read-?write\s+community",
+                 r"community\s+string[^\n.]{0,60}\b(common|shared|same|identical)\b"],
         standard_reference="Secure Management Plane Standard §2.2",
         kb_source="network/network-management-standard.md",
         control_mappings=["NIST SP 800-53 IA-5", "ISO 27001 A.5.17"],
@@ -426,8 +439,11 @@ NETWORK_RULES: List[Rule] = [
             "certificate-based EAP-TLS for corporate SSIDs. Reserve PSK for "
             "isolated guest or IoT SSIDs with their own segment."
         ),
-        trigger=[r"\bwep\b", r"wpa2?-?psk", r"pre-?shared\s+key[^\n]{0,40}"
-                 r"(corporate|employee|staff|internal)", r"\bwpa\b(?!2|3)"],
+        trigger=[r"\bwep\b", r"wpa[23]?-?psk", r"pre-?shared\s+key[^\n]{0,40}"
+                 r"(corporate|employee|staff|internal)", r"\bwpa\b(?![23])",
+                 r"\bwpa[23]?[- ]personal\b", r"\bpre-?shared\s+keys?\b"],
+        suppressors=[r"\bguest\b[^\n.]{0,60}(isolated|internet[- ]only|captive)",
+                     r"isolated[^\n.]{0,40}(guest|iot)\s+(ssid|segment|vlan)"],
         topics=("wireless",),
         standard_reference="Wireless Standard §2.1",
         kb_source="network/network-management-standard.md",
@@ -462,6 +478,14 @@ APPLICATION_RULES: List[Rule] = [
                  r"design\s+document)\b",
                  r"connection\s+string[^\n]{0,60}(password|pwd)\s*=",
                  r"(?:static|long-lived)\s+(?:password|access\s+key)[^\n]{0,40}(?:stored|configured|used)"],
+        hard_trigger=[
+            r"(password|secret|api\s*key|signing\s+key|private\s+key|access\s+key|"
+            r"service\s+account\s+key|credential|token)s?\b(?:(?!vault|secrets?\\s+manager|parameter\\s+store|managed\\s+identity)[^\\n.]){0,80}?"
+            r"\b(held|stored|kept|set|placed|embedded|hard-?coded|committed)\s+"
+            r"(as|in|into|to)\b(?:(?!vault|secrets?\\s+manager|parameter\\s+store|managed\\s+identity)[^\\n.]){0,60}?"
+            r"\b(parameter|default\s+value|values?\s+file|\.ya?ml|config\w*|"
+            r"repo\w*|git|source|script|environment\s+variable|properties)",
+        ],
         suppressors=[r"(vault|secrets?\s+manager|key\s*vault|secrets?\s+store|"
                      r"parameter\s+store|managed\s+identity)"],
         standard_reference="Application Security Architecture Standard §6.1",
@@ -690,6 +714,7 @@ SECURITY_RULES: List[Rule] = [
     Rule(
         id="SEC-IAM-001",
         domain="security",
+        soft_kind="question",
         severity="CRITICAL",
         issue="Privileged or administrative access is described without multi-factor authentication.",
         recommendation=(
@@ -697,7 +722,9 @@ SECURITY_RULES: List[Rule] = [
             "every administrative session, brokered through PAM with session "
             "recording and just-in-time elevation."
         ),
-        trigger=[r"(?:mfa|multi-?factor|2fa)\s+(?:is\s+)?(?:optional|not\s+required|disabled)[^\n]{0,80}(?:engineer|admin|user|developer|staff)",
+        trigger=[r"(admin\w*|privileged|root|domain\s+admin|superuser)[^\n]{0,80}"
+                 r"(access|account|login|session|console)",
+                 r"(?:mfa|multi-?factor|2fa)\s+(?:is\s+)?(?:optional|not\s+required|disabled)[^\n]{0,80}(?:engineer|admin|user|developer|staff)",
                  r"(?:engineer|admin|user)[^\n]{0,80}(?:mfa|multi-?factor|2fa)\s+(?:is\s+)?(?:optional|not\s+required|disabled)",
                  r"(?:root|admin|privileged)\s+(?:user|account|access)[^\n]{0,80}(?:access\s+key|automated|used\s+for)",
                  r"(?:admin|root|privileged)[^\n]{0,60}(?:password|access\s+key|credential)[^\n]{0,60}(?:used|stored|for\s+automation)",
@@ -730,7 +757,8 @@ SECURITY_RULES: List[Rule] = [
             "accounts to workload identities with no interactive logon rights "
             "and vault any that must retain a password."
         ),
-        trigger=[r"shared\s+(account|credential|login|user|token|secret|key|"
+        # (?<!pre-) so "WPA2 pre-shared key" is left to NET-WLS-001.
+        trigger=[r"(?<!pre-)(?<!pre)shared\s+(account|credential|login|user|token|secret|key|"
                  r"password|passphrase)",
                  r"generic\s+account",
                  r"(passphrase|token|password)[^\n]{0,60}"
@@ -793,6 +821,7 @@ SECURITY_RULES: List[Rule] = [
     Rule(
         id="SEC-CRYPTO-002",
         domain="security",
+        soft_kind="question",
         severity="HIGH",
         issue="Encryption keys have no defined custody, rotation or escrow model.",
         recommendation=(
@@ -892,6 +921,26 @@ SECURITY_RULES: List[Rule] = [
         control_mappings=["NIST SP 800-53 SI-2", "ISO 27001 A.8.8"],
     ),
     Rule(
+        id="SEC-IAM-003",
+        domain="security",
+        severity="HIGH",
+        issue="Directory authentication uses LDAP simple bind without TLS, signing or channel binding.",
+        recommendation=(
+            "Require LDAPS (636) or StartTLS for every bind, enforce LDAP "
+            "signing and channel binding on the domain controllers, and move "
+            "legacy applications to SAML/OIDC through the IdP."
+        ),
+        trigger=[r"ldap\s+simple\s+binds?", r"\bldap\b[^\n.]{0,60}\bport\s+389\b",
+                 r"ldap\s+(signing|channel\s+binding)[^\n.]{0,60}not\s+"
+                 r"(enforced|required|enabled)"],
+        suppressors=[r"\bldaps\b", r"\bstarttls\b", r"\b636\b"],
+        suppressor_guard=True,
+        standard_reference="Identity & Privileged Access Standard §2.2",
+        kb_source="security/identity-access-standard.md",
+        control_mappings=["NIST SP 800-53 IA-5(1)", "ISO 27001 A.8.5",
+                          "MITRE ATT&CK T1040"],
+    ),
+    Rule(
         id="SEC-RES-001",
         domain="security",
         severity="HIGH",
@@ -903,6 +952,7 @@ SECURITY_RULES: List[Rule] = [
         ),
         trigger=[r"\bback-?ups?\b", r"\bbacked\s+up\b", r"\bbacking\s+up\b",
                  r"\bsnapshots?\s+(are\s+)?retained\b"],
+        kind="question",
         suppressors=[r"immutable", r"air-?gap", r"worm\b", r"offline\s+copy",
                      r"restore\s+(test|drill|exercis)", r"tested\s+restore",
                      r"object\s+lock"],
@@ -967,10 +1017,18 @@ CLOUD_DATA_RULES: List[Rule] = [
                  r"principal\s*[\"':=]{0,3}\s*[\"']?\*[^\n]{0,40}(?:s3|bucket|object|action)",
                  r"(?:s3\s+)?block\s+public\s+access\s+(?:is\s+)?disabled",
                  r"(?:bucket|blob|storage)[^\n]{0,40}(?:publicly|without\s+auth|unauthenticated)[^\n]{0,40}(?:policy|permission|grant)",
-                 r"0\.0\.0\.0/0[^\n]{0,40}(?:database|sql|rds|3306|5432|1433)"],
-        suppressors=[r"(?:signed\s+)?url", r"cloudfront|cdn", r"temporary\s+access",
-                     r"(?:partner|external|regional\s+office|customer)[^\n]{0,60}(?:shared|access|read)(?:by\s+link)?",
-                     r"shared\s+by\s+link[^\n]{0,40}(?:instead|not|block)"],
+                 r"0\.0\.0\.0/0[^\n]{0,40}(?:database|sql|rds|3306|5432|1433)",
+                 r"\bpublic\s+read\b"],
+        hard_trigger=[
+            r"(replica|database|\bdb\b|rds|sql|cluster|instance|bucket|container|"
+            r"storage\s+account)[^\n.]{0,80}(configured|set|marked|made)\s+"
+            r"(as|to\s+be|to)?\s*publicly\s+accessible",
+            r"public\s+access\s+(level\s+)?(is\s+)?(set\s+to|enabled)[^\n.]{0,20}"
+            r"(container|blob|public|anonymous)",
+            r"anonymous\s+(read|blob|container)\s+access[^\n.]{0,30}(enabled|allowed|set)",
+        ],
+        suppressors=[r"signed\s+urls?", r"\bsas\s+token", r"cloudfront|cdn",
+                     r"temporary\s+access"],
         suppressor_guard=True,
         standard_reference="Cloud Data Protection Standard §2.3",
         kb_source="cloud_data/cloud-data-protection-standard.md",
@@ -1065,6 +1123,7 @@ CLOUD_DATA_RULES: List[Rule] = [
     Rule(
         id="CLD-DATA-001",
         domain="cloud_data",
+        soft_kind="question",
         severity="HIGH",
         issue=(
             "Sensitive or regulated data is handled without a stated "
@@ -1127,8 +1186,10 @@ CLOUD_DATA_RULES: List[Rule] = [
 ]
 
 
+from .rules_expert import EXPERT_RULES  # noqa: E402  (needs Rule, defined above)
+
 ALL_RULES: List[Rule] = (
-    NETWORK_RULES + APPLICATION_RULES + SECURITY_RULES + CLOUD_DATA_RULES
+    NETWORK_RULES + APPLICATION_RULES + SECURITY_RULES + CLOUD_DATA_RULES + EXPERT_RULES
 )
 
 RULES_BY_DOMAIN: Dict[str, List[Rule]] = {}
@@ -1193,7 +1254,8 @@ def run_rules(sections: List[Section],
                 continue
             doc_scope_fired.add(rule.id)
             findings.append(_build_finding(rule, "Whole document",
-                                           _first_match_excerpt(full_text, hit)))
+                                           _first_match_excerpt(full_text, hit),
+                                           hard=hard is not None))
             continue
 
         for section in sections:
@@ -1209,14 +1271,16 @@ def run_rules(sections: List[Section],
                 continue
             findings.append(
                 _build_finding(rule, section.heading,
-                               _first_match_excerpt(haystack, hit))
+                               _first_match_excerpt(haystack, hit),
+                               hard=hard is not None)
             )
 
     findings.sort(key=lambda f: (f.rule_id, f.section.lower()))
     return findings
 
 
-def _build_finding(rule: Rule, section_name: str, excerpt: str) -> Finding:
+def _build_finding(rule: Rule, section_name: str, excerpt: str,
+                   hard: bool = False) -> Finding:
     return Finding(
         section=section_name,
         domain=rule.domain,
@@ -1230,6 +1294,11 @@ def _build_finding(rule: Rule, section_name: str, excerpt: str) -> Finding:
         origin=ORIGIN_RULES,
         rule_id=rule.id,
         confidence=1.0,
+        # Document-scope rules report an absence ("no threat model is
+        # described"): a question for the author, never a scored defect.
+        kind=("question" if rule.scope == "document"
+              else rule.kind if hard else rule.soft_kind
+              if rule.kind == "finding" else rule.kind),
     )
 
 

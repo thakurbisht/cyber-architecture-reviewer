@@ -29,7 +29,7 @@ FINDING TRIGGER: If any API or service endpoint is described as unauthenticated,
 FINDING TRIGGER: If an internal API is unauthenticated because it is "only reachable internally", flag as CRITICAL and reference the Zero Trust Architecture Standard §2.1.
 
 Compliant pattern: "All /api/v1 routes require a validated OAuth 2.0 access token; /health and /.well-known/jwks.json are anonymous and return no business data."
-Non-compliant pattern: "The internal reporting API has no authentication as it sits behind the firewall."
+Non-compliant pattern: an endpoint is exempted from authentication on the grounds that only callers inside the network perimeter can reach it.
 
 ## 3.2 Authentication strength
 

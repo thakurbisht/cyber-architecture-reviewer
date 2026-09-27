@@ -47,10 +47,41 @@ def test_no_findings_is_green(config):
     assert counts["CRITICAL"] == 0
 
 
-def test_single_critical_forces_red(config):
-    score, rag, _ = compute_risk([_f(severity="CRITICAL")], config)
+def test_single_confirmed_critical_forces_red(config):
+    score, rag, _ = compute_risk(
+        [_f(severity="CRITICAL", origin=ORIGIN_RULES, rule_id="X-1")], config)
     assert rag == "RED"
     assert score > 0
+
+
+def test_verifier_confirmed_critical_forces_red(config):
+    f = _f(severity="CRITICAL")
+    f.verifier_status = "CONFIRMED"
+    assert compute_risk([f], config)[1] == "RED"
+
+
+def test_unconfirmed_model_findings_cannot_make_red(config):
+    # The golden clean designs drew ~20 unconfirmed model findings each and
+    # the old formula called them RED. Unconfirmed claims cap at AMBER.
+    findings = [_f(severity="CRITICAL", section=f"S{i}", issue=f"Issue {i}")
+                for i in range(30)]
+    _score, rag, _ = compute_risk(findings, config)
+    assert rag == "AMBER"
+
+
+def test_questions_are_not_scored(config):
+    q = _f(severity="CRITICAL", origin=ORIGIN_RULES, rule_id="SEC-TM-001",
+           section="Whole document")
+    score, rag, counts = compute_risk([q], config)
+    assert (score, rag, counts["CRITICAL"]) == (0.0, "GREEN", 0)
+
+
+def test_repeats_of_one_problem_count_less_than_distinct_problems(config):
+    same = [_f(severity="HIGH", origin=ORIGIN_RULES, rule_id="R-1",
+               section=f"S{i}") for i in range(3)]
+    distinct = [_f(severity="HIGH", origin=ORIGIN_RULES, rule_id=f"R-{i}",
+                   section=f"S{i}") for i in range(3)]
+    assert compute_risk(same, config)[0] < compute_risk(distinct, config)[0]
 
 
 def test_many_lows_do_not_reach_red(config):
@@ -170,7 +201,7 @@ def test_report_contains_required_structure(config):
                     "## Findings",
                     "## Review Coverage"):
         assert heading in md, f"missing {heading}"
-    assert "RED" in md
+    assert f"**Status:** " in md and result.rag_status in md
     assert "Three-Tier LAN Standard §3.2" in md
 
 
@@ -259,3 +290,34 @@ def test_priority_actions_backfill_when_too_few_problems():
            origin=ORIGIN_RULES),
     ]
     assert len(priority_actions(sort_findings(findings), 3)) == 2
+
+
+# -- cross-section dedup (src/triage.py) -----------------------------------
+def test_same_problem_in_two_sections_is_merged():
+    from src.triage import merge_duplicates
+    a = _f(section="Edge", issue="Administrative access to the portal does not require MFA.")
+    b = _f(section="Identity", issue="Administrative portal access does not require MFA at all.")
+    merged = merge_duplicates([a, b])
+    assert len(merged) == 1
+    assert merged[0].also_in == ["Identity"] or merged[0].also_in == ["Edge"]
+
+
+def test_different_problems_are_not_merged():
+    from src.triage import merge_duplicates
+    a = _f(section="Edge", issue="Administrative access to the portal does not require MFA.")
+    b = _f(section="Data", issue="Backups are stored in the same account as production.")
+    assert len(merge_duplicates([a, b])) == 2
+
+
+def test_rule_findings_are_never_merged_across_sections():
+    from src.triage import merge_duplicates
+    a = _f(section="Pipelines", origin=ORIGIN_RULES, rule_id="APP-SEC-001")
+    b = _f(section="Helm", origin=ORIGIN_RULES, rule_id="APP-SEC-001")
+    assert len(merge_duplicates([a, b])) == 2
+
+
+def test_merge_keeps_the_best_evidenced_finding():
+    from src.triage import merge_duplicates
+    weak = _f(severity="LOW", section="A", issue="Admin portal access does not require MFA.")
+    strong = _f(severity="HIGH", section="B", issue="Admin portal access does not require MFA.")
+    assert merge_duplicates([weak, strong])[0].severity == "HIGH"

@@ -120,6 +120,20 @@ class Finding:
     acknowledged_at: str = ""           # when they reviewed it
     acknowledgment_reason: str = ""     # why they marked it (mitigated, false_positive, accept_risk, n/a)
 
+    # A4 verifier (src/verifier.py): CONFIRMED / REFUTED / NEEDS_HUMAN, or ""
+    # when no verifier ran.
+    verifier_status: str = ""
+    verifier_reason: str = ""
+
+    # "finding" is a claimed defect and is scored. "question" is something
+    # the author must answer (a gap, a document-level note, a vague claim):
+    # shown separately and never scored. See src/triage.py.
+    kind: str = "finding"
+    # True when evidence_excerpt is found verbatim in the design document.
+    evidence_grounded: bool = False
+    # Other sections reporting the same problem (triage.merge_duplicates).
+    also_in: List[str] = field(default_factory=list)
+
     def __post_init__(self) -> None:
         self.severity = normalise_severity(self.severity)
 
@@ -226,6 +240,19 @@ class ReviewResult:
     finished_at: str = ""
     kb_chunk_count: int = 0
     warnings: List[str] = field(default_factory=list)
+    # Findings the A4 verifier refuted with a quote from the design. Kept out
+    # of `findings` (and so out of the risk score) but preserved for review.
+    refuted_findings: List[Finding] = field(default_factory=list)
+    # Questions for the author (src/triage.py): not defects, never scored.
+    questions: List[Finding] = field(default_factory=list)
+    # src/system_model.py SystemModel.to_dict(), when enable_system_model.
+    system_model: Optional[Dict[str, Any]] = None
+    # src/project.py: which project / stage / content version this review is.
+    # review_key keys every artefact (DFD, threats, register, decisions);
+    # empty for ad-hoc reviews, which fall back to the document name.
+    review_key: str = ""
+    project_id: str = ""
+    stage: str = ""
     # Populated by threat_model_node (see agent.py) when
     # config.agent.enable_threat_modeling is true. A plain dict (already
     # ThreatModel.to_dict()'s shape), not the dataclass, so it serialises
@@ -250,9 +277,11 @@ class ReviewResult:
             "counts_by_severity": self.counts_by_severity(),
             "warnings": self.warnings,
             "findings": [f.to_dict() for f in self.findings],
+            "questions": [f.to_dict() for f in self.questions],
             "sections": [s.to_dict() for s in self.sections],
             "audit": [a.to_dict() for a in self.audit],
             "threat_model": self.threat_model,
+            "system_model": self.system_model,
         }
 
 

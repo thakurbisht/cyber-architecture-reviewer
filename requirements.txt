@@ -1,26 +1,31 @@
 # ---------------------------------------------------------------------------
-# Cyber Architecture Reviewer - runtime dependencies
+# Archeo (Cyber Architecture Reviewer) - runtime dependencies
 # Everything below runs locally. No cloud SDKs, no API keys.
+# Tested with Python 3.12/3.13 and the versions noted on the right.
 # ---------------------------------------------------------------------------
 
 # Agentic orchestration
-langgraph>=0.2.60
-langchain-core>=0.3.25
-langchain-ollama>=0.2.2
+langgraph>=1.0              # tested 1.2.9
+langchain-core>=1.0         # tested 1.4.9
+langchain-ollama>=1.0       # tested 1.1.0
+typing_extensions>=4.12
 
 # Vector store + embeddings
-chromadb>=0.5.20
+chromadb>=1.0               # tested 1.5.9
 
 # Local model serving client
-ollama>=0.4.4
+ollama>=0.4.4               # tested 0.6.2
 
 # UI
-streamlit>=1.40.0
+streamlit>=1.50             # tested 1.61.1 (st.navigation, width="stretch")
+altair>=5.0                 # charts
+streamlit-flow-component>=1.6.1   # DFD editor canvas (React Flow)
 
 # Document ingestion
 python-docx>=1.1.2          # .docx
 pymupdf>=1.24.0             # .pdf  (import name: fitz)
 pyyaml>=6.0.2               # config + OpenAPI specs
+openpyxl>=3.1              # Excel export for Archer
 
 # Utilities
 pydantic>=2.9.0

@@ -15,6 +15,10 @@ models:
   ollama_host: "http://localhost:11434"
   temperature: 0.1            # low, but never zero - see blueprint §7.1
   request_timeout_s: 300
+  max_output_tokens: 2048     # cap per reply; stops runaway repetition loops
+  # A4 verifier: a different model family from the reviewer, so its blind
+  # spots differ. Only used when agent.enable_verifier is true.
+  verifier: "phi4:14b"
 
 retrieval:
   chunk_words: 220            # ~200-250 words keeps one clause per chunk
@@ -45,6 +49,14 @@ agent:
   # threats + a trust-zone/coverage view (src/threat_model.py). Pure
   # Python, no extra LLM call, so this is safe to leave on by default.
   enable_threat_modeling: true
+  # A4: whole-document verification of every finding (src/verifier.py).
+  # Off until its effect is measured on the golden set
+  # (scripts/eval_golden.py verify --run-name <run>).
+  enable_verifier: false
+  # System-model extraction + deterministic model rules (src/system_model.py).
+  # Off until measured on the golden set.
+  enable_system_model: false
+  verifier_batch_size: 6
 
 domains:
   # Toggle whole review domains on/off without touching code.
@@ -81,3 +93,19 @@ knowledge_base:
     application: application
     security: security
     cloud_data: cloud_data
+
+# Preliminary review register -> Excel for Archer data import (src/prelim_report.py).
+# Match these to the Archer field names and values-list entries exactly.
+archer_export:
+  sheet_name: "Prelim Review"
+  include_id_and_acceptance: true   # ID + acceptance criteria are needed for the final (as-built) review
+  columns:
+    id: "ID"
+    domain: "Domain"
+    threat: "Threat"
+    risk: "Risk"
+    rating: "Risk Rating"
+    recommendation: "Cyber Recommendation"
+    acceptance: "Acceptance Criteria"
+  rating_values: {CRITICAL: "Critical", HIGH: "High", MEDIUM: "Medium", LOW: "Low"}
+  domain_values: {network: "Network", application: "Application", security: "Cyber Security", cloud_data: "Cloud & Data"}

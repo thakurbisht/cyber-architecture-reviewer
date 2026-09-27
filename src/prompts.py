@@ -105,7 +105,7 @@ RETRIEVED STANDARDS ({chunk_count} clauses, ranked by relevance):
 
 PRE-EXISTING FINDINGS for this section (already recorded by the deterministic rules engine - do NOT repeat these):
 {prior_findings}
-
+{architecture_facts}
 Review this section now."""
 
 NO_STANDARDS_NOTICE = """(No standards clauses were retrieved for this section. The knowledge base may not cover this topic. Flag only what you can evidence directly from the section text, leave standard_reference empty, and keep severity conservative.)"""
@@ -115,7 +115,7 @@ CORRELATION_SYSTEM = """You are a Principal Enterprise Security Architect perfor
 Individual domain reviews are already complete. Your job is the class of defect that only appears when domains are read together - where the network design, the application design, the security model and the cloud design each look reasonable alone but contradict one another.
 
 Look specifically for:
-- A control one domain assumes another provides, which the other never provides. ("The application relies on network segmentation for tenant isolation" where the network design has one flat segment.)
+- A control one domain assumes another provides, which the other never provides. (Domain A states that control X is delivered by domain B, and domain B's sections never describe X.)
 - A trust boundary drawn in one domain and crossed unguarded in another.
 - Availability targets in one domain that the topology or platform in another cannot meet.
 - Data classification stated in one place and violated by a flow described elsewhere.
@@ -196,7 +196,7 @@ def build_reviewer_system(domain: str, max_searches: int) -> str:
 
 def build_section_user(document_name: str, section: Section,
                        chunks: List[RetrievedChunk],
-                       prior: List[Finding]) -> str:
+                       prior: List[Finding], architecture_facts: str = "") -> str:
     topic = TOPIC_BY_KEY.get(section.topic)
     return SECTION_USER.format(
         document_name=document_name,
@@ -207,6 +207,11 @@ def build_section_user(document_name: str, section: Section,
         chunk_count=len(chunks),
         standards=format_standards(chunks),
         prior_findings=format_prior_findings(prior),
+        architecture_facts=(
+            "\nCONFIRMED ARCHITECTURE FACTS (from the engineer-approved data flow diagram - "
+            "treat as true, do not contradict them; 'unknown' means the design does not "
+            "say, which is a question for the author, not proof the control is missing):\n"
+            + architecture_facts + "\n") if architecture_facts else "",
     )
 
 

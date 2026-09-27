@@ -55,6 +55,7 @@ from typing_extensions import TypedDict
 
 from .audit import AuditTrail
 from .completeness import check_document_completeness, completeness_summary
+from .triage import DUPLICATE_SIMILARITY, merge_duplicates, triage
 from .config import Config, load_config
 from .domains import DOMAIN_LABELS, build_retrieval_query
 from .llm import build_models
@@ -129,6 +130,9 @@ class ReviewAgent:
     kb: Optional[KnowledgeBase] = None
     llm: Optional[Any] = None        # inject a stub in tests
     progress = None                  # callable(stage: str, pct: float)
+    verifier_llm = None              # A4 verifier model; injectable in tests
+    extractor_llm = None             # system-model extractor; injectable in tests
+    dfd_context = None               # approved src.dfd.DFD; facts go into section prompts
 
     def __post_init__(self) -> None:
         self.config = self.config or load_config()
@@ -220,6 +224,23 @@ class ReviewAgent:
             warnings=final.get("warnings", []),
         )
 
+        # Findings vs Questions (src/triage.py): gaps, document-level notes
+        # and vague output leave the findings list before the verifier, the
+        # threat model and scoring see it. Kept on result.questions.
+        result.findings, result.questions = triage(result.findings,
+                                                   result.sections)
+        result.findings = merge_duplicates(
+            result.findings,
+            float(self.config.agent.get("dedup_similarity", DUPLICATE_SIMILARITY)))
+
+        self._run_system_model(result, document_name)
+
+        # A4 verifier: whole-document check of every candidate finding,
+        # before threat modeling and scoring so REFUTED findings neither
+        # drive the risk score (A5) nor the threat model. Refuted findings
+        # are kept on result.refuted_findings for review, not deleted.
+        self._run_verifier(result)
+
         # Threat modeling runs on the FINAL, merged, deduplicated finding
         # set - deliberately after the skill/rules/agent/correlation merge
         # above, not as a graph node, so it sees every finding regardless
@@ -254,6 +275,63 @@ class ReviewAgent:
                           elapsed_s=round(time.time() - started, 1))
         result.audit = self.audit.events
         return result
+
+    def _run_system_model(self, result: ReviewResult, document_name: str) -> None:
+        """Extract components/zones/flows, then run deterministic model rules.
+
+        Off by default (agent.enable_system_model) until measured on the
+        golden set. Model-rule findings join the triaged findings; the model
+        itself is kept on result.system_model for the threat model and graph.
+        """
+        from .model_rules import run_model_rules
+        from .system_model import build_extractor_llm, extract_system_model
+
+        if not self.config.agent.get("enable_system_model", False):
+            return
+        self._emit("Extracting system model", 0.88)
+        try:
+            if self.extractor_llm is None:
+                self.extractor_llm = build_extractor_llm(self.config)
+            model = extract_system_model(result.sections, self.extractor_llm,
+                                         document_name, record=self.audit.record)
+        except Exception as exc:  # noqa: BLE001
+            self.audit.record("system_model_error", error=str(exc)[:300])
+            result.warnings = result.warnings + [f"System model extraction failed: {exc}"]
+            return
+        found = run_model_rules(model)
+        result.findings = sort_findings(dedupe_findings(result.findings + found))
+        result.system_model = model.to_dict()
+        self.audit.record("system_model_complete", components=len(model.components),
+                          flows=len(model.flows), controls=len(model.controls),
+                          dropped_ungrounded=model.dropped_ungrounded,
+                          findings=len(found))
+
+    def _run_verifier(self, result: ReviewResult) -> None:
+        from .verifier import Verifier, build_verifier_llm, split_by_verdict
+
+        if not result.findings or not self.config.agent.get("enable_verifier", False):
+            return
+        if self.verifier_llm is None:
+            try:
+                self.verifier_llm = build_verifier_llm(self.config)
+            except Exception as exc:  # noqa: BLE001
+                self.audit.record("verifier_error", error=str(exc)[:300])
+        if self.verifier_llm is None:
+            result.warnings = result.warnings + [
+                "Verifier enabled but no models.verifier is configured; "
+                "findings are unverified."
+            ]
+            return
+
+        self._emit("Verifying findings", 0.9)
+        Verifier(
+            self.verifier_llm,
+            batch_size=int(self.config.agent.get("verifier_batch_size", 6)),
+            record=self.audit.record,
+        ).verify(result.findings, result.sections)
+        kept, refuted = split_by_verdict(result.findings)
+        result.findings, result.refuted_findings = kept, refuted
+        self.audit.record("verifier_complete", kept=len(kept), refuted=len(refuted))
 
     # ------------------------------------------------------------------
     # Graph construction
@@ -532,7 +610,10 @@ class ReviewAgent:
             section.domain,
             int(self.config.agent["max_searches_per_section"]),
         )
-        user = build_section_user(state["document_name"], section, chunks, prior)
+        from .dfd import facts_for_section
+        user = build_section_user(state["document_name"], section, chunks, prior,
+                                  facts_for_section(self.dfd_context, section.heading,
+                                                    section.body))
 
         total = max(len(state["sections"]), 1)
         self._emit(f"Reviewing: {section.heading}",

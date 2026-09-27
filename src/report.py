@@ -16,6 +16,8 @@ design with 40 LOW findings never outranks one with a single CRITICAL.
 
 from __future__ import annotations
 
+import math
+
 import json
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +25,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .config import Config, load_config
 from .domains import DOMAIN_LABELS
+from .triage import is_confirmed
 from .models import (
     Finding,
     ORIGIN_CORRELATION,
@@ -52,29 +55,62 @@ ORIGIN_LABEL = {
 # ==========================================================================
 def compute_risk(findings: List[Finding], config: Optional[Config] = None
                  ) -> Tuple[float, str, Dict[str, int]]:
-    """Return (normalised_score_0_100, rag_status, counts_by_severity)."""
+    """Return (normalised_score_0_100, rag_status, counts_by_severity).
+
+    Measured failure of the previous formula: every golden document -
+    including two deliberately clean designs - scored 97-100 / RED, because
+    one unverified CRITICAL forced RED and a dozen noisy findings saturated
+    the curve. A status that is always RED carries no information.
+
+    So, deliberately:
+      * questions (triage.is_question) are never scored;
+      * a repeat of the same problem adds a fraction, not a full weight;
+      * unconfirmed findings (triage.is_confirmed is False) count at
+        ``unconfirmed_weight`` and can never make a design RED on their own;
+      * RED needs a confirmed CRITICAL, or a high score backed by at least
+        one confirmed HIGH/CRITICAL.
+    """
+    from .triage import is_question
+
     cfg = config or load_config()
     weights: Dict[str, int] = cfg.scoring["weights"]
     rag_cfg: Dict[str, object] = cfg.scoring["rag"]
+    unconfirmed_weight = float(cfg.scoring.get("unconfirmed_weight", 0.25))
+    repeat_weight = float(cfg.scoring.get("repeat_weight", 0.2))
+    scale = float(cfg.scoring.get("scale", 120.0))
 
+    scored = [f for f in findings if not is_question(f)]
     counts = {s: 0 for s in SEVERITIES}
-    for f in findings:
+    for f in scored:
         counts[f.severity] = counts.get(f.severity, 0) + 1
 
-    raw = sum(weights.get(sev, 0) * n for sev, n in counts.items())
+    raw = 0.0
+    seen: set[str] = set()
+    for f in sorted(scored, key=lambda x: (not is_confirmed(x),
+                                           SEVERITIES.index(x.severity))):
+        key = f.rule_id or f"{f.domain}:{f.issue.lower()[:80]}"
+        w = weights.get(f.severity, 0)
+        w *= 1.0 if is_confirmed(f) else unconfirmed_weight
+        w *= repeat_weight if key in seen else 1.0
+        seen.add(key)
+        raw += w
     # Diminishing returns: the 6th HIGH matters less than the 1st for the
     # go/no-go decision, but must still move the number.
-    score = round(min(SATURATION, SATURATION * (1 - pow(2.718281828, -raw / 60.0))), 1)
+    score = round(min(SATURATION, SATURATION * (1 - math.exp(-raw / scale))), 1)
 
     red_at = float(rag_cfg.get("red_at_score", 40))
     amber_at = float(rag_cfg.get("amber_at_score", 12))
     critical_forces_red = bool(rag_cfg.get("critical_forces_red", True))
+    confirmed = [f for f in scored if is_confirmed(f)]
+    confirmed_critical = any(f.severity == "CRITICAL" for f in confirmed)
+    confirmed_high = any(f.severity in ("CRITICAL", "HIGH") for f in confirmed)
+    any_high = any(f.severity in ("CRITICAL", "HIGH") for f in scored)
 
-    if critical_forces_red and counts.get("CRITICAL", 0) > 0:
+    if critical_forces_red and confirmed_critical:
         rag = "RED"
-    elif score >= red_at:
+    elif score >= red_at and confirmed_high:
         rag = "RED"
-    elif score >= amber_at:
+    elif score >= amber_at or any_high:
         rag = "AMBER"
     else:
         rag = "GREEN"
@@ -327,9 +363,28 @@ def render_markdown(result: ReviewResult, config: Optional[Config] = None,
                 lines.append(f"- Evidence: _\"{_esc(f.evidence_excerpt)}\"_")
             lines.append("")
 
+    # -- questions for the author ---------------------------------------
+    if result.questions:
+        lines.append("## Questions for the Author")
+        lines.append("")
+        lines.append("Gaps and document-level notes. These are not defects "
+                     "and are not scored: the design is silent on them, and "
+                     "the author should confirm or add the missing detail.")
+        lines.append("")
+        for i, q in enumerate(result.questions, start=1):
+            lines.append(f"{i}. {_esc(q.issue)} _({_esc(q.section)})_")
+        lines.append("")
+
     # -- coverage ---------------------------------------------------------
     lines.append("## Review Coverage")
     lines.append("")
+    unconfirmed = sum(1 for f in findings if not is_confirmed(f))
+    if unconfirmed:
+        lines.append(f"**{unconfirmed} of {len(findings)} findings are "
+                     f"unconfirmed model output** (no deterministic rule or "
+                     f"verifier backs them). They are weighted down in the "
+                     f"risk score and cannot make the status RED on their own.")
+        lines.append("")
     lines.append("| Domain | Sections analysed | Findings | Critical |")
     lines.append("|---|---:|---:|---:|")
     for domain, stats in sorted(coverage_by_domain(result).items()):

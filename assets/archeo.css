@@ -64,8 +64,14 @@
 
 .block-container { max-width: 1280px; padding-top: 1rem; padding-bottom: 5rem; }
 
-[data-testid="stHeader"]     { background: transparent; height: 0; }
-[data-testid="stToolbar"], [data-testid="stDecoration"] { display: none; }
+/* Keep the header (it holds the "open sidebar" control) but make it
+   invisible chrome. toolbarMode = "minimal" in config.toml already drops
+   the Deploy button. */
+[data-testid="stHeader"]     { background: transparent; }
+[data-testid="stDecoration"] { display: none; }
+[data-testid="stExpandSidebarButton"], [data-testid="stSidebarCollapsedControl"] {
+  visibility: visible !important; display: flex !important;
+}
 #MainMenu, footer { visibility: hidden; }
 
 hr, [data-testid="stDivider"] hr { border: none; border-top: 1px solid var(--line); margin: 1.75rem 0; }
@@ -201,7 +207,7 @@ hr, [data-testid="stDivider"] hr { border: none; border-top: 1px solid var(--lin
 .rag-pill.AMBER { color: var(--sev-high);     background: var(--sev-high-soft); }
 .rag-pill.GREEN { color: var(--ok);           background: var(--ok-soft); }
 
-.bar-row { display: grid; grid-template-columns: 150px 1fr 44px; align-items: center; gap: 12px; padding: 7px 0; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 150px) minmax(60px, 1fr) 40px; align-items: center; gap: 12px; padding: 7px 0; }
 .bar-label { font-size: 14px; color: var(--text-2); }
 .bar-track { height: 10px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
 .bar-fill  { height: 100%; border-radius: 999px; }

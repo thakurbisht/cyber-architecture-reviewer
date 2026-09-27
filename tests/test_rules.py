@@ -232,9 +232,12 @@ def test_every_rule_has_required_fields():
     for rule in ALL_RULES:
         assert rule.id and rule.issue and rule.recommendation
         assert rule.severity in {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
-        assert rule.trigger, f"{rule.id} has no trigger pattern"
+        # Expert rules fire on hard evidence only (never suppressed), so a
+        # rule needs a trigger OR a hard trigger.
+        assert rule.trigger or rule.hard_trigger, f"{rule.id} has no trigger pattern"
         # A regex that fails to compile would break the run at review time.
         rule.compiled_trigger()
+        rule.compiled_hard_trigger()
         rule.compiled_suppressors()
 
 
@@ -247,3 +250,101 @@ def test_rules_summary_covers_all_domains():
     summary = rules_summary()
     assert set(summary) == {"network", "application", "security", "cloud_data"}
     assert all(v > 0 for v in summary.values())
+
+
+# -- phrasing coverage (2026-09-27 grilling) --------------------------------
+# Each planted golden-set issue the rules missed, re-worded here so the tests
+# check the phrasing class, not the golden sentence.
+def _kinds(text: str) -> dict[str, str]:
+    return {f.rule_id: f.kind for f in run_rules(parse_text(text, "test"))}
+
+
+def test_snmp_v2c_polling_without_config_verb():
+    fired = _fire("## Monitoring\n\nThe collector polls every router over "
+                  "SNMP v2c using a read-write community shared by all sites.")
+    assert {"NET-MGMT-001", "NET-MGMT-002"} <= fired
+
+
+def test_snmp_migration_to_v3_is_not_flagged():
+    fired = _fire("## Monitoring\n\nAll devices use SNMPv3 authPriv; the "
+                  "former SNMP v2c configuration was removed in 2025.")
+    assert "NET-MGMT-001" not in fired
+
+
+def test_wpa2_personal_detected():
+    fired = _fire("## Wireless\n\nHandheld terminals join the ops SSID with "
+                  "WPA3-Personal and one passphrase for the whole fleet.")
+    assert "NET-WLS-001" in fired
+
+
+def test_psk_on_isolated_guest_ssid_is_accepted():
+    fired = _fire("## Wireless\n\nThe guest SSID is isolated, internet-only, "
+                  "and uses a pre-shared key rotated weekly.")
+    assert "NET-WLS-001" not in fired
+
+
+def test_secret_in_values_file_not_cancelled_by_vault_elsewhere():
+    fired = _fire("## Deployment\n\nMost services read secrets from Key Vault. "
+                  "The billing adapter's API key is set in the Helm "
+                  "values-prod.yaml file in the platform repository.")
+    assert "APP-SEC-001" in fired
+
+
+def test_secret_held_as_pipeline_parameter_default():
+    fired = _fire("## Pipelines\n\nThe warehouse loader's database password "
+                  "is kept as the default value of a pipeline parameter.")
+    assert "APP-SEC-001" in fired
+
+
+def test_secret_in_vault_is_not_flagged():
+    fired = _fire("## Pipelines\n\nThe loader's credentials are stored in the "
+                  "secrets manager and injected at runtime via workload identity.")
+    assert "APP-SEC-001" not in fired
+
+
+def test_publicly_accessible_database_replica():
+    fired = _fire("## Data\n\nA reporting replica of the orders database is "
+                  "set to publicly accessible so the SaaS BI tool can reach it.")
+    assert "CLD-STOR-001" in fired
+
+
+def test_container_public_access_level():
+    fired = _fire("## Storage\n\nThe downloads container's public access "
+                  "level is set to Blob so partners can fetch files.")
+    assert "CLD-STOR-001" in fired
+
+
+def test_ldap_simple_bind_detected():
+    fired = _fire("## Directory\n\nThe legacy CRM authenticates users with "
+                  "LDAP simple binds against the directory on port 389.")
+    assert "SEC-IAM-003" in fired
+
+
+def test_ldaps_is_not_flagged():
+    fired = _fire("## Directory\n\nAll LDAP traffic uses LDAPS on 636 with "
+                  "channel binding enforced.")
+    assert "SEC-IAM-003" not in fired
+
+
+def test_pre_shared_key_is_not_a_shared_human_account():
+    fired = _fire("## Wireless\n\nScanners use WPA2-Personal with a pre-shared key.")
+    assert "SEC-IAM-002" not in fired
+
+
+# -- findings vs questions ---------------------------------------------------
+def test_absence_rules_are_questions():
+    backups = _kinds("## Resilience\n\nDatabases are backed up nightly to "
+                     "a second region.")
+    no_threat_model = _kinds("## Design\n\nThe solution architecture uses "
+                             "a web tier, an app tier and a database tier.")
+    assert backups.get("SEC-RES-001") == "question"
+    assert no_threat_model.get("SEC-TM-001") == "question"
+
+
+def test_topic_only_hit_is_question_but_hard_evidence_is_finding():
+    soft = _kinds("## Identity\n\nAdministrators use the privileged access "
+                  "console for HSM administration.")
+    hard = _kinds("## Identity\n\nMFA is optional for administrators using "
+                  "the privileged access console.")
+    assert soft.get("SEC-IAM-001") == "question"
+    assert hard.get("SEC-IAM-001") == "finding"

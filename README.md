@@ -1,15 +1,22 @@
-# Cyber Architecture Reviewer
+# Archeo — Cyber Architecture Reviewer
 
-An agentic AI system that reviews **network, application, cyber and cloud
-architecture designs** against your own architectural standards, and produces a
-board-ready assurance report where every finding cites the clause it rests on.
+An agentic AI assistant for security architects. It reviews **network,
+application, cyber and cloud architecture designs** against your own
+standards, drafts a **data flow diagram** that an engineer corrects and
+approves, and runs a **STRIDE / MAESTRO threat model** on the approved DFD.
+Every finding cites the text or standard clause it rests on.
 
-Runs entirely on-premise. No cloud services, no API keys, no licensing fees, no
+Runs entirely on your machine (Ollama). No cloud services, no API keys, no
 data leaving the machine.
 
 ```
-Design document ──▶ classify sections ──▶ retrieve YOUR standards ──▶ review ──▶ cited findings + RAG status
+Design doc ─▶ pre-check ─▶ text review (rules + standards + local LLM) ─┐
+          └─▶ draft DFD ─▶ 👤 engineer edits & approves ─▶ threat model ─┴─▶ triage ─▶ 👤 accept/dispute ─▶ report, Jira CSV
 ```
+
+> **Status: research prototype.** Useful as a second pair of eyes and a DFD /
+> threat-model accelerator; not a substitute for an architect's review. See
+> [Measured quality](#measured-quality) for honest numbers.
 
 ---
 
@@ -47,25 +54,45 @@ definitions are flattened into reviewable prose), or pasted text.
 
 ## Quick start
 
-```bash
-# 1. Models (one time, ~2.5 GB)
-ollama serve &
-ollama pull llama3.2
-ollama pull nomic-embed-text
+Needs Python 3.12+, [Ollama](https://ollama.com), and ideally a GPU with
+12 GB VRAM (tested on an RTX 3060 12 GB; CPU works but is slow).
 
-# 2. Dependencies
+```bash
+# 1. Models (one time, ~10 GB)
+ollama pull qwen2.5:14b          # reviewer, DFD extraction, threat model
+ollama pull nomic-embed-text     # embeddings for the standards library
+# optional: ollama pull phi4:14b (verifier)   ollama pull gemma3:12b (eval judge)
+
+# 2. Dependencies (a fresh virtual environment is recommended)
+python -m venv .venv && .venv/Scripts/activate      # Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3. Seed the knowledge base - ALWAYS check the chunk count it prints
 python scripts/seed_kb.py
 
-# 4. Review
+# 4. Run
 streamlit run app.py                                    # browser UI
 python scripts/review_cli.py samples/sample-campus-lan-lld.md   # CLI
+pytest                                                  # ~190 offline tests, no Ollama needed
 ```
 
-Try the shipped samples first. Each contains deliberately planted violations
-and `samples/EXPECTED_FINDINGS.md` is the answer key.
+Try the shipped samples, or the 12 golden-set designs in `golden/docs/` (all
+fictional companies with planted issues; answer keys in `golden/answers/`).
+
+### Using the app
+
+| Page | What you do |
+|---|---|
+| **Review** | Pick a **project** and **stage** (prelim design / final as-built), upload, pre-check, then **Step 3: draft and approve the DFD first**, then run the AI review — the threat model runs right after it on the approved DFD |
+| **Review queue** | Findings and threats in **one list**, duplicates merged, rule-based first; select many rows and **accept / dispute / mark mitigated** at once |
+| **DFD editor** | Correct the AI-drafted data flow diagram: drag components between trust zones, draw/delete flows, set protocol / auth / encryption, choose STRIDE / MAESTRO / both, then **approve** a version |
+| **Threats** | Run or replay the threat model on the approved DFD; export mitigations as Jira CSV |
+| **Prelim report** | The Stage 1 register for stakeholders: **ID, Domain, Threat, Risk, Risk Rating, Cyber Recommendation, Acceptance Criteria** — built from confirmed items, AI-drafted, editable, **Excel for Archer** (column names in `config.yaml` → `archer_export`) |
+| **Copilot** | Ask questions about the review |
+| **Report** | Report, audit trail and **sign-off** — the status stays *provisional* until an architect signs off |
+
+Every upload is a content-addressed **version** of a project (`data/projects/`), so a
+revised design never reopens the previous version's DFD, threats or decisions.
 
 **No Ollama yet?** The deterministic layer runs standalone:
 
@@ -106,7 +133,7 @@ standard it enforces is yours.
 
 ## The two-layer design
 
-**Layer 1 — deterministic rules.** ~40 pattern rules with severity, citation
+**Layer 1 — deterministic rules.** 57 pattern rules (incl. 18 "senior reviewer" patterns in `src/rules_expert.py`) with severity, citation
 and control mapping. Same input, byte-identical output, every run. SNMPv2c with
 community string `public` is a CRITICAL finding every time — it must not depend
 on whether the model felt thorough on this pass.
@@ -119,6 +146,27 @@ subtle rather than re-reporting the obvious.
 
 Layer 1 guarantees the floor. Layer 2 provides the ceiling. Layer 1 still runs
 if the model is down.
+
+---
+
+## Measured quality
+
+Measured on the 12-document golden set (92 planted issues, 45 "must not flag"
+traps) with a calibrated local judge (judge-v2, held-out agreement 95%,
+κ 0.83). Caveat: the answer keys and judge calibration were produced with AI
+assistance, not yet by independent human architects, and all tuning used the
+same 12 documents — treat these as indicative, not proven.
+
+| Pipeline | Precision | Recall | Traps flagged | False positives per clean doc |
+|---|---|---|---|---|
+| Deterministic rules only (57 rules) | 76% | 37% | 11% | 0 |
+| Full pipeline, qwen2.5:14b | 33% | 62% | 56% | 21 |
+
+What that means: when a rule fires it is usually right, but rules catch few
+issues; the model catches most issues but about two in three of its findings
+are noise. That is why only rule-matched or verifier/human-confirmed findings
+can turn a design RED, model findings are shown as candidates, and the DFD +
+threat model path relies on an engineer confirming the facts first.
 
 ---
 
@@ -201,24 +249,37 @@ status has to be reproducible and recomputable by hand from the findings table.
 
 ```
 config.yaml                 all tuning in one place
-app.py                      Streamlit UI
+app.py                      Streamlit UI (Review, Findings, Copilot, Report)
+dfd_page.py                 DFD editor page (streamlit-flow / React Flow)
+threats_page.py             Threats page
 src/
   parser.py                 md/docx/pdf/OpenAPI ingestion, section splitting
+  guardrail.py              "is this a design document?" pre-check
   domains.py                domain + topic taxonomy, retrieval query building
   rules.py                  deterministic rules engine (Layer 1)
+  completeness.py           gaps -> questions for the author
   retriever.py              ChromaDB, clause-aware chunking, index integrity
   llm.py                    model handles + tool schemas
   prompts.py                domain-specialised prompts
-  agent.py                  LangGraph state machine (Layer 2)
-  report.py                 scoring, RAG, markdown + JSON export
+  agent.py                  LangGraph review state machine (Layer 2)
+  verifier.py               optional second-model check of findings (off by default)
+  triage.py                 findings vs questions, cross-section dedup
+  report.py                 evidence-gated scoring, RAG, markdown + JSON export
+  system_model.py           LLM extraction of components / zones / flows (draft DFD)
+  dfd.py                    DFD model, canvas sync, approved versions
+  threat_agent.py           STRIDE / MAESTRO threat model agent (LangGraph)
+  feedback.py               accept / dispute log
   audit.py                  immutable reasoning trail
   models.py                 Finding, Section, ReviewResult
 knowledge_base/             your standards, per domain, + authoring templates
+golden/                     12 fictional designs, answer keys, spec
 samples/                    three designs with planted violations + answer key
 scripts/seed_kb.py          seed and verify the vector store
 scripts/review_cli.py       CLI / CI entry point
+scripts/eval_golden.py      golden-set run / score / calibrate / verify
+scripts/feedback_report.py  which rules reviewers dispute most
 docs/ARCHITECTURE_BLUEPRINT.md   full design, threat model, operating model
-tests/                      92 offline tests - no Ollama, no ChromaDB needed
+tests/                      offline tests - no Ollama, no ChromaDB needed
 ```
 
 ---
@@ -229,8 +290,8 @@ tests/                      92 offline tests - no Ollama, no ChromaDB needed
 pytest
 ```
 
-92 tests, under a second, no model download and no vector store. A scripted
-stub LLM exercises the whole graph — routing, the tool loop, every loop cap,
+About 190 tests in a few seconds, no model download and no vector store. A scripted
+stub LLM exercises the whole review graph and the threat model agent — routing, the tool loop, every loop cap,
 citation verification, model-failure recovery, and the tool-free report node.
 
 The structural failure modes are all covered:
@@ -258,13 +319,15 @@ The structural failure modes are all covered:
 | Report is raw JSON | Report node given a tool-bound model | Use `writer`, not `reviewer` (see `llm.py`) |
 | Review takes very long | Loop caps too high for CPU inference | Lower `max_tool_iterations` and `max_searches_per_section` |
 | "Ollama unreachable" | Server not running | `ollama serve` |
+| `pip install` fails on Windows with "No such file or directory" deep inside `site-packages\streamlit` | Windows 260-character path limit | Create the venv in a short path (e.g. `C:\archeo\.venv`) or enable long paths in Windows |
+| DFD editor page is blank | `streamlit-flow-component` missing | `pip install -r requirements.txt` |
 
 ---
 
 ## Stack
 
-LangGraph · ChromaDB · Ollama (llama3.2, nomic-embed-text) · Streamlit · Python
-3.11 · pytest
+LangGraph · ChromaDB · Ollama (qwen2.5:14b, nomic-embed-text) · Streamlit ·
+streamlit-flow (React Flow) · Python 3.12+ · pytest
 
 Everything local. Everything auditable.
 

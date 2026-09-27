@@ -186,6 +186,14 @@ def build_models(config: Optional[Config] = None,
             # silent truncation is indistinguishable from a model that ignored
             # the standards.
             num_ctx=8192,
+            # Hard cap on reply length. Without it a model that falls into a
+            # repetition loop generates until the context is exhausted:
+            # qwen2.5:14b produced a single 14k-token reply (~10 min) on gs-01.
+            # A tool call or a section's findings fit comfortably in 2048.
+            num_predict=int(cfg.models.get("max_output_tokens", 2048)),
+            # Enforce config.yaml's request_timeout_s, which was never passed
+            # to the client before.
+            client_kwargs={"timeout": float(cfg.models.get("request_timeout_s", 300))},
         )
 
     writer = llm
