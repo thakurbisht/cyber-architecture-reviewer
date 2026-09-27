@@ -1407,7 +1407,7 @@ def render_result(
     n = len(findings)
 
     section_header(
-        "Step 4 · Results",
+        "Step 5 · Results",
         f"Findings summary · {esc(result.document_name)}",
         "Risk status is computed from the findings table, never by the model, "
         "so anyone can recompute it by hand.",
@@ -1624,6 +1624,110 @@ def render_project_picker() -> None:
                 st.error(str(exc))
 
 
+def review_context(document_name: str, sections: list):
+    """Register the upload as a project version BEFORE the review, so the DFD
+    can be drafted, edited and approved first (DFD-first flow)."""
+    from src import project as PJ
+    sig = st.session_state.get("input_signature")
+    if not sig or not sections:
+        return None
+    pid = st.session_state.get("project_id") or "scratch"
+    stage = st.session_state.get("review_stage", "prelim")
+    ctx = st.session_state.get("review_ctx")
+    if ctx and (ctx["sig"], ctx["project_id"], ctx["stage"]) == (sig, pid, stage):
+        st.session_state.ctx_sections = sections
+        return ctx
+    project = PJ.load_project(pid) or (PJ.create_project("Scratch") if pid == "scratch" else None)
+    if project is None:
+        return None
+    v = PJ.register_version(project, sig, document_name or "design", stage)
+    ctx = {"sig": sig, "review_key": v.review_key, "project_id": project.id, "stage": stage,
+           "document_name": document_name or "design"}
+    st.session_state.review_ctx = ctx
+    st.session_state.ctx_sections = sections
+    return ctx
+
+
+def current_context():
+    """The finished review if there is one, else the in-progress upload -
+    enough for the DFD editor and threat pages to work before the review."""
+    from types import SimpleNamespace
+    result = current_result()
+    ctx = st.session_state.get("review_ctx")
+    if result is not None and (not ctx or getattr(result, "review_key", "") == ctx["review_key"]):
+        return result
+    if not ctx:
+        return result
+    return SimpleNamespace(document_name=ctx["document_name"], review_key=ctx["review_key"],
+                           project_id=ctx["project_id"], stage=ctx["stage"],
+                           sections=st.session_state.get("ctx_sections", []),
+                           system_model=None, findings=[])
+
+
+def render_dfd_step(document_name: str, sections: list):
+    """Step 3: understand the system before reviewing it. Returns
+    (ready_to_review, approved_dfd_or_None)."""
+    from src import dfd as D
+    ctx = review_context(document_name, sections)
+    if ctx is None:
+        return False, None
+    section_header("Step 3 · Understand the system",
+                   "Data flow diagram first",
+                   "Confirm components, trust zones and flows before the AI reviews the "
+                   "design. The review and the threat model both use the approved DFD.")
+    key = ctx["review_key"]
+    draft = D.load_latest(key)
+    approved = D.approved_version(key)
+    if draft is None:
+        st.caption("No DFD yet for this version.")
+    elif approved is None:
+        st.caption(f"🟡 Draft DFD · {len(draft.components)} components · {len(draft.flows)} flows "
+                   f"· not approved yet")
+    else:
+        st.caption(f"🟢 Approved v{approved.version} by {approved.approved_by}"
+                   + (" · newer unapproved edits exist (the review uses the approved version)"
+                      if draft.status != "approved" else ""))
+    c1, c2, c3 = st.columns(3)
+    if draft is None and c1.button("Generate draft DFD (local AI)", type="primary",
+                                   width="stretch", key="gen_dfd"):
+        from src.system_model import build_extractor_llm, extract_system_model
+        with st.spinner("Reading the design once to draft components, zones and flows…"):
+            model = extract_system_model(sections, build_extractor_llm(get_config()),
+                                         document_name or "design")
+        D.save_draft(D.from_system_model(model.to_dict(), key))
+        st.rerun()
+    if draft is None and c2.button("Start blank DFD", width="stretch", key="blank_dfd"):
+        D.save_draft(D.DFD(document=key))
+        st.rerun()
+    if draft is not None and c1.button("Open DFD editor", type="primary", width="stretch",
+                                       key="open_dfd"):
+        st.switch_page(PAGES["dfd"])
+    skip = c3.checkbox("Skip DFD — text review only", key=f"skip_dfd::{key}",
+                       help="Runs the standards review without architecture facts and "
+                            "without a threat model.")
+    return (approved is not None or skip), (None if skip else approved)
+
+
+def run_threat_model_after_review(result, approved) -> None:
+    """Step 4b: threat model on the approved DFD right after the text review."""
+    from src import threat_agent as TA
+    fw = st.session_state.get(f"threat_framework::{approved.document}",
+                              "Both" if approved.has_ai_components() else "STRIDE")
+    frameworks = ["STRIDE", "MAESTRO"] if fw == "Both" else [fw]
+    cfg = get_config()
+    with st.status("Threat model on the approved DFD…", expanded=False) as box:
+        try:
+            run = TA.run_threat_model(approved, TA.build_threat_llm(cfg), frameworks,
+                                      model_name=str(cfg.models.get("threat_model")
+                                                     or cfg.models["llm"]))
+            TA.save_run(run)
+            box.update(label=f"Threat model: {len(run.threats)} threats "
+                             f"({' + '.join(run.frameworks)}, {run.seconds:.0f}s)",
+                       state="complete")
+        except Exception as exc:  # noqa: BLE001
+            box.update(label=f"Threat model failed: {exc}", state="error")
+
+
 def register_review(result, filename: str) -> None:
     """Attach the finished review to its project version (content-addressed)."""
     from src import project as PJ
@@ -1836,7 +1940,7 @@ def get_threat_model(result) -> dict:
 def page_dfd() -> None:
     """Editable data flow diagram with trust zones (dfd_page.py)."""
     import dfd_page
-    dfd_page.render(current_result(), section_header=section_header,
+    dfd_page.render(current_context(), section_header=section_header,
                     empty_state=empty_state, html_block=html_block, esc=esc,
                     get_config=get_config)
 
@@ -1856,10 +1960,17 @@ def merge_threat_findings(new_findings) -> int:
 def page_threats() -> None:
     """Threat model agent (STRIDE / MAESTRO) over the approved DFD (threats_page.py)."""
     import threats_page
-    threats_page.render(current_result(), section_header=section_header,
+    threats_page.render(current_context(), section_header=section_header,
                         empty_state=empty_state, esc=esc, get_config=get_config,
                         switch_to_dfd=lambda: st.switch_page(PAGES["dfd"]),
                         merge_findings=merge_threat_findings)
+
+
+def page_queue() -> None:
+    """Findings + threats in one list (queue_page.py)."""
+    import queue_page
+    queue_page.render(current_result(), section_header=section_header, empty_state=empty_state,
+                      esc=esc, review_key_of=review_key_of, render_questions=render_questions)
 
 
 def page_prelim() -> None:
@@ -2350,7 +2461,7 @@ def page_review() -> None:
                         st.rerun()
 
                 section_header(
-                    "Step 3 · AI review",
+                    "Step 4 · AI review and threat model",
                     "Standards-grounded review",
                     "The model reviews each in-scope section against your "
                     "standards library. Expect a few minutes per document.",
@@ -2382,6 +2493,10 @@ def page_review() -> None:
         == current_checkpoint_signature
     )
 
+    dfd_ready, approved_dfd = (False, None)
+    if checkpoint_approved and sections:
+        dfd_ready, approved_dfd = render_dfd_step(document_name, sections)
+
     disabled = (
         not sections
         or not domains
@@ -2390,7 +2505,10 @@ def page_review() -> None:
             and not force_review
         )
         or not checkpoint_approved
+        or not dfd_ready
     )
+    if checkpoint_approved and sections and not dfd_ready:
+        st.caption("Approve the DFD (or tick *Skip DFD*) to run the review.")
 
     if not domains:
 
@@ -2456,6 +2574,7 @@ def page_review() -> None:
             kb=get_kb(),
         )
         agent.progress = tracker.on_agent_progress
+        agent.dfd_context = approved_dfd
 
         # --------------------------------------------------------------
         # REVIEW
@@ -2470,6 +2589,8 @@ def page_review() -> None:
             )
             register_review(st.session_state.result, document_name or "design")
             tracker.complete()
+            if approved_dfd is not None:
+                run_threat_model_after_review(st.session_state.result, approved_dfd)
             st.session_state.stage_times = tracker.durations()
 
         except Exception as exc:
@@ -2522,7 +2643,7 @@ def page_review() -> None:
 
 PAGES = {
     "review":   st.Page(page_review, title="Review", icon=":material/upload_file:", default=True),
-    "findings": st.Page(page_findings, title="Findings", icon=":material/fact_check:",
+    "findings": st.Page(page_queue, title="Review queue", icon=":material/fact_check:",
                         url_path="findings"),
     "dfd":      st.Page(page_dfd, title="DFD editor", icon=":material/hub:",
                         url_path="dfd"),

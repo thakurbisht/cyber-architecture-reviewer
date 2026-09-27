@@ -121,3 +121,21 @@ def test_add_zone_keeps_canonical_order():
     assert d.zones.index("management") < d.zones.index("restricted")
     for c in d.components:
         assert D.zone_at(d, c.x) == c.zone
+
+
+def test_facts_for_section_lists_confirmed_facts_for_mentioned_components():
+    d = _dfd()
+    d.flow("f1").auth, d.flow("f1").encrypted = "token", "yes"
+    facts = D.facts_for_section(d, "Edge", "Customers reach the Kong API GW over HTTPS.")
+    assert "Kong API GW: service, zone DMZ" in facts
+    assert "Flow Customer -> Kong API GW" in facts and "authentication token" in facts
+    assert D.facts_for_section(d, "Other", "Nothing relevant here.") == ""
+    assert D.facts_for_section(None, "x", "y") == ""
+
+
+def test_prompt_includes_facts_only_when_given():
+    from src.models import Section
+    from src.prompts import build_section_user
+    s = Section(index=0, heading="Edge", body="Kong API GW routes traffic.", domain="application")
+    assert "CONFIRMED ARCHITECTURE FACTS" not in build_section_user("d", s, [], [])
+    assert "CONFIRMED ARCHITECTURE FACTS" in build_section_user("d", s, [], [], "- Kong: dmz")

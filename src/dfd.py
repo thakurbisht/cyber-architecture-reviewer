@@ -389,3 +389,44 @@ def list_versions(document: str, root: Path = DEFAULT_ROOT) -> List[Tuple[int, P
         if m:
             out.append((int(m.group(1)), p))
     return sorted(out)
+
+
+# --------------------------------------------------------------------------
+# Review context: confirmed facts for the section reviewer
+# --------------------------------------------------------------------------
+def approved_version(document: str, root: Path = DEFAULT_ROOT) -> Optional[DFD]:
+    """The latest APPROVED version (the working draft may have newer edits)."""
+    versions = list_versions(document, root)
+    if not versions:
+        return None
+    return DFD.from_dict(json.loads(versions[-1][1].read_text(encoding="utf-8")))
+
+
+def facts_for_section(dfd: Optional[DFD], heading: str, body: str, limit: int = 12) -> str:
+    """Engineer-confirmed facts about the components this section mentions.
+
+    Given to the section reviewer so it does not contradict what the
+    architect confirmed (zones, exposure, auth, encryption), and so
+    "unknown" is read as "not stated" rather than as "absent".
+    """
+    if dfd is None:
+        return ""
+    text = f"{heading}\n{body}".lower()
+    mentioned = [c for c in dfd.components
+                 if len(c.name) >= 3 and c.name.lower() in text]
+    ids = {c.id for c in mentioned}
+    lines = []
+    for c in mentioned[:limit]:
+        lines.append(f"- {c.name}: {c.kind}, zone {ZONE_LABELS.get(c.zone, c.zone)}"
+                     + (", publicly reachable" if c.public else "")
+                     + (f", holds {', '.join(c.data)}" if c.data else ""))
+    for f in dfd.flows:
+        if f.source in ids or f.target in ids:
+            s, t = dfd.component(f.source), dfd.component(f.target)
+            lines.append(f"- Flow {s.name if s else f.source} -> {t.name if t else f.target}: "
+                         f"{f.protocol or 'protocol not stated'}, authentication {f.auth}, "
+                         f"encrypted {f.encrypted}"
+                         + (" (crosses a trust boundary)" if dfd.crosses_boundary(f) else ""))
+        if len(lines) >= limit * 2:
+            break
+    return "\n".join(lines)

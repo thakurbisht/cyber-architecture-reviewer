@@ -105,7 +105,7 @@ RETRIEVED STANDARDS ({chunk_count} clauses, ranked by relevance):
 
 PRE-EXISTING FINDINGS for this section (already recorded by the deterministic rules engine - do NOT repeat these):
 {prior_findings}
-
+{architecture_facts}
 Review this section now."""
 
 NO_STANDARDS_NOTICE = """(No standards clauses were retrieved for this section. The knowledge base may not cover this topic. Flag only what you can evidence directly from the section text, leave standard_reference empty, and keep severity conservative.)"""
@@ -196,7 +196,7 @@ def build_reviewer_system(domain: str, max_searches: int) -> str:
 
 def build_section_user(document_name: str, section: Section,
                        chunks: List[RetrievedChunk],
-                       prior: List[Finding]) -> str:
+                       prior: List[Finding], architecture_facts: str = "") -> str:
     topic = TOPIC_BY_KEY.get(section.topic)
     return SECTION_USER.format(
         document_name=document_name,
@@ -207,6 +207,11 @@ def build_section_user(document_name: str, section: Section,
         chunk_count=len(chunks),
         standards=format_standards(chunks),
         prior_findings=format_prior_findings(prior),
+        architecture_facts=(
+            "\nCONFIRMED ARCHITECTURE FACTS (from the engineer-approved data flow diagram - "
+            "treat as true, do not contradict them; 'unknown' means the design does not "
+            "say, which is a question for the author, not proof the control is missing):\n"
+            + architecture_facts + "\n") if architecture_facts else "",
     )
 
 

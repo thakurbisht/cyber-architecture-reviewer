@@ -132,6 +132,7 @@ class ReviewAgent:
     progress = None                  # callable(stage: str, pct: float)
     verifier_llm = None              # A4 verifier model; injectable in tests
     extractor_llm = None             # system-model extractor; injectable in tests
+    dfd_context = None               # approved src.dfd.DFD; facts go into section prompts
 
     def __post_init__(self) -> None:
         self.config = self.config or load_config()
@@ -609,7 +610,10 @@ class ReviewAgent:
             section.domain,
             int(self.config.agent["max_searches_per_section"]),
         )
-        user = build_section_user(state["document_name"], section, chunks, prior)
+        from .dfd import facts_for_section
+        user = build_section_user(state["document_name"], section, chunks, prior,
+                                  facts_for_section(self.dfd_context, section.heading,
+                                                    section.body))
 
         total = max(len(state["sections"]), 1)
         self._emit(f"Reviewing: {section.heading}",
