@@ -45,7 +45,11 @@ RESULTS = ROOT / "results" / "golden"
 SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
 DEFAULT_JUDGE = "gemma3:12b"
 DEFAULT_EMBED = "nomic-embed-text"
-JUDGE_VERSION = "judge-v1"
+# judge-v2: per-candidate component/weakness checks decided in code. v1 let the
+# model name matches directly and it credited "same general area" pairs:
+# kappa 0.20 against architect labels (results/golden/baseline-llama31/
+# calibration_sheet_labelled.csv).
+JUDGE_VERSION = "judge-v2"
 
 # Field names the pipeline's Finding objects may use. The harness does not
 # depend on the exact Finding class; it looks for these keys.
@@ -253,11 +257,26 @@ def cosine(a, b):
 JUDGE_SCHEMA = {
     "type": "object",
     "properties": {
+        "reported_component": {"type": "string"},
+        "reported_weakness": {"type": "string"},
+        "candidates": {"type": "array", "items": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "same_component": {"type": "boolean"},
+                "same_weakness": {"type": "boolean"},
+            },
+            "required": ["id", "same_component", "same_weakness"],
+        }},
         "reason": {"type": "string"},
-        "matches": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["reason", "matches"],
+    "required": ["reported_component", "reported_weakness", "candidates", "reason"],
 }
+
+# Findings with no concrete weakness never match anything; decided in code so
+# the judge cannot credit them (v1 credited "Unspecified issue" as CRITICAL hits).
+VAGUE_FINDING = re.compile(
+    r"unspecified issue|remediation not specified|requires architect input", re.I)
 
 
 def parse_json_loose(text):
@@ -289,6 +308,11 @@ def judge_call(model, prompt, seed, cache):
         r = ollama_post("/api/chat", payload)
     content = (r.get("message") or {}).get("content", "")
     parsed = parse_json_loose(content)
+    if isinstance(parsed, dict) and isinstance(parsed.get("candidates"), list):
+        # v2: a match needs BOTH the same component and the same weakness.
+        parsed["matches"] = [str(c.get("id", "")) for c in parsed["candidates"]
+                             if isinstance(c, dict) and c.get("same_component") is True
+                             and c.get("same_weakness") is True]
     if not isinstance(parsed, dict) or not isinstance(parsed.get("matches"), list):
         parsed = {"reason": "UNPARSEABLE: " + shorten(content, 200), "matches": [], "error": True}
     cache[key] = parsed
@@ -392,11 +416,14 @@ def cmd_run(args):
         try:
             sections = parse_document(str(path))
             if args.rules_only:
-                findings = run_rules(sections, config.enabled_domains)
+                from src.triage import triage
+                findings, questions = triage(run_rules(sections, config.enabled_domains), sections)
+                rec["questions"] = [to_dict(q) for q in questions]
             else:
                 agent = ReviewAgent(config=config, kb=kb)
                 result = agent.review(sections, path.name)
                 findings = result.findings
+                rec["questions"] = [to_dict(q) for q in getattr(result, "questions", [])]
                 rec["result_extra"] = {k: to_dict(getattr(result, k)) for k in RESULT_EXTRAS
                                        if getattr(result, k, None) is not None}
             rec["findings"] = [to_dict(f) for f in findings]
@@ -452,7 +479,7 @@ def prediction_view(p):
             "evidence": first_field(p, EVIDENCE_FIELDS)}
 
 
-JUDGE_PROMPT = """You are checking an automated security architecture review against an answer key.
+JUDGE_PROMPT = """You are a senior security architect checking an automated review against an answer key.
 
 Document: {title}
 
@@ -464,11 +491,23 @@ Severity: {severity}
 CANDIDATE ISSUES
 {candidates}
 
-Which candidates is the reported finding about?
-A candidate matches only if the reported finding identifies the same underlying weakness in the same component, data flow or control. Wording, severity and recommendation may differ. Being on the same general topic (for example both mention logging or encryption) is not enough when the weakness or the component is different. A vague or generic finding that does not point at a specific weakness in this design matches nothing.
-Usually zero or one candidate matches. List two only if the reported finding clearly describes both weaknesses.
+Step 1. In a few words, state the COMPONENT the reported finding is about (a specific system, account, role, network path, data store or process in this design) and the WEAKNESS it claims (what is wrong with that component).
 
-Reply as JSON: {{"reason": "<one or two sentences>", "matches": ["C1"]}}, with an empty list when nothing matches."""
+Step 2. For EVERY candidate answer two separate questions:
+- same_component: is the candidate about that same component?
+- same_weakness: does the candidate describe that same weakness, not just the same topic?
+
+Be strict. These are NOT the same weakness:
+- "keys have no rotation policy" vs "data is not encrypted" (both encryption, different flaws)
+- "token lifetime is too long" vs "tokens are not revoked on sign-out"
+- "backups are not immutable" vs "a database is publicly reachable"
+- "no threat model" or "trust boundaries not stated" vs any specific technical flaw
+- a generic finding that names no specific component vs a specific issue
+A finding that only partly describes a candidate still counts when it names that candidate's core flaw in the same component.
+
+Reply as JSON:
+{{"reported_component": "...", "reported_weakness": "...", "candidates": [{{"id": "C1", "same_component": false, "same_weakness": false}}], "reason": "<one sentence>"}}
+Include every candidate id."""
 
 
 def judge_document(doc_id, ans, rec, args, cache, stats):
@@ -496,6 +535,11 @@ def judge_document(doc_id, ans, rec, args, cache, stats):
             exp = [j for j in order if cands[j]["kind"] == "expected"]
             trp = [j for j in order if cands[j]["kind"] == "trap"]
             chosen = (exp[:ek] if ek else exp) + (trp[:tk] if tk else trp)
+        if VAGUE_FINDING.search(v["text"] or "") or not (v["text"] or "").strip():
+            stats["vague"] += 1
+            decisions.append({"keys": [], "reason": "Vague finding: names no concrete weakness.",
+                              "shown": []})
+            continue
         rng = random.Random(f"{doc_id}:{i}:{args.seed}")
         rng.shuffle(chosen)
         labels = {f"C{n + 1}": cands[j] for n, j in enumerate(chosen)}
@@ -751,6 +795,142 @@ def cmd_compare(args):
     return 0
 
 
+# --------------------------------------------------------------------------
+# calibrate: re-judge only the human-labelled rows and report agreement (A6)
+# --------------------------------------------------------------------------
+
+def _kappa(a, b):
+    n = len(a)
+    po = sum(x == y for x, y in zip(a, b)) / n
+    pe = sum((a.count(k) / n) * (b.count(k) / n) for k in set(a) | set(b))
+    return (po - pe) / (1 - pe) if pe < 1 else 1.0
+
+
+def cmd_calibrate(args):
+    """Judge the rows of a labelled calibration sheet with the CURRENT judge
+    (prompt/model) and compare with human_status. Only those predictions are
+    judged, so iterating on the judge takes minutes, not a full re-score."""
+    run_dir = RESULTS / args.run_name
+    sheet = [r for r in csv.DictReader(open(run_dir / args.sheet, encoding="utf-8-sig"))
+             if (r.get("human_status") or "").strip()]
+    if not sheet:
+        out(f"No rows with human_status in {args.sheet}")
+        return 2
+    cache = {}
+    stats = Counter()
+    by_doc = defaultdict(list)
+    for r in sheet:
+        by_doc[r["doc_id"]].append(r)
+    judged, human, rows_out = [], [], []
+    for doc_id, rows in sorted(by_doc.items()):
+        rec = read_json(run_dir / "predictions" / f"{doc_id}.json")
+        ans = read_json(ANSWERS / f"{doc_id}.json")
+        preds = [rec["findings"][int(r["pred_no"]) - 1] for r in rows]
+        _, decisions = judge_document(doc_id, ans, {"findings": preds}, args, cache, stats)
+        for r, d in zip(rows, decisions):
+            keys = d["keys"]
+            status = ("correct" if any(k.startswith("E:") for k in keys)
+                      else "TRAP" if keys else "unmatched")
+            judged.append(status)
+            human.append(r["human_status"].strip())
+            rows_out.append((doc_id, r["pred_no"], r["human_status"], status, d["reason"]))
+    n = len(judged)
+    agree = sum(a == b for a, b in zip(judged, human))
+    k3 = _kappa(judged, human)
+    kb = _kappa([j == "correct" for j in judged], [h == "correct" for h in human])
+    out(f"Judge {args.judge_model} ({JUDGE_VERSION}) on {n} labelled rows of {args.sheet}\n")
+    for doc_id, pno, h, j, reason in rows_out:
+        if h != j:
+            out(f"  MISMATCH {doc_id} #{pno}: human={h:9s} judge={j:9s} | {shorten(reason, 110)}")
+    out(f"\n3-class agreement {agree}/{n} ({agree / n:.0%}) | kappa {k3:.2f}")
+    out(f"Binary 'real planted issue?' kappa {kb:.2f} -> "
+        + ("TRUSTWORTHY (>= 0.7)" if kb >= 0.7 else "not trustworthy (< 0.7)"))
+    out(f"Judge calls: {dict(stats)}")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# verify: apply the A4 verifier to an existing run's predictions
+# --------------------------------------------------------------------------
+
+def cmd_verify(args):
+    """Re-use a finished run's findings, verify them against the full doc,
+    and save kept findings as a new run. Isolates the verifier's effect and
+    avoids re-running the reviewer (~30-60 min per run)."""
+    os.chdir(ROOT)
+    sys.path.insert(0, str(ROOT))
+    from dataclasses import fields as dc_fields
+    from src.config import load_config
+    from src.models import Finding
+    from src.parser import parse_document
+    from src.verifier import Verifier, build_verifier_llm, split_by_verdict
+
+    src_dir = RESULTS / args.run_name
+    if not (src_dir / "predictions").exists():
+        out(f"ERROR: no predictions in {src_dir}")
+        return 2
+    config = load_config()
+    if args.verifier_model:
+        config.models["verifier"] = args.verifier_model
+    llm = build_verifier_llm(config)
+    if llm is None:
+        out("ERROR: set models.verifier in config.yaml or pass --verifier-model")
+        return 2
+    model = config.models["verifier"]
+    dst_name = args.out_name or f"{args.run_name}-verified"
+    dst_dir = RESULTS / dst_name
+    (dst_dir / "predictions").mkdir(parents=True, exist_ok=True)
+
+    src_meta = read_json(src_dir / "meta.json") if (src_dir / "meta.json").exists() else {}
+    meta = dict(src_meta)
+    meta.update({"run_name": dst_name,
+                 "label": args.label or f"{src_meta.get('label', args.run_name)} + verifier {model}",
+                 "verified_from": args.run_name, "verifier_model": model,
+                 "verifier_batch_size": args.batch_size,
+                 "started": time.strftime("%Y-%m-%d %H:%M:%S")})
+    finding_keys = {f.name for f in dc_fields(Finding)}
+    verifier = Verifier(llm, batch_size=args.batch_size)
+
+    ids = doc_ids(args.docs)
+    out(f"Verifying run '{args.run_name}' with {model} -> '{dst_name}' ({len(ids)} docs)\n")
+    totals = Counter()
+    for n, doc_id in enumerate(ids, 1):
+        src = src_dir / "predictions" / f"{doc_id}.json"
+        dst = dst_dir / "predictions" / f"{doc_id}.json"
+        if not src.exists():
+            out(f"[{n:2d}/{len(ids)}] {doc_id}: no source prediction, skipped")
+            continue
+        if dst.exists() and not args.force and read_json(dst).get("status") == "OK":
+            out(f"[{n:2d}/{len(ids)}] {doc_id}: already done (use --force to redo)")
+            continue
+        rec = read_json(src)
+        if rec.get("status") != "OK":
+            write_json(dst, rec)
+            continue
+        t0 = time.time()
+        findings = [Finding(**{k: v for k, v in d.items() if k in finding_keys})
+                    for d in rec.get("findings", [])]
+        verifier.verify(findings, parse_document(str(DOCS / f"{doc_id}.md")))
+        kept, refuted = split_by_verdict(findings)
+        spent = round(time.time() - t0, 1)
+        counts = Counter(f.verifier_status for f in findings)
+        totals.update(counts)
+        out_rec = dict(rec)
+        out_rec.update(findings=[to_dict(f) for f in kept],
+                       refuted_findings=[to_dict(f) for f in refuted],
+                       verifier_counts=dict(counts), verifier_seconds=spent,
+                       seconds=round((rec.get("seconds") or 0) + spent, 1))
+        write_json(dst, out_rec)
+        out(f"[{n:2d}/{len(ids)}] {doc_id}: {len(findings)} -> {len(kept)} kept "
+            f"(confirmed {counts['CONFIRMED']}, refuted {counts['REFUTED']}, "
+            f"needs human {counts['NEEDS_HUMAN']}) in {spent}s")
+    meta["finished"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    write_json(dst_dir / "meta.json", meta)
+    out(f"\nTotal: {dict(totals)}")
+    out(f"Next: python scripts/eval_golden.py score --run-name {dst_name} --judge-model gemma3:12b")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="Golden-set evaluation harness")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -774,9 +954,28 @@ def main():
     s.add_argument("--seed", type=int, default=7)
 
     sub.add_parser("compare", help="compare all scored runs")
+
+    c = sub.add_parser("calibrate", help="re-judge the human-labelled rows and report kappa (A6)")
+    c.add_argument("--run-name", required=True)
+    c.add_argument("--sheet", default="calibration_sheet_labelled.csv")
+    c.add_argument("--judge-model", default=DEFAULT_JUDGE)
+    c.add_argument("--embed-model", default=DEFAULT_EMBED)
+    c.add_argument("--top-k-expected", type=int, default=5)
+    c.add_argument("--top-k-traps", type=int, default=2)
+    c.add_argument("--seed", type=int, default=7)
+
+    v = sub.add_parser("verify", help="apply the A4 verifier to an existing run's predictions")
+    v.add_argument("--run-name", required=True, help="source run, e.g. baseline-llama31")
+    v.add_argument("--out-name", help="new run folder (default: <run-name>-verified)")
+    v.add_argument("--label")
+    v.add_argument("--docs", nargs="*")
+    v.add_argument("--verifier-model", help="override models.verifier from config.yaml")
+    v.add_argument("--batch-size", type=int, default=6)
+    v.add_argument("--force", action="store_true")
     args = ap.parse_args()
     return {"leakcheck": cmd_leakcheck, "run": cmd_run, "score": cmd_score,
-            "compare": cmd_compare}[args.cmd](args)
+            "compare": cmd_compare, "verify": cmd_verify,
+            "calibrate": cmd_calibrate}[args.cmd](args)
 
 
 if __name__ == "__main__":

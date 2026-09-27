@@ -47,10 +47,41 @@ def test_no_findings_is_green(config):
     assert counts["CRITICAL"] == 0
 
 
-def test_single_critical_forces_red(config):
-    score, rag, _ = compute_risk([_f(severity="CRITICAL")], config)
+def test_single_confirmed_critical_forces_red(config):
+    score, rag, _ = compute_risk(
+        [_f(severity="CRITICAL", origin=ORIGIN_RULES, rule_id="X-1")], config)
     assert rag == "RED"
     assert score > 0
+
+
+def test_verifier_confirmed_critical_forces_red(config):
+    f = _f(severity="CRITICAL")
+    f.verifier_status = "CONFIRMED"
+    assert compute_risk([f], config)[1] == "RED"
+
+
+def test_unconfirmed_model_findings_cannot_make_red(config):
+    # The golden clean designs drew ~20 unconfirmed model findings each and
+    # the old formula called them RED. Unconfirmed claims cap at AMBER.
+    findings = [_f(severity="CRITICAL", section=f"S{i}", issue=f"Issue {i}")
+                for i in range(30)]
+    _score, rag, _ = compute_risk(findings, config)
+    assert rag == "AMBER"
+
+
+def test_questions_are_not_scored(config):
+    q = _f(severity="CRITICAL", origin=ORIGIN_RULES, rule_id="SEC-TM-001",
+           section="Whole document")
+    score, rag, counts = compute_risk([q], config)
+    assert (score, rag, counts["CRITICAL"]) == (0.0, "GREEN", 0)
+
+
+def test_repeats_of_one_problem_count_less_than_distinct_problems(config):
+    same = [_f(severity="HIGH", origin=ORIGIN_RULES, rule_id="R-1",
+               section=f"S{i}") for i in range(3)]
+    distinct = [_f(severity="HIGH", origin=ORIGIN_RULES, rule_id=f"R-{i}",
+                   section=f"S{i}") for i in range(3)]
+    assert compute_risk(same, config)[0] < compute_risk(distinct, config)[0]
 
 
 def test_many_lows_do_not_reach_red(config):
@@ -170,7 +201,7 @@ def test_report_contains_required_structure(config):
                     "## Findings",
                     "## Review Coverage"):
         assert heading in md, f"missing {heading}"
-    assert "RED" in md
+    assert f"**Status:** " in md and result.rag_status in md
     assert "Three-Tier LAN Standard §3.2" in md
 
 

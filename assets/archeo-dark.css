@@ -1,0 +1,133 @@
+/* ==========================================================================
+   Archeo - dark console theme (layered on top of archeo.css)
+   --------------------------------------------------------------------------
+   Security-console look: deep navy, faint blueprint grid, a single cyan
+   accent, monospace micro-labels. Only tokens and a few surfaces change;
+   every component still comes from archeo.css. Remove this file from
+   load_custom_css() to return to the light theme.
+   ========================================================================== */
+
+:root {
+  --bg:          #070B12;
+  --surface:     #0B1220;
+  --surface-2:   #101A2C;
+  --surface-3:   #16233A;
+  --line:        #1C2A42;
+  --line-strong: #2A3B57;
+
+  --text:        #E6EDF5;
+  --text-2:      #B4C0D3;
+  --text-3:      #7D8BA3;
+  --text-4:      #56647C;
+
+  --primary:       #22D3EE;
+  --primary-hover: #67E8F9;
+  --primary-soft:  rgba(34, 211, 238, 0.10);
+  --primary-line:  rgba(34, 211, 238, 0.35);
+
+  --ok:   #2DD4BF;  --ok-soft:   rgba(45, 212, 191, 0.12);
+  --bad:  #F87171;  --bad-soft:  rgba(248, 113, 113, 0.12);
+  --warn: #FBBF24;  --warn-soft: rgba(251, 191, 36, 0.12);
+  --idle: #7D8BA3;  --idle-soft: rgba(125, 139, 163, 0.12);
+
+  --sev-critical: #F87171;  --sev-critical-soft: rgba(248, 113, 113, 0.14);
+  --sev-high:     #FB923C;  --sev-high-soft:     rgba(251, 146, 60, 0.14);
+  --sev-medium:   #FACC15;  --sev-medium-soft:   rgba(250, 204, 21, 0.12);
+  --sev-low:      #60A5FA;  --sev-low-soft:      rgba(96, 165, 250, 0.14);
+
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+  --shadow:    0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 8px 24px -14px rgba(0, 0, 0, 0.8);
+  --shadow-hover: 0 0 0 1px var(--primary-line), 0 10px 28px -14px rgba(34, 211, 238, 0.25);
+}
+
+/* Blueprint grid + soft cyan glow behind the content */
+.stApp {
+  background:
+    radial-gradient(1100px 520px at 12% -8%, rgba(34, 211, 238, 0.08), transparent 60%),
+    linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px) 0 0 / 44px 44px,
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Monospace, letter-spaced micro-labels */
+.sec-eyebrow, .panel-title, .kpi-label, .sb-label, .ax-tag {
+  font-family: var(--mono);
+  letter-spacing: 0.12em;
+}
+.sec-eyebrow, .panel-title, .kpi-label { text-transform: uppercase; font-size: 11px; }
+.ax-tag { text-transform: uppercase; font-size: 10.5px; color: var(--text-3); }
+.sec-eyebrow { color: var(--primary); }
+
+/* Header: glass panel, outlined cyan logo tile */
+.ax-header {
+  background: rgba(11, 18, 32, 0.72);
+  backdrop-filter: blur(6px);
+  border-color: var(--line);
+}
+.ax-logo {
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-line);
+  box-shadow: 0 0 18px -6px rgba(34, 211, 238, 0.6);
+}
+.ax-logo svg { stroke: var(--primary); }
+.ax-logo svg path { stroke: var(--primary); }
+.ax-name { letter-spacing: 0.08em; text-transform: uppercase; font-size: 18px; }
+
+/* Panels and cards: translucent surfaces over the grid */
+.panel, .kpi, .stepper, .doc-card, .flist, .prog, .fcard, .sb-status,
+.metric-card, .component-card {
+  background: rgba(11, 18, 32, 0.82);
+}
+.kpi-value, .risk-score { color: #F1F5FA; }
+.kpi.TOTAL { --k: var(--primary); }
+
+.step.active { background: var(--primary-soft); }
+.step.active .step-num { color: #04121A; }
+
+.quote { background: #0A1424; border-left-color: var(--primary-line); color: #CFE3F0; }
+.quote.missing { background: transparent; }
+
+/* Primary button: cyan with dark text, like the console's sign-in button */
+.stButton > button[kind="primary"], [data-testid="stBaseButton-primary"] {
+  background: var(--primary); color: #04121A;
+}
+.stButton > button[kind="primary"]:hover, [data-testid="stBaseButton-primary"]:hover {
+  background: var(--primary-hover); color: #04121A;
+  box-shadow: 0 0 22px -6px rgba(34, 211, 238, 0.7);
+}
+.stButton > button, .stDownloadButton > button { background: var(--surface-2); color: var(--text); }
+
+/* Sidebar navigation */
+[data-testid="stSidebar"] { background: rgba(8, 13, 22, 0.96); }
+[data-testid="stSidebarNav"] a, [data-testid="stSidebarNavLink"] {
+  border-radius: var(--radius-sm);
+}
+[data-testid="stSidebarNavLink"][aria-current="page"],
+[data-testid="stSidebarNav"] a[aria-current="page"] {
+  background: var(--primary-soft);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+[data-testid="stSidebarNavLink"][aria-current="page"] span { color: var(--primary) !important; }
+[data-testid="stNavSectionHeader"] {
+  font-family: var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-4) !important; font-size: 11px;
+}
+
+/* Multiselect chips: Streamlit fills them with the primary colour, which
+   hides cyan text. Outline style instead. */
+[data-baseweb="tag"] {
+  background: var(--surface-3) !important;
+  border: 1px solid var(--primary-line) !important;
+}
+[data-baseweb="tag"] span, [data-baseweb="tag"] div { color: var(--text) !important; background: transparent !important; }
+[data-baseweb="tag"] svg { fill: var(--text-3) !important; }
+
+/* Inputs, tables, chat */
+.stTextArea textarea, .stTextInput input, [data-baseweb="select"] > div { background: var(--surface) !important; }
+[data-testid="stDataFrame"] { background: var(--surface); }
+[data-testid="stChatMessage"] {
+  background: rgba(11, 18, 32, 0.82); border: 1px solid var(--line); border-radius: var(--radius);
+}
+[data-testid="stChatInput"] textarea { background: var(--surface) !important; }
+[data-testid="stAlert"], [data-testid="stAlertContainer"] { background: rgba(11, 18, 32, 0.82) !important; }

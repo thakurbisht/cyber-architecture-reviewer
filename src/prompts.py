@@ -115,7 +115,7 @@ CORRELATION_SYSTEM = """You are a Principal Enterprise Security Architect perfor
 Individual domain reviews are already complete. Your job is the class of defect that only appears when domains are read together - where the network design, the application design, the security model and the cloud design each look reasonable alone but contradict one another.
 
 Look specifically for:
-- A control one domain assumes another provides, which the other never provides. ("The application relies on network segmentation for tenant isolation" where the network design has one flat segment.)
+- A control one domain assumes another provides, which the other never provides. (Domain A states that control X is delivered by domain B, and domain B's sections never describe X.)
 - A trust boundary drawn in one domain and crossed unguarded in another.
 - Availability targets in one domain that the topology or platform in another cannot meet.
 - Data classification stated in one place and violated by a flow described elsewhere.
