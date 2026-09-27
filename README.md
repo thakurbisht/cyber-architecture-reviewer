@@ -83,12 +83,16 @@ fictional companies with planted issues; answer keys in `golden/answers/`).
 
 | Page | What you do |
 |---|---|
-| **Review** | Upload a design, approve the deterministic pre-check, run the AI review |
-| **Findings** | Browse findings with evidence; **accept or dispute** each one (logged to `data/feedback/`) |
-| **DFD editor** | Correct the AI-drafted data flow diagram: drag components between trust zones, draw/delete flows, set protocol / auth / encryption, then **approve** a version |
-| **Threats** | Choose STRIDE, MAESTRO or both; run the threat model on the approved DFD; accept/dispute threats; export mitigations as Jira CSV |
+| **Review** | Pick a **project** and **stage** (prelim design / final as-built), upload, pre-check, then **Step 3: draft and approve the DFD first**, then run the AI review — the threat model runs right after it on the approved DFD |
+| **Review queue** | Findings and threats in **one list**, duplicates merged, rule-based first; select many rows and **accept / dispute / mark mitigated** at once |
+| **DFD editor** | Correct the AI-drafted data flow diagram: drag components between trust zones, draw/delete flows, set protocol / auth / encryption, choose STRIDE / MAESTRO / both, then **approve** a version |
+| **Threats** | Run or replay the threat model on the approved DFD; export mitigations as Jira CSV |
+| **Prelim report** | The Stage 1 register for stakeholders: **ID, Domain, Threat, Risk, Risk Rating, Cyber Recommendation, Acceptance Criteria** — built from confirmed items, AI-drafted, editable, **Excel for Archer** (column names in `config.yaml` → `archer_export`) |
 | **Copilot** | Ask questions about the review |
-| **Report** | Markdown report with status, findings, questions for the author and coverage |
+| **Report** | Report, audit trail and **sign-off** — the status stays *provisional* until an architect signs off |
+
+Every upload is a content-addressed **version** of a project (`data/projects/`), so a
+revised design never reopens the previous version's DFD, threats or decisions.
 
 **No Ollama yet?** The deterministic layer runs standalone:
 
@@ -129,7 +133,7 @@ standard it enforces is yours.
 
 ## The two-layer design
 
-**Layer 1 — deterministic rules.** ~40 pattern rules with severity, citation
+**Layer 1 — deterministic rules.** 57 pattern rules (incl. 18 "senior reviewer" patterns in `src/rules_expert.py`) with severity, citation
 and control mapping. Same input, byte-identical output, every run. SNMPv2c with
 community string `public` is a CRITICAL finding every time — it must not depend
 on whether the model felt thorough on this pass.
@@ -155,7 +159,7 @@ same 12 documents — treat these as indicative, not proven.
 
 | Pipeline | Precision | Recall | Traps flagged | False positives per clean doc |
 |---|---|---|---|---|
-| Deterministic rules only | 72% | 15% | 7% | 0 |
+| Deterministic rules only (57 rules) | 76% | 37% | 11% | 0 |
 | Full pipeline, qwen2.5:14b | 33% | 62% | 56% | 21 |
 
 What that means: when a rule fires it is usually right, but rules catch few
