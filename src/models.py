@@ -247,6 +247,12 @@ class ReviewResult:
     questions: List[Finding] = field(default_factory=list)
     # src/system_model.py SystemModel.to_dict(), when enable_system_model.
     system_model: Optional[Dict[str, Any]] = None
+    # src/project.py: which project / stage / content version this review is.
+    # review_key keys every artefact (DFD, threats, register, decisions);
+    # empty for ad-hoc reviews, which fall back to the document name.
+    review_key: str = ""
+    project_id: str = ""
+    stage: str = ""
     # Populated by threat_model_node (see agent.py) when
     # config.agent.enable_threat_modeling is true. A plain dict (already
     # ThreatModel.to_dict()'s shape), not the dataclass, so it serialises

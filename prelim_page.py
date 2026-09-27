@@ -26,8 +26,8 @@ def render(result, *, section_header: Callable, empty_state: Callable, esc: Call
         return
     cfg = get_config()
     settings = P.export_settings(cfg)
-    doc = result.document_name
-    section_header("Preliminary review", f"Prelim report · {esc(doc)}",
+    doc = getattr(result, "review_key", "") or result.document_name
+    section_header("Preliminary review", f"Prelim report · {esc(result.document_name)}",
                    "The register that goes to stakeholders and into Archer: Domain, Threat, "
                    "Risk, Risk Rating, Cyber Recommendation — built only from items you "
                    "confirmed. IDs stay fixed so the final (as-built) review can verify each row.")

@@ -91,15 +91,16 @@ def _refresh(key: str) -> None:
 # Draft creation
 # --------------------------------------------------------------------------
 def _load_or_create(result, get_config: Callable) -> D.DFD | None:
-    key = f"dfd::{result.document_name}"
+    rk = getattr(result, "review_key", "") or result.document_name
+    key = f"dfd::{rk}"
     if key in st.session_state:
         return st.session_state[key]
-    saved = D.load_latest(result.document_name)
+    saved = D.load_latest(rk)
     if saved is not None:
         st.session_state[key] = saved
         return saved
     if getattr(result, "system_model", None):
-        dfd = D.from_system_model(result.system_model, result.document_name)
+        dfd = D.from_system_model(result.system_model, rk)
         D.save_draft(dfd)
         st.session_state[key] = dfd
         return dfd
@@ -113,12 +114,12 @@ def _load_or_create(result, get_config: Callable) -> D.DFD | None:
             model = extract_system_model(result.sections, build_extractor_llm(get_config()),
                                          result.document_name)
         result.system_model = model.to_dict()
-        dfd = D.from_system_model(result.system_model, result.document_name)
+        dfd = D.from_system_model(result.system_model, rk)
         D.save_draft(dfd)
         st.session_state[key] = dfd
         st.rerun()
     if c2.button("Start blank", width="stretch"):
-        dfd = D.DFD(document=result.document_name)
+        dfd = D.DFD(document=rk)
         D.save_draft(dfd)
         st.session_state[key] = dfd
         st.rerun()
@@ -140,7 +141,7 @@ def render(result, *, section_header: Callable, empty_state: Callable,
     dfd = _load_or_create(result, get_config)
     if dfd is None:
         return
-    ckey = f"canvas::{result.document_name}"
+    ckey = f"canvas::{getattr(result, "review_key", "") or result.document_name}"
 
     status = ("🟢 Approved v%d" % dfd.version) if dfd.status == "approved" else (
         "🟡 Draft" + (f" (last approved v{dfd.version})" if dfd.version else ""))

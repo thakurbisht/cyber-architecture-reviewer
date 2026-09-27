@@ -1518,6 +1518,8 @@ def render_result(
         </div>
         """)
 
+    if getattr(result, "review_key", ""):
+        st.caption("⏳ Status is **provisional** until an architect signs off on the Report page.")
     for warning in result.warnings:
         st.warning(warning)
 
@@ -1590,6 +1592,89 @@ def current_result():
     return st.session_state.get("result")
 
 
+def review_key_of(result) -> str:
+    """Key for everything this review produces (src/project.py); the document
+    name only for ad-hoc results that were not registered to a project."""
+    return getattr(result, "review_key", "") or result.document_name
+
+
+def render_project_picker() -> None:
+    """Project + stage for the next upload (src/project.py)."""
+    from src import project as PJ
+    projects = PJ.list_projects()
+    names = {p.id: p.name for p in projects}
+    c1, c2, c3 = st.columns([1.6, 1.4, 0.8])
+    options = ["scratch"] + [p.id for p in projects if p.id != "scratch"]
+    current = st.session_state.get("project_id", "scratch")
+    pid = c1.selectbox("Project", options, index=options.index(current) if current in options else 0,
+                       format_func=lambda i: names.get(i, "Scratch (not a project)"),
+                       key="project_select")
+    st.session_state.project_id = pid
+    st.session_state.review_stage = c2.radio(
+        "Stage", PJ.STAGES, horizontal=True, key="stage_select",
+        format_func=lambda s: {"prelim": "Prelim (design)", "final": "Final (as-built)"}[s])
+    with c3.popover("➕ Project", width="stretch"):
+        name = st.text_input("Project name", key="new_project_name")
+        if st.button("Create", type="primary", key="create_project") and name.strip():
+            try:
+                p = PJ.create_project(name)
+                st.session_state.project_id = p.id
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+
+
+def register_review(result, filename: str) -> None:
+    """Attach the finished review to its project version (content-addressed)."""
+    from src import project as PJ
+    pid = st.session_state.get("project_id") or "scratch"
+    project = PJ.load_project(pid) or (PJ.create_project("Scratch") if pid == "scratch" else None)
+    sig = st.session_state.get("input_signature")
+    if project is None or not sig:
+        return
+    v = PJ.register_version(project, sig, filename, st.session_state.get("review_stage", "prelim"))
+    result.review_key, result.project_id, result.stage = v.review_key, project.id, v.stage
+
+
+def render_signoff(result) -> None:
+    """Stage sign-off; until then the status is provisional (src/project.py)."""
+    from src import project as PJ
+    if not getattr(result, "review_key", ""):
+        st.caption("Provisional — this review is not registered to a project, so it cannot be "
+                   "signed off. Choose a project on the Review page before uploading.")
+        return
+    project = PJ.load_project(result.project_id)
+    v = project.version(result.review_key) if project else None
+    if v is None:
+        return
+    decisions = PJ.DECISIONS[v.stage]
+    if v.signoff:
+        st.success(f"Signed off: **{decisions.get(v.signoff.decision, v.signoff.decision)}** by "
+                   f"{v.signoff.reviewer} · {v.signoff.at[:16].replace('T', ' ')} UTC"
+                   + (f" — {v.signoff.note}" if v.signoff.note else ""))
+        for c in v.signoff.conditions:
+            st.markdown(f"- Condition: {c}")
+        if st.button("Reopen review", key="reopen_review"):
+            PJ.reopen(project, v.review_key)
+            st.rerun()
+        return
+    st.warning(f"**Provisional** — {PJ.STAGE_LABELS[v.stage]} is not signed off. The status "
+               "above is not a decision until an architect signs off.", icon="⏳")
+    with st.form("signoff_form", border=True):
+        decision = st.radio("Decision", list(decisions), format_func=decisions.get)
+        reviewer = st.text_input("Architect", value=st.session_state.get("reviewer_name", ""))
+        note = st.text_input("Note")
+        conditions = st.text_area("Conditions (one per line)", height=80)
+        if st.form_submit_button("Sign off", type="primary"):
+            try:
+                PJ.sign_off(project, v.review_key, decision, reviewer, note,
+                            conditions.splitlines())
+                st.session_state.reviewer_name = reviewer
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+
+
 def empty_state(title: str) -> None:
     section_header("No review yet", title,
                    "Run a review from the Review page first. This page fills in "
@@ -1638,7 +1723,7 @@ def page_findings() -> None:
              and (status_key is None or verifier_status(f) == status_key)
              and (not q or q in f"{f.issue} {f.section} {f.recommendation} {f.evidence_excerpt}".lower())]
 
-    decisions = latest_decisions(result.document_name)
+    decisions = latest_decisions(review_key_of(result))
     left, right = st.columns([1.35, 1])
     with left:
         reviewed = sum(1 for f in findings if f.fingerprint in decisions)
@@ -1674,7 +1759,7 @@ def page_findings() -> None:
                      else getattr(f, "model", "") or configured_model("llm"))
             st.caption(f"Origin {f.origin}" + (f" · rule {f.rule_id}" if f.rule_id else "")
                        + f" · model {model} · id {f.fingerprint}")
-            render_review_controls(f, result.document_name, decisions.get(f.fingerprint))
+            render_review_controls(f, review_key_of(result), decisions.get(f.fingerprint))
 
     render_questions(result)
 
@@ -1987,6 +2072,7 @@ def page_report() -> None:
     cfg = get_config()
     section_header("Report", f"Assurance report · {esc(result.document_name)}",
                    "The board-ready report, the full reasoning trail and exports.")
+    render_signoff(result)
     tabs = st.tabs(["Report", "Audit trail", "Section map", "Architecture flow editor", "Export"])
     with tabs[0]:
         st.markdown(result.report_markdown)
@@ -2032,6 +2118,7 @@ def page_review() -> None:
         "Analyze architecture documents. Get findings with evidence and "
         "verification. Runs on this machine; nothing is sent anywhere.",
     )
+    render_project_picker()
 
     # ------------------------------------------------------------------
     # INPUT MODE
@@ -2381,6 +2468,7 @@ def page_review() -> None:
                 document_name or "design",
                 domains,
             )
+            register_review(st.session_state.result, document_name or "design")
             tracker.complete()
             st.session_state.stage_times = tracker.durations()
 
@@ -2469,6 +2557,12 @@ def load_saved_prediction() -> None:
     result.findings, result.questions = triage(result.findings, sections)
     result.risk_score, result.rag_status, _ = compute_risk(result.findings, get_config())
     result.system_model = rec.get("system_model")
+    if doc.exists():   # register like a real upload, in a demo project
+        from src import project as PJ
+        project = PJ.load_project("golden-demo") or PJ.create_project("Golden demo")
+        v = PJ.register_version(project, hashlib.sha256(doc.read_bytes()).hexdigest(),
+                                doc.name, "prelim")
+        result.review_key, result.project_id, result.stage = v.review_key, project.id, v.stage
     st.session_state.result = result
 
 

@@ -49,7 +49,8 @@ def render(result, *, section_header: Callable, empty_state: Callable, esc: Call
     section_header("Threat model", f"Threats · {esc(result.document_name)}",
                    "STRIDE and/or MAESTRO threats for the approved DFD. Rule threats come "
                    "from facts the engineer confirmed; model threats count only once accepted.")
-    dfd = st.session_state.get(f"dfd::{result.document_name}") or D.load_latest(result.document_name)
+    rk = getattr(result, "review_key", "") or result.document_name
+    dfd = st.session_state.get(f"dfd::{rk}") or D.load_latest(rk)
     if dfd is None or not dfd.version:
         st.info("Approve a DFD first — threat modeling runs only on an approved version.")
         if st.button("Open DFD editor", type="primary"):
@@ -59,7 +60,7 @@ def render(result, *, section_header: Callable, empty_state: Callable, esc: Call
         st.warning(f"The DFD has unapproved edits since v{dfd.version}. Threats below use "
                    f"v{dfd.version}; approve the new draft to model it.", icon="⚠️")
 
-    runs = TA.load_runs(result.document_name)
+    runs = TA.load_runs(rk)
     fw_default = st.session_state.get(f"threat_framework::{dfd.document}",
                                       "Both" if dfd.has_ai_components() else "STRIDE")
     c1, c2, c3 = st.columns([1.6, 1, 1])
