@@ -93,3 +93,19 @@ knowledge_base:
     application: application
     security: security
     cloud_data: cloud_data
+
+# Preliminary review register -> Excel for Archer data import (src/prelim_report.py).
+# Match these to the Archer field names and values-list entries exactly.
+archer_export:
+  sheet_name: "Prelim Review"
+  include_id_and_acceptance: true   # ID + acceptance criteria are needed for the final (as-built) review
+  columns:
+    id: "ID"
+    domain: "Domain"
+    threat: "Threat"
+    risk: "Risk"
+    rating: "Risk Rating"
+    recommendation: "Cyber Recommendation"
+    acceptance: "Acceptance Criteria"
+  rating_values: {CRITICAL: "Critical", HIGH: "High", MEDIUM: "Medium", LOW: "Low"}
+  domain_values: {network: "Network", application: "Application", security: "Cyber Security", cloud_data: "Cloud & Data"}

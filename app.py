@@ -1777,6 +1777,13 @@ def page_threats() -> None:
                         merge_findings=merge_threat_findings)
 
 
+def page_prelim() -> None:
+    """Stage 1 register for stakeholders / Archer (prelim_page.py)."""
+    import prelim_page
+    prelim_page.render(current_result(), section_header=section_header,
+                       empty_state=empty_state, esc=esc, get_config=get_config)
+
+
 def page_graph() -> None:
     result = current_result()
     if not result:
@@ -2433,6 +2440,8 @@ PAGES = {
                         url_path="dfd"),
     "threats":  st.Page(page_threats, title="Threats", icon=":material/gpp_maybe:",
                         url_path="threats"),
+    "prelim":   st.Page(page_prelim, title="Prelim report", icon=":material/table_view:",
+                        url_path="prelim"),
     "copilot":  st.Page(page_copilot, title="Copilot", icon=":material/forum:", url_path="copilot"),
     "report":   st.Page(page_report, title="Report", icon=":material/description:",
                         url_path="report"),

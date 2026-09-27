@@ -19,3 +19,4 @@ cyber-architecture-reviewer/
 results/golden/*/judge_cache.json
 data/feedback/
 data/dfd/
+data/prelim/
