@@ -232,9 +232,12 @@ def test_every_rule_has_required_fields():
     for rule in ALL_RULES:
         assert rule.id and rule.issue and rule.recommendation
         assert rule.severity in {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
-        assert rule.trigger, f"{rule.id} has no trigger pattern"
+        # Expert rules fire on hard evidence only (never suppressed), so a
+        # rule needs a trigger OR a hard trigger.
+        assert rule.trigger or rule.hard_trigger, f"{rule.id} has no trigger pattern"
         # A regex that fails to compile would break the run at review time.
         rule.compiled_trigger()
+        rule.compiled_hard_trigger()
         rule.compiled_suppressors()
 
 

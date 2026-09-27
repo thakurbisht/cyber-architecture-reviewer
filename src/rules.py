@@ -1186,8 +1186,10 @@ CLOUD_DATA_RULES: List[Rule] = [
 ]
 
 
+from .rules_expert import EXPERT_RULES  # noqa: E402  (needs Rule, defined above)
+
 ALL_RULES: List[Rule] = (
-    NETWORK_RULES + APPLICATION_RULES + SECURITY_RULES + CLOUD_DATA_RULES
+    NETWORK_RULES + APPLICATION_RULES + SECURITY_RULES + CLOUD_DATA_RULES + EXPERT_RULES
 )
 
 RULES_BY_DOMAIN: Dict[str, List[Rule]] = {}
