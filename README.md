@@ -329,10 +329,6 @@ The structural failure modes are all covered:
 LangGraph · ChromaDB · Ollama (qwen2.5:14b, nomic-embed-text) · Streamlit ·
 streamlit-flow (React Flow) · Python 3.12+ · pytest
 
-The threat-model agent's run/replay pattern and STRIDE + MAESTRO choice follow
-[awslabs/threat-designer](https://github.com/awslabs/threat-designer)
-(Apache-2.0), reimplemented for local models.
-
 Everything local. Everything auditable.
 
 ---

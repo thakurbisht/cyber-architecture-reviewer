@@ -1,8 +1,7 @@
 """Threat modeling agent - STRIDE and/or MAESTRO over an approved DFD.
 
-Design (pattern borrowed from awslabs/threat-designer, Apache-2.0: pick a
-framework per run, generate threats, let a human edit, replay; everything
-here runs on a local model through Ollama):
+Design (pick a framework per run, generate threats, let a human edit,
+replay; everything here runs on a local model through Ollama):
 
   applicability  Python. Which categories apply to which DFD element
                  ("STRIDE per element", as in Microsoft's Threat Modeling
