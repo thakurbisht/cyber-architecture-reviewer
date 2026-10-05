@@ -48,7 +48,9 @@ segmentation for isolation; the network design has one flat segment. Each
 document looks fine alone.
 
 **Inputs:** `.md` `.txt` `.docx` `.pdf` `.yaml` `.json` (OpenAPI specs and IaC
-definitions are flattened into reviewable prose), or pasted text.
+definitions are flattened into reviewable prose), or pasted text. Tables are read;
+**the diagrams in a `.docx` or `.pdf` are read too**, by a local vision model, into
+the DFD you confirm (see *Diagrams* below).
 
 ---
 
@@ -61,7 +63,8 @@ Needs Python 3.12+, [Ollama](https://ollama.com), and ideally a GPU with
 # 1. Models (one time, ~10 GB)
 ollama pull qwen2.5:14b          # reviewer, DFD extraction, threat model
 ollama pull nomic-embed-text     # embeddings for the standards library
-# optional: ollama pull phi4:14b (verifier)   ollama pull gemma3:12b (eval judge)
+ollama pull gemma3:12b           # reads diagrams (vision), and the eval judge
+# optional: ollama pull phi4:14b (verifier)
 
 # 2. Dependencies (a fresh virtual environment is recommended)
 python -m venv .venv && .venv/Scripts/activate      # Linux/macOS: source .venv/bin/activate
@@ -73,7 +76,7 @@ python scripts/seed_kb.py
 # 4. Run
 streamlit run app.py                                    # browser UI
 python scripts/review_cli.py samples/sample-campus-lan-lld.md   # CLI
-pytest                                                  # ~190 offline tests, no Ollama needed
+pytest                                                  # ~290 offline tests, no Ollama needed
 ```
 
 Try the shipped samples, or the 12 golden-set designs in `golden/docs/` (all
@@ -85,7 +88,7 @@ fictional companies with planted issues; answer keys in `golden/answers/`).
 |---|---|
 | **Review** | Pick a **project** and **stage** (prelim design / final as-built), upload, pre-check, then **Step 3: draft and approve the DFD first**, then run the AI review — the threat model runs right after it on the approved DFD |
 | **Review queue** | Findings and threats in **one list**, duplicates merged, rule-based first; select many rows and **accept / dispute / mark mitigated** at once |
-| **DFD editor** | Correct the AI-drafted data flow diagram: drag components between trust zones, draw/delete flows, set protocol / auth / encryption, choose STRIDE / MAESTRO / both, then **approve** a version |
+| **DFD editor** | Correct the AI-drafted data flow diagram: drag components between trust zones, draw/delete flows, set protocol / auth / encryption, choose STRIDE / MAESTRO / both, then **approve** a version. Each element shows where it came from — text, diagram, both, or your own edit |
 | **Threats** | Run or replay the threat model on the approved DFD; export mitigations as Jira CSV |
 | **Prelim report** | The Stage 1 register for stakeholders: **ID, Domain, Threat, Risk, Risk Rating, Cyber Recommendation, Acceptance Criteria** — built from confirmed items, AI-drafted, editable, **Excel for Archer** (column names in `config.yaml` → `archer_export`) |
 | **Copilot** | Ask questions about the review |
@@ -93,6 +96,16 @@ fictional companies with planted issues; answer keys in `golden/answers/`).
 
 Every upload is a content-addressed **version** of a project (`data/projects/`), so a
 revised design never reopens the previous version's DFD, threats or decisions.
+
+**Diagrams.** Upload a `.pdf` or `.docx` and Step 3 offers to read its diagrams
+(`src/diagram.py`): embedded images, plus a page render when the diagram is vector
+art, which is what Visio and draw.io export. A local vision model
+(`config.yaml` → `models.vision`, default `gemma3:12b`, ~15s per diagram) reads
+boxes, trust-zone bands, arrows and their labels into the DFD draft; classification
+is deterministic Python, not the model. Where the diagram and the text disagree —
+the prose says TLS 1.3, the arrow says "no TLS" — both are shown and neither is
+overwritten. **A diagram fact never becomes a finding by itself**: it has no text to
+ground an evidence quote against, so it goes into the draft DFD and you confirm it.
 
 **No Ollama yet?** The deterministic layer runs standalone:
 
@@ -254,6 +267,7 @@ dfd_page.py                 DFD editor page (streamlit-flow / React Flow)
 threats_page.py             Threats page
 src/
   parser.py                 md/docx/pdf/OpenAPI ingestion, section splitting
+  diagram.py                diagrams -> DFD draft (vision model + Python classification)
   guardrail.py              "is this a design document?" pre-check
   domains.py                domain + topic taxonomy, retrieval query building
   rules.py                  deterministic rules engine (Layer 1)
