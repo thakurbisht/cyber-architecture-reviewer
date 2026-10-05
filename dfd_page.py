@@ -28,6 +28,13 @@ KIND_COLOUR = {
 }
 RISK = "#F87171"
 SAFE = "#64748B"
+# Where the element came from, so the engineer knows what to check hardest.
+# A diagram-read element has not been grounded in any text and is the most
+# likely to be wrong.
+SOURCE_MARK = {"diagram": "🖼 ", "text+diagram": "🖼 ", "human": "✍ "}
+SOURCE_LABEL = {"ai": "drafted from the text", "text": "read from the text",
+                "diagram": "read from a diagram", "human": "entered by hand",
+                "text+diagram": "in both the text and a diagram"}
 SENSITIVE = ("pii", "pci", "phi", "credentials", "financial", "regulated")
 
 
@@ -50,7 +57,8 @@ def _canvas_state(dfd: D.DFD, boundary_only: bool) -> StreamlitFlowState:
     for c in dfd.components:
         colour = KIND_COLOUR.get(c.kind, "#CBD5E1")
         nodes.append(StreamlitFlowNode(
-            c.id, (c.x, c.y), {"content": c.name}, node_type="default",
+            c.id, (c.x, c.y), {"content": f"{SOURCE_MARK.get(c.source, '')}{c.name}"},
+            node_type="default",
             source_position="right", target_position="left",
             draggable=True, selectable=True, connectable=True, deletable=True, z_index=1,
             style={"width": f"{D.NODE_WIDTH}px", "fontSize": "12px",
@@ -214,7 +222,10 @@ def _properties(dfd: D.DFD, selected: str | None, ckey: str) -> None:
     if f:
         src, tgt = dfd.component(f.source), dfd.component(f.target)
         st.caption(f"Flow · {src.name if src else f.source} → {tgt.name if tgt else f.target}"
-                   + (" · crosses a trust boundary" if dfd.crosses_boundary(f) else ""))
+                   + (" · crosses a trust boundary" if dfd.crosses_boundary(f) else "")
+                   + f" · {SOURCE_LABEL.get(f.source_tag, f.source_tag)}")
+        if f.evidence:
+            st.caption(f"Evidence: “{f.evidence[:200]}”")
         with st.form(f"{ckey}_flow_{f.id}", border=False):
             protocol = st.text_input("Protocol / port", value=f.protocol, placeholder="HTTPS 443")
             auth = st.selectbox("Authentication", D.AUTH, index=D.AUTH.index(f.auth))
@@ -248,7 +259,8 @@ def _properties(dfd: D.DFD, selected: str | None, ckey: str) -> None:
             D.save_draft(dfd)
             _refresh(ckey)
             st.rerun()
-    st.caption(f"Source: {c.source}" + (" · edited" if c.edited else ""))
+    st.caption(f"Source: {SOURCE_LABEL.get(c.source, c.source)}"
+               + (" · edited" if c.edited else ""))
     if c.evidence:
         st.caption(f"Evidence: “{c.evidence[:220]}”")
 

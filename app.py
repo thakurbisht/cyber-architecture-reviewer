@@ -328,6 +328,9 @@ def initialise_session_state() -> None:
         "checkpoint_approved": False,
         "checkpoint_signature": None,
         "input_signature": None,
+        # Kept so the DFD step can go back to the original file for its
+        # diagrams; pasted text has none.
+        "document_path": None,
         "show_arch_editor": False,
         "architecture_flow_obj": None,
         "architecture_flow": None,
@@ -377,6 +380,7 @@ def reset_for_new_input(
     st.session_state.architecture_flow_obj = None
     st.session_state.architecture_flow = None
     st.session_state.show_arch_editor = False
+    st.session_state.document_path = None
 
 
 # ============================================================================
@@ -1664,6 +1668,93 @@ def current_context():
                            system_model=None, findings=[])
 
 
+def render_diagram_panel(review_key: str, draft) -> None:
+    """Step 3a: read the document's diagrams into the DFD draft.
+
+    Only offered for an uploaded .pdf/.docx - pasted text has no pictures.
+    What the vision model reads is a draft like any other: it lands in the
+    DFD tagged `diagram` and the engineer confirms it before the review
+    uses it. Disagreements with the text are reported, never resolved here.
+    """
+    from pathlib import Path
+
+    from src import dfd as D
+    from src import diagram as DG
+
+    cfg = get_config()
+    if not cfg.agent.get("enable_diagram_reading", True):
+        return
+    path = st.session_state.get("document_path")
+    if not path or Path(path).suffix.lower() not in (".pdf", ".docx"):
+        return
+    try:
+        images = DG.extract_images(path, int(cfg.agent.get("max_diagrams", 12)))
+    except Exception as exc:  # noqa: BLE001 - a bad file must not block the review
+        st.caption(f"Could not look for diagrams in this file: {exc}")
+        return
+    if not images:
+        return
+
+    state = st.session_state.setdefault("diagram_runs", {})
+    done = state.get(review_key)
+    model = str(cfg.models.get("vision") or "")
+    left, right = st.columns([2, 1])
+    left.caption(
+        f"🖼 {len(images)} diagram(s) found in this document."
+        + (f" Read into the DFD: +{done['components']} components, "
+           f"+{done['flows']} flows." if done
+           else " The text parser cannot see these.")
+    )
+    if not done and right.button(f"Read {len(images)} diagram(s)", width="stretch",
+                                 key=f"read_diagrams::{review_key}",
+                                 help=f"{model} · about {len(images) * 20}s"):
+        target = draft or D.DFD(document=review_key)
+        box = st.status("Reading diagrams…", expanded=True)
+        try:
+            call = DG.build_vision_caller(
+                model, cfg.models["ollama_host"],
+                float(cfg.models.get("request_timeout_s", 300)) * 2)
+            extractions = []
+            for n, img in enumerate(images, start=1):
+                box.write(f"Diagram {n} of {len(images)} · {img.where}")
+                extractions.append(DG.read_diagram(img, call, model))
+            added_c, added_f, conflicts = DG.merge_into(target, extractions)
+            D.layout(target)
+            D.save_draft(target)
+            state[review_key] = {
+                "components": added_c, "flows": added_f, "model": model,
+                "conflicts": [c.__dict__ for c in conflicts],
+                "notes": DG.diagram_notes(extractions),
+                "failed": [e.where for e in extractions if not e.ok],
+            }
+            box.update(label=f"Read {len(images)} diagram(s): +{added_c} components, "
+                             f"+{added_f} flows, {len(conflicts)} disagreement(s)",
+                       state="complete")
+        except Exception as exc:  # noqa: BLE001
+            box.update(label=f"Diagram reading failed: {exc}", state="error")
+        st.rerun()
+
+    if not done:
+        return
+    if done["failed"]:
+        st.caption(f"Could not read: {', '.join(done['failed'])}")
+    if done["conflicts"]:
+        with st.expander(f"⚠ The diagram and the text disagree · "
+                         f"{len(done['conflicts'])}", expanded=True):
+            st.caption("Neither side was changed. Confirm which is true in the DFD "
+                       "editor — a design whose picture and prose contradict each "
+                       "other is worth raising with the author either way.")
+            st.dataframe(
+                [{"What": c["kind"], "Element": c["element"],
+                  "Text says": c["text_says"], "Diagram says": c["diagram_says"],
+                  "Where": c["where"]} for c in done["conflicts"]],
+                hide_index=True, width="stretch")
+    if done["notes"]:
+        with st.expander(f"Notes printed on the diagrams · {len(done['notes'])}"):
+            for where, note in done["notes"]:
+                st.markdown(f"- *{esc(where)}* — {esc(note)}")
+
+
 def render_dfd_step(document_name: str, sections: list):
     """Step 3: understand the system before reviewing it. Returns
     (ready_to_review, approved_dfd_or_None)."""
@@ -1687,20 +1778,34 @@ def render_dfd_step(document_name: str, sections: list):
         st.caption(f"🟢 Approved v{approved.version} by {approved.approved_by}"
                    + (" · newer unapproved edits exist (the review uses the approved version)"
                       if draft.status != "approved" else ""))
+    render_diagram_panel(key, draft)
+    # The text and the diagrams are two sources for one DFD, and the engineer
+    # may run them in either order, so reading the text stays available after
+    # a diagram draft exists - it merges rather than replaces.
+    from_text_done = draft is not None and any(
+        c.source in ("ai", "text", "text+diagram") for c in draft.components)
     c1, c2, c3 = st.columns(3)
-    if draft is None and c1.button("Generate draft DFD (local AI)", type="primary",
-                                   width="stretch", key="gen_dfd"):
+    if not from_text_done and c1.button(
+            "Read the text into a DFD" if draft is not None
+            else "Generate draft DFD (local AI)",
+            type="primary", width="stretch", key="gen_dfd"):
         from src.system_model import build_extractor_llm, extract_system_model
         with st.spinner("Reading the design once to draft components, zones and flows…"):
             model = extract_system_model(sections, build_extractor_llm(get_config()),
                                          document_name or "design")
-        D.save_draft(D.from_system_model(model.to_dict(), key))
+        from_text = D.from_system_model(model.to_dict(), key)
+        if draft is None:
+            D.save_draft(from_text)
+        else:
+            added_c, added_f = D.merge_draft(draft, from_text)
+            D.save_draft(draft)
+            st.toast(f"From the text: +{added_c} components, +{added_f} flows")
         st.rerun()
     if draft is None and c2.button("Start blank DFD", width="stretch", key="blank_dfd"):
         D.save_draft(D.DFD(document=key))
         st.rerun()
-    if draft is not None and c1.button("Open DFD editor", type="primary", width="stretch",
-                                       key="open_dfd"):
+    if draft is not None and (c2 if not from_text_done else c1).button(
+            "Open DFD editor", type="primary", width="stretch", key="open_dfd"):
         st.switch_page(PAGES["dfd"])
     skip = c3.checkbox("Skip DFD — text review only", key=f"skip_dfd::{key}",
                        help="Runs the standards review without architecture facts and "
@@ -2296,6 +2401,8 @@ def page_review() -> None:
                 )
 
                 document_name = uploaded.name
+
+                st.session_state.document_path = str(tmp)
 
             except Exception as exc:
 

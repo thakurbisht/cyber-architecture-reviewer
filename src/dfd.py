@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -176,6 +176,67 @@ def _unique_id(base: str, taken: set) -> str:
         cid, n = f"{base}-{n}", n + 1
     taken.add(cid)
     return cid
+
+
+def merge_draft(target: DFD, other: DFD) -> Tuple[int, int]:
+    """Fold a second draft into the first, matching components by name.
+
+    The text and the diagrams are two sources for one DFD and the engineer
+    may run them in either order, so neither may overwrite the other. The
+    target keeps every value it already has; the incoming draft can only
+    fill a gap ("unknown") or add something new. Returns what was added.
+    """
+    by_name = {slug(c.name): c for c in target.components}
+    taken = {c.id for c in target.components}
+    id_map: Dict[str, str] = {}
+    added_c = added_f = 0
+
+    for c in other.components:
+        key = slug(c.name)
+        existing = by_name.get(key)
+        if existing is not None:
+            id_map[c.id] = existing.id
+            if existing.zone == "unknown" and c.zone != "unknown":
+                existing.zone = c.zone
+            if existing.kind == "other" and c.kind != "other":
+                existing.kind = c.kind
+            existing.public = existing.public or c.public
+            if existing.source != c.source:
+                existing.source = "text+diagram"
+            continue
+        new = replace(c, id=_unique_id(c.id or key or "c", taken))
+        id_map[c.id] = new.id
+        target.components.append(new)
+        by_name[key] = new
+        added_c += 1
+
+    pairs = {(f.source, f.target) for f in target.flows}
+    for f in other.flows:
+        src, dst = id_map.get(f.source), id_map.get(f.target)
+        if not src or not dst or src == dst:
+            continue
+        existing = next((x for x in target.flows
+                         if (x.source, x.target) == (src, dst)), None)
+        if existing is not None:
+            for name in ("auth", "encrypted"):
+                if getattr(existing, name) == "unknown":
+                    setattr(existing, name, getattr(f, name))
+            existing.protocol = existing.protocol or f.protocol
+            if existing.source_tag != f.source_tag:
+                existing.source_tag = "text+diagram"
+            continue
+        if (src, dst) in pairs:
+            continue
+        pairs.add((src, dst))
+        target.flows.append(replace(f, id=f"f{len(target.flows) + 1}",
+                                    source=src, target=dst))
+        added_f += 1
+
+    used = {c.zone for c in target.components}
+    target.zones = [z for z in ZONE_ORDER
+                    if z in used or z in ("internet", "internal", "unknown")]
+    layout(target)
+    return added_c, added_f
 
 
 def from_system_model(model: Dict[str, Any], document: str) -> DFD:

@@ -139,3 +139,43 @@ def test_prompt_includes_facts_only_when_given():
     s = Section(index=0, heading="Edge", body="Kong API GW routes traffic.", domain="application")
     assert "CONFIRMED ARCHITECTURE FACTS" not in build_section_user("d", s, [], [])
     assert "CONFIRMED ARCHITECTURE FACTS" in build_section_user("d", s, [], [], "- Kong: dmz")
+
+
+def test_merge_draft_folds_a_second_source_in_without_overwriting():
+    a = D.DFD(document="k")
+    a.components = [D.DFDComponent("gw", "API Gateway", kind="service", zone="dmz",
+                                   source="diagram")]
+    a.flows = [D.DFDFlow("f1", "gw", "gw", auth="token", encrypted="unknown",
+                         source_tag="diagram")]
+    b = D.DFD(document="k")
+    b.components = [D.DFDComponent("gw2", "API gateway", kind="other", zone="internal",
+                                   source="ai"),
+                    D.DFDComponent("db", "Orders DB", kind="datastore",
+                                   zone="restricted", source="ai")]
+    b.flows = [D.DFDFlow("fx", "gw2", "db", auth="none", encrypted="no",
+                         source_tag="ai")]
+    added_c, added_f = D.merge_draft(a, b)
+    assert (added_c, added_f) == (1, 1)
+    gw = next(c for c in a.components if c.name == "API Gateway")
+    assert gw.zone == "dmz"                       # the first source wins
+    assert gw.kind == "service" and gw.source == "text+diagram"
+    new_flow = next(f for f in a.flows if f.id != "f1")
+    assert (new_flow.source, new_flow.encrypted) == (gw.id, "no")
+
+
+def test_merge_draft_fills_only_the_gaps_on_a_shared_flow():
+    a = D.DFD(document="k")
+    a.components = [D.DFDComponent("u", "User", zone="internet"),
+                    D.DFDComponent("s", "Service", zone="internal")]
+    a.flows = [D.DFDFlow("f1", "u", "s", auth="unknown", encrypted="yes",
+                         source_tag="diagram")]
+    b = D.DFD(document="k")
+    b.components = [D.DFDComponent("u2", "user", zone="internet"),
+                    D.DFDComponent("s2", "service", zone="internal")]
+    b.flows = [D.DFDFlow("fx", "u2", "s2", auth="oauth", encrypted="no",
+                         protocol="HTTPS", source_tag="ai")]
+    assert D.merge_draft(a, b) == (0, 0)
+    assert a.flows[0].auth == "oauth"             # gap filled
+    assert a.flows[0].encrypted == "yes"          # existing value kept
+    assert a.flows[0].protocol == "HTTPS"
+    assert a.flows[0].source_tag == "text+diagram"

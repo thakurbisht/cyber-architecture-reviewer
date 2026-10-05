@@ -19,6 +19,9 @@ models:
   # A4 verifier: a different model family from the reviewer, so its blind
   # spots differ. Only used when agent.enable_verifier is true.
   verifier: "phi4:14b"
+  # Vision model that reads diagrams into a DFD draft (src/diagram.py).
+  # Must be a model with the "vision" capability (`ollama show <model>`).
+  vision: "gemma3:12b"
 
 retrieval:
   chunk_words: 220            # ~200-250 words keeps one clause per chunk
@@ -56,6 +59,11 @@ agent:
   # System-model extraction + deterministic model rules (src/system_model.py).
   # Off until measured on the golden set.
   enable_system_model: false
+  # Read the diagrams in an uploaded .pdf/.docx into the DFD draft
+  # (src/diagram.py). Diagram facts never become findings on their own -
+  # they go into the draft DFD and the engineer confirms them.
+  enable_diagram_reading: true
+  max_diagrams: 12            # ~15-30s each on one GPU
   verifier_batch_size: 6
 
 domains:
