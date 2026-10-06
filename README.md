@@ -198,6 +198,31 @@ are noise. That is why only rule-matched or verifier/human-confirmed findings
 can turn a design RED, model findings are shown as candidates, and the DFD +
 threat model path relies on an engineer confirming the facts first.
 
+### HLD → LLD consistency
+
+A separate check answers a question neither document's own review asks: the HLD
+committed to a control, so did the detailed design implement it?
+(`src/consistency.py`.) Commitments are extracted from the HLD by deterministic
+pattern, then each one is checked against the LLD sections that speak to it, and
+the model's quote is verified against the LLD text before the verdict is kept.
+
+Measured on `golden/pairs/cp-01`, a fictional HLD/LLD pair with 7 broken
+commitments and 6 the LLD is silent on:
+
+| | |
+|---|---|
+| Commitments extracted from the HLD | 26 |
+| Planted defects that reached the review queue | **12 / 13** |
+| …with the exact verdict (contradicted vs missing) | 11 / 13 |
+| Contradictions flagged on a control with no planted defect | **0** |
+| Time | 78s (≈3s per commitment) |
+
+The one miss is a compound commitment — "secrets are never held in
+configuration files, images **or pipeline variables**" — where the LLD satisfies
+the first half and the model stopped reading. **Caveat, and it is the same one
+as above:** this is a single pair that was written here and tuned against. It
+shows the mechanism works; it is not an independent accuracy measurement.
+
 ---
 
 ## Making it yours

@@ -1,0 +1,71 @@
+{
+  "pair": "cp-01",
+  "hld": "cp-01-hld.md",
+  "lld": "cp-01-lld.md",
+  "note": "Fictional. The LLD deliberately breaks some HLD commitments and is silent on others. 'claim_contains' identifies the HLD sentence; 'lld_contains' is the line that proves the verdict.",
+  "contradicted": [
+    {
+      "control": "transit_encryption",
+      "claim_contains": "TLS 1.3",
+      "lld_contains": "minimum protocol version of TLS 1.2",
+      "why": "HLD mandates TLS 1.3 everywhere; the LLD sets TLS 1.2 and keeps a broker on it."
+    },
+    {
+      "control": "mfa",
+      "claim_contains": "phishing-resistant multi-factor",
+      "lld_contains": "excluded from the conditional access policy",
+      "why": "Break-glass accounts are exempt from the MFA policy the HLD made unconditional."
+    },
+    {
+      "control": "private_access",
+      "claim_contains": "reachable from the internet",
+      "lld_contains": "public network access enabled",
+      "why": "The audit store is public; the HLD said no data-tier component is."
+    },
+    {
+      "control": "data_classification",
+      "claim_contains": "not copied to non-production",
+      "lld_contains": "nightly copy of the production claims database",
+      "why": "Non-production is loaded from production data the HLD classified Restricted."
+    },
+    {
+      "control": "segmentation",
+      "claim_contains": "accepts connections only from the application and integration tiers",
+      "lld_contains": "non-production subscription is peered to the production hub",
+      "why": "Non-production can reach the production data tier."
+    },
+    {
+      "control": "secrets",
+      "claim_contains": "never held in configuration files, images or pipeline variables",
+      "lld_contains": "pipeline's own variable group",
+      "why": "Registry credentials live in a pipeline variable group."
+    },
+    {
+      "control": "logging",
+      "claim_contains": "retained for 18 months",
+      "lld_contains": "90 day retention",
+      "why": "Retention is a fifth of what the HLD committed to."
+    }
+  ],
+  "missing": [
+    {"control": "key_management", "claim_contains": "rotated every 90 days",
+     "why": "The LLD names the key vault but never says keys are rotated."},
+    {"control": "backup_recovery", "claim_contains": "immutable copies",
+     "why": "Backups are geo-redundant but not immutable, and no restore test is described."},
+    {"control": "logging", "claim_contains": "forwarded to the group SIEM",
+     "why": "Logs go to a workspace; nothing forwards them to the SIEM."},
+    {"control": "monitoring_alerting", "claim_contains": "Alerts are raised",
+     "why": "The LLD describes no alerting at all."},
+    {"control": "patching", "claim_contains": "scanned for vulnerabilities",
+     "why": "Images are built and pushed with no scan step."},
+    {"control": "backup_recovery", "claim_contains": "RPO is 15",
+     "why": "The LLD never states RPO or RTO."}
+  ],
+  "implemented": [
+    {"control": "authentication", "claim_contains": "mutual TLS"},
+    {"control": "authorisation", "claim_contains": "no role may both assess"},
+    {"control": "secrets", "claim_contains": "platform secret store"},
+    {"control": "availability", "claim_contains": "active-active"},
+    {"control": "change_control", "claim_contains": "defined as code"}
+  ]
+}
