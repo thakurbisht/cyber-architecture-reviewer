@@ -54,6 +54,19 @@ MAX_IMAGES = 12           # one GPU, ~30s each: a 20-diagram HLD must not hang
 # rendered instead.
 VECTOR_MIN_OPS = 60
 PAGE_ZOOM = 2.0           # render at 2x so 8pt arrow labels stay readable
+# Above this many boxes the model stops reading arrows and starts inventing
+# plausible ones. Measured on generated diagrams with known truth
+# (gemma3:12b), flow precision / recall against the arrows actually drawn:
+#
+#     6-8 boxes     71-100% / 80-100%
+#     14 boxes          43% /     82%      12 invented flows
+#     24 boxes          29% /     50%      a fabricated "Message Broker
+#                                          talks to every datastore" fan-out
+#
+# Boxes themselves stay at 100% all the way up, and the invented flows are
+# plausible, which is the dangerous kind of wrong. So a dense diagram's
+# flows are flagged for the engineer rather than quietly trusted.
+DENSE_COMPONENTS = 10
 
 
 @dataclass
@@ -88,6 +101,11 @@ class DiagramExtraction:
     @property
     def ok(self) -> bool:
         return not self.error and bool(self.components)
+
+    @property
+    def dense(self) -> bool:
+        """Too many boxes to trust the arrows. See DENSE_COMPONENTS."""
+        return len(self.components) >= DENSE_COMPONENTS
 
 
 # ==========================================================================
@@ -280,7 +298,8 @@ _ZONE_SYNONYMS: Tuple[Tuple[str, str], ...] = (
     (r"restricted|data\s*(zone|tier|layer)?$|secure\s*zone|crown|pci|cde|"
      r"card\s*holder", "restricted"),
     (r"cloud|aws|azure|gcp|saas|vpc|subscription|landing\s*zone", "cloud"),
-    (r"internal|corporate|corp|trusted|on[- ]?prem|lan|back[- ]?end|private", "internal"),
+    (r"internal|corporate|corp|trusted|on[- ]?prem|lan|back[- ]?end|private|"
+     r"branch|campus|site|core|plant|factory|office|\bot\b|production", "internal"),
 )
 
 
@@ -375,13 +394,38 @@ def build_vision_caller(model: str, host: str = "http://localhost:11434",
     return call
 
 
+# Arrow labels are the smallest text on a diagram and the first thing lost
+# when a page was exported at screen resolution. Upscaling before the model
+# sees it costs nothing and is the same trick PAGE_ZOOM plays for vector pages.
+UPSCALE_BELOW = 900       # px on the long side
+
+
+def _upscaled(image: DiagramImage) -> bytes:
+    if max(image.width, image.height) >= UPSCALE_BELOW:
+        return image.data
+    try:
+        import io
+
+        from PIL import Image
+
+        factor = UPSCALE_BELOW / max(image.width, image.height, 1)
+        with Image.open(io.BytesIO(image.data)) as im:
+            big = im.convert("RGB").resize(
+                (int(im.width * factor), int(im.height * factor)), Image.LANCZOS)
+            buf = io.BytesIO()
+            big.save(buf, format="PNG")
+            return buf.getvalue()
+    except Exception:  # noqa: BLE001 - send the original rather than fail
+        return image.data
+
+
 def read_diagram(image: DiagramImage, call: Callable[[bytes, str], str],
                  model: str) -> DiagramExtraction:
     """Read one image into the DFD vocabulary. Never raises."""
     out = DiagramExtraction(where=image.where, image_sha=image.sha, model=model)
     started = time.time()
     try:
-        data = parse_response(call(image.data, build_prompt()))
+        data = parse_response(call(_upscaled(image), build_prompt()))
     except Exception as exc:  # noqa: BLE001 - one bad image must not stop the rest
         out.error = str(exc)[:200]
         out.seconds = round(time.time() - started, 1)
@@ -441,14 +485,26 @@ def read_document_diagrams(path: str | Path, call: Callable[[bytes, str], str],
 # Merge into the DFD draft
 # ==========================================================================
 # An arrow label is the only encryption evidence a diagram offers, so read it.
-_CLEAR = re.compile(r"\b(no\s+tls|plain|clear\s*text|cleartext|unencrypted|http(?!s)|"
-                    r"ftp(?!s)|telnet|snmp\s*v?[12])\b", re.I)
-_CRYPT = re.compile(r"\b(https|tls|ssl|mtls|ssh|sftp|ipsec|wireguard|encrypted)\b", re.I)
+#
+# "no TLS", "plain FTP", "telnet": the label states the absence.
+_CLEAR = re.compile(r"\b(no\s+(tls|ssl|encryption)|plain|clear\s*text|cleartext|"
+                    r"unencrypted|in\s+the\s+clear|telnet|snmp\s*v?[12]c?)\b", re.I)
+_CRYPT = re.compile(r"\b(https|tls|ssl|mtls|ssh|sftp|ftps|ipsec|wireguard|encrypted)\b",
+                    re.I)
+# A bare "HTTP" or "FTP" is one character away from "HTTPS" and "FTPS", and
+# that character is small red text on a diagram. Measured: gemma3:12b read
+# an "HTTPS" arrow label as "HTTP", which would have turned an encrypted
+# flow into an unencrypted one - a finding, from one dropped letter. These
+# tokens therefore prove nothing on their own and stay "unknown" for the
+# engineer to settle. An explicit negation above is not ambiguous and stands.
+_OCR_AMBIGUOUS = re.compile(r"^\s*(http|ftp)\s*$", re.I)
 
 
 def _encryption_from_label(label: str, stated: str = "unknown") -> str:
     if stated in ENCRYPTED and stated != "unknown":
         return stated
+    if _OCR_AMBIGUOUS.match(label or ""):
+        return "unknown"
     if _CLEAR.search(label or ""):
         return "no"
     if _CRYPT.search(label or ""):
@@ -600,12 +656,15 @@ def merge_into(dfd: DFD, extractions: Sequence[DiagramExtraction]
             if (src.id, dst.id) in pairs:
                 continue
             pairs.add((src.id, dst.id))
+            note = f": {label}" if label else ""
+            if ex.dense:
+                note += (f" — unverified: {len(ex.components)} boxes on this diagram, "
+                         "at which density the model invents flows")
             dfd.flows.append(DFDFlow(
                 id=f"f{len(dfd.flows) + 1}", source=src.id, target=dst.id,
                 protocol=str(f.get("protocol", "")).strip()[:40] or label[:40],
                 auth=auth, encrypted=encrypted, source_tag="diagram",
-                evidence=f"diagram ({ex.where}): {label}" if label
-                         else f"diagram ({ex.where})"))
+                evidence=f"diagram ({ex.where}){note}"))
             added_f += 1
 
     used = {c.zone for c in dfd.components}

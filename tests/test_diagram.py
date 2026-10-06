@@ -51,6 +51,9 @@ def test_normalise_zone(band, expected):
     ("TLS 1.2", "yes", "TLS 1.2"),
     ("plain FTP", "no", "FTP"),          # it is FTP, and it is not encrypted
     ("no TLS", "no", ""),                # names the missing control, not the protocol
+    ("telnet", "no", "telnet"),
+    ("HTTP", "unknown", "HTTP"),         # one OCR'd character from HTTPS - see below
+    ("FTP", "unknown", "FTP"),
     ("admin", "unknown", ""),
     ("", "unknown", ""),
 ])
@@ -235,3 +238,60 @@ def test_unsupported_formats_yield_no_images(tmp_path):
 ])
 def test_page_furniture_is_not_a_diagram_note(note, kept):
     assert DG._is_diagram_note(note) is kept
+
+
+def test_a_bare_http_label_does_not_prove_a_flow_is_unencrypted():
+    """gemma3:12b read an "HTTPS" arrow label as "HTTP" on the test diagram.
+
+    Trusting that would turn an encrypted flow into a finding on the
+    strength of one dropped letter, so a bare HTTP/FTP stays unknown and
+    the engineer settles it. An explicit negation is not ambiguous.
+    """
+    assert DG._encryption_from_label("HTTP") == "unknown"
+    assert DG._encryption_from_label("http") == "unknown"
+    assert DG._encryption_from_label("HTTPS") == "yes"
+    assert DG._encryption_from_label("plain FTP") == "no"
+    assert DG._encryption_from_label("no TLS") == "no"
+    assert DG._encryption_from_label("HTTP (no TLS)") == "no"
+
+
+def test_a_small_image_is_upscaled_before_the_model_sees_it():
+    from PIL import Image
+    import io
+    buf = io.BytesIO()
+    Image.new("RGB", (400, 260), "white").save(buf, format="PNG")
+    small = DG.DiagramImage("page 1", buf.getvalue(), 400, 260)
+    seen = {}
+
+    def call(data, prompt):
+        with Image.open(io.BytesIO(data)) as im:
+            seen["size"] = im.size
+        return RAW
+
+    DG.read_diagram(small, call, "stub")
+    assert max(seen["size"]) >= DG.UPSCALE_BELOW
+
+
+def test_a_large_image_is_sent_unchanged():
+    big = DG.DiagramImage("page 1", b"png-bytes", 1400, 900)
+    sent = {}
+    DG.read_diagram(big, lambda data, prompt: sent.setdefault("d", data) and RAW, "stub")
+    assert sent["d"] == b"png-bytes"
+
+
+def test_a_dense_diagram_is_flagged_and_its_flows_say_so():
+    ex = DG.DiagramExtraction(where="page 5", image_sha="x", model="stub")
+    ex.components = [{"name": f"Service {i}", "detail": "", "kind": "service",
+                      "zone": "internal"} for i in range(DG.DENSE_COMPONENTS)]
+    ex.flows = [{"source": "Service 0", "target": "Service 1", "label": "",
+                 "protocol": "", "encrypted": "unknown", "auth": "unknown"}]
+    assert ex.dense
+    d = DFD(document="k")
+    DG.merge_into(d, [ex])
+    assert "unverified" in d.flows[0].evidence
+
+
+def test_a_sparse_diagram_is_not_flagged():
+    ex = DG.DiagramExtraction(where="page 1", image_sha="x", model="stub")
+    ex.components = [{"name": "A", "detail": "", "kind": "service", "zone": "internal"}]
+    assert not ex.dense

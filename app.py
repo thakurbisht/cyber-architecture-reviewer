@@ -1726,6 +1726,7 @@ def render_diagram_panel(review_key: str, draft) -> None:
                 "conflicts": [c.__dict__ for c in conflicts],
                 "notes": DG.diagram_notes(extractions),
                 "failed": [e.where for e in extractions if not e.ok],
+                "dense": [e.where for e in extractions if e.ok and e.dense],
             }
             box.update(label=f"Read {len(images)} diagram(s): +{added_c} components, "
                              f"+{added_f} flows, {len(conflicts)} disagreement(s)",
@@ -1738,6 +1739,13 @@ def render_diagram_panel(review_key: str, draft) -> None:
         return
     if done["failed"]:
         st.caption(f"Could not read: {', '.join(done['failed'])}")
+    if done.get("dense"):
+        st.warning(
+            f"**Check every flow from {', '.join(done['dense'])}.** "
+            f"A diagram with more than {DG.DENSE_COMPONENTS} boxes is past the point "
+            "where the model reads arrows reliably — measured, it starts inventing "
+            "plausible ones. The boxes themselves are dependable; the arrows are not.",
+            icon="⚠️")
     if done["conflicts"]:
         with st.expander(f"⚠ The diagram and the text disagree · "
                          f"{len(done['conflicts'])}", expanded=True):

@@ -107,6 +107,23 @@ the prose says TLS 1.3, the arrow says "no TLS" — both are shown and neither i
 overwritten. **A diagram fact never becomes a finding by itself**: it has no text to
 ground an evidence quote against, so it goes into the draft DFD and you confirm it.
 
+Measured against generated diagrams with known ground truth (gemma3:12b, flows scored
+as the source→target pairs actually drawn):
+
+| Diagram | Boxes P / R | Arrows P / R | Zones |
+|---|---|---|---|
+| Clean, 6–8 boxes | 100% / 100% | 71–100% / 80–100% | 100% |
+| Cloud icons instead of boxes | 100% / 100% | 83% / 83% | 100% |
+| Bent, Visio-style connectors | 100% / 100% | 71% / 83% | 100% |
+| Downscaled / low resolution | 100% / 100% | 50% / 60% | 100% |
+| **14 boxes** | 100% / 100% | **43%** / 82% | 100% |
+| **24 boxes** | 100% / 100% | **31%** / 64% | 100% |
+
+**Boxes are dependable; dense arrows are not.** Past about ten boxes the model stops
+reading arrows and starts inventing plausible ones, so those flows are labelled
+*unverified* and the DFD step warns you to check them. Output is stable: three runs of
+the same diagram were byte-identical. Roughly 12–40s per diagram.
+
 **No Ollama yet?** The deterministic layer runs standalone:
 
 ```bash
