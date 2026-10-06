@@ -6,6 +6,7 @@ data/chroma/
 data/reports/
 data/audit/
 data/uploads/
+data/consistency/
 data/regression/
 .pytest_cache/
 .DS_Store

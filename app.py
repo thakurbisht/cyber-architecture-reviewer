@@ -2086,6 +2086,14 @@ def page_queue() -> None:
                       esc=esc, review_key_of=review_key_of, render_questions=render_questions)
 
 
+def page_consistency() -> None:
+    """Did the LLD build what the HLD promised? (consistency_page.py)."""
+    import consistency_page
+    consistency_page.render(
+        section_header=section_header, esc=esc, get_config=get_config,
+        merge_findings=merge_threat_findings if current_result() else None)
+
+
 def page_prelim() -> None:
     """Stage 1 register for stakeholders / Archer (prelim_page.py)."""
     import prelim_page
@@ -2764,6 +2772,8 @@ PAGES = {
                         url_path="dfd"),
     "threats":  st.Page(page_threats, title="Threats", icon=":material/gpp_maybe:",
                         url_path="threats"),
+    "consistency": st.Page(page_consistency, title="HLD vs LLD",
+                           icon=":material/difference:", url_path="consistency"),
     "prelim":   st.Page(page_prelim, title="Prelim report", icon=":material/table_view:",
                         url_path="prelim"),
     "copilot":  st.Page(page_copilot, title="Copilot", icon=":material/forum:", url_path="copilot"),
